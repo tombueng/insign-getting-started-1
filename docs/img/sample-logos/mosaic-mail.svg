@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 2 384 76" width="1152" height="228">
+  <defs>
+    <linearGradient id="msm-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#212121"/>
+      <stop offset="100%" stop-color="#1A1A2E"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon area background -->
+  <rect x="4" y="4" width="72" height="72" rx="12" fill="url(#msm-bg)"/>
+  <!-- Mosaic blocks scaled up -->
+  <rect x="12" y="12" width="20" height="20" rx="3" fill="#F44336"/>
+  <rect x="35" y="12" width="13" height="20" rx="3" fill="#2196F3"/>
+  <rect x="51" y="12" width="10" height="12" rx="2" fill="#FFC107"/>
+  <rect x="51" y="27" width="10" height="11" rx="2" fill="#9C27B0"/>
+  <rect x="12" y="35" width="13" height="13" rx="3" fill="#4CAF50"/>
+  <rect x="28" y="35" width="20" height="13" rx="3" fill="#FFC107"/>
+  <rect x="51" y="41" width="10" height="13" rx="2" fill="#F44336"/>
+  <rect x="12" y="51" width="10" height="10" rx="2" fill="#9C27B0"/>
+  <rect x="25" y="51" width="14" height="10" rx="2" fill="#2196F3"/>
+  <rect x="42" y="57" width="19" height="7" rx="2" fill="#4CAF50"/>
+  <!-- Company name with alternating colors -->
+  <text x="102" y="38" font-family="'Segoe UI',system-ui,sans-serif" font-size="28" font-weight="700" letter-spacing="1">
+    <tspan fill="#F44336">M</tspan><tspan fill="#2196F3">o</tspan><tspan fill="#4CAF50">s</tspan><tspan fill="#FFC107">a</tspan><tspan fill="#9C27B0">i</tspan><tspan fill="#F44336">c</tspan>
+    <tspan fill="#2196F3" dx="6">L</tspan><tspan fill="#4CAF50">a</tspan><tspan fill="#FFC107">b</tspan><tspan fill="#9C27B0">s</tspan>
+  </text>
+  <!-- Tagline -->
+  <text x="102" y="58" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#90A4AE" letter-spacing="0.5">
+    Research · Innovation · Technology Transfer
+  </text>
+</svg>
