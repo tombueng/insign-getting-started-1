@@ -2808,6 +2808,9 @@
         const css = generateBrandCSS(primary, accent, dark, error);
         const preview = document.getElementById('brand-css-preview');
         if (preview) preview.value = css;
+
+        // Auto-apply to JSON body
+        applyBrandingCSS();
     }
 
     function applyBrandingCSS() {
