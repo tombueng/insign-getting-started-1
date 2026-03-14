@@ -647,11 +647,8 @@
         // Include webhook URL if available
         if (state.webhookUrl) {
             body.serverSidecallbackURL = state.webhookUrl;
-            // smee.io requires POST callbacks
-            const provider = WEBHOOK_PROVIDERS[state.webhookProvider];
-            if (provider && provider.postOnly) {
-                body.serversideCallbackMethod = 'POST';
-            }
+            body.serversideCallbackMethod = 'POST';
+            body.serversideCallbackContenttype = 'JSON';
         }
 
         return body;
@@ -938,9 +935,12 @@
                     if (typeof body === 'object') {
                         if ($webhooksToggle.is(':checked') && state.webhookUrl) {
                             body.serverSidecallbackURL = state.webhookUrl;
+                            body.serversideCallbackMethod = 'POST';
+                            body.serversideCallbackContenttype = 'JSON';
                         } else {
                             delete body.serverSidecallbackURL;
                             delete body.serversideCallbackMethod;
+                            delete body.serversideCallbackContenttype;
                         }
                         setEditorValue('create-session', body);
                     }
@@ -2332,6 +2332,8 @@
                 const body = getEditorValue('create-session');
                 if (typeof body === 'object') {
                     body.serverSidecallbackURL = customUrl;
+                    body.serversideCallbackMethod = 'POST';
+                    body.serversideCallbackContenttype = 'JSON';
                     setEditorValue('create-session', body);
                 }
             }
@@ -2360,10 +2362,8 @@
                 const body = getEditorValue('create-session');
                 if (typeof body === 'object') {
                     body.serverSidecallbackURL = url;
-                    const provider = WEBHOOK_PROVIDERS[state.webhookProvider];
-                    if (provider && provider.postOnly) {
-                        body.serversideCallbackMethod = 'POST';
-                    }
+                    body.serversideCallbackMethod = 'POST';
+                    body.serversideCallbackContenttype = 'JSON';
                     setEditorValue('create-session', body);
                 }
             }
