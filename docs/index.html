@@ -666,6 +666,16 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern-info" type="button">
+                            <i class="bi bi-info-square"></i> Extern Info
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-send-reminder" type="button">
+                            <i class="bi bi-bell"></i> Send Reminder
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-finish" type="button">
                             <i class="bi bi-check-circle"></i> Finish
                         </button>
@@ -1076,6 +1086,66 @@
                         </div>
                     </div>
 
+
+                    <!-- Extern Info -->
+                    <div class="tab-pane fade" id="op-extern-info" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/externInfos</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">External signing info</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns additional status information about a session that is currently in external signing state, including per-user progress and link status.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="extern-info"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-extern-info"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('extern-info')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="extern-info">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="extern-info"></div>
+                                        <div class="editor-container" id="editor-op-extern-info-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Send Manual Reminder -->
+                    <div class="tab-pane fade" id="op-send-reminder" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/load/sendManualReminder</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Send manual reminder</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Manually sends a reminder notification (email/SMS) to all pending external signers of this session.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="send-reminder"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-send-reminder"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('send-reminder')">
+                                        <i class="bi bi-bell"></i> Send Reminder
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="send-reminder">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="send-reminder"></div>
+                                        <div class="editor-container" id="editor-op-send-reminder-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Finish -->
                     <div class="tab-pane fade" id="op-finish" role="tabpanel">

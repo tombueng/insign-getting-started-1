@@ -804,6 +804,16 @@
             getBody: getSessionIdBody,
             schemaKey: 'sessionIDInput'
         },
+        'send-reminder': {
+            method: 'POST', path: '/load/sendManualReminder',
+            getBody: getSessionIdBody,
+            schemaKey: 'sessionIDInput'
+        },
+        'extern-info': {
+            method: 'POST', path: '/get/externInfos',
+            getBody: getSessionIdBody,
+            schemaKey: 'sessionIDInput'
+        },
         'version': {
             method: 'GET', path: '/version', accept: '*/*',
             getBody: null,
