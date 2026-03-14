@@ -2680,14 +2680,18 @@
     // =====================================================================
 
     const COLOR_SCHEMES = [
-        { name: 'inSign Default', colors: { primary: '#0165BC', accent: '#E48803', dark: '#2C2C2C', error: '#BD2318' } },
-        { name: 'Ocean Blue', colors: { primary: '#1565C0', accent: '#00ACC1', dark: '#1B2838', error: '#C62828' } },
-        { name: 'Forest', colors: { primary: '#2E7D32', accent: '#F9A825', dark: '#1B2F1B', error: '#C62828' } },
-        { name: 'Corporate Red', colors: { primary: '#B71C1C', accent: '#FF8F00', dark: '#212121', error: '#B71C1C' } },
-        { name: 'Royal Purple', colors: { primary: '#6A1B9A', accent: '#00ACC1', dark: '#1A1A2E', error: '#C62828' } },
-        { name: 'Teal Mint', colors: { primary: '#00796B', accent: '#FF6F00', dark: '#263238', error: '#D32F2F' } },
-        { name: 'Sunset Orange', colors: { primary: '#E65100', accent: '#1565C0', dark: '#3E2723', error: '#B71C1C' } },
-        { name: 'Slate Gray', colors: { primary: '#455A64', accent: '#FFA000', dark: '#263238', error: '#C62828' } },
+        { name: 'ACME Corp',       colors: { primary: '#0D47A1', accent: '#42A5F5', dark: '#1B2838', error: '#C62828' } },
+        { name: 'GreenLeaf',       colors: { primary: '#1B5E20', accent: '#66BB6A', dark: '#1B2F1B', error: '#C62828' } },
+        { name: 'NOVA Finance',    colors: { primary: '#B71C1C', accent: '#EF5350', dark: '#212121', error: '#B71C1C' } },
+        { name: 'BluePrint',       colors: { primary: '#37474F', accent: '#78909C', dark: '#263238', error: '#C62828' } },
+        { name: 'SOLIS Tech',      colors: { primary: '#E65100', accent: '#FFB74D', dark: '#1A1A2E', error: '#BF360C' } },
+        { name: 'Sentinel Ins.',   colors: { primary: '#1A237E', accent: '#FFD600', dark: '#0D1457', error: '#C62828' } },
+        { name: 'Aegis Life',      colors: { primary: '#00695C', accent: '#80CBC4', dark: '#004D40', error: '#D32F2F' } },
+        { name: 'Harbor Re',       colors: { primary: '#880E4F', accent: '#F48FB1', dark: '#6A0039', error: '#C62828' } },
+        { name: 'Apex Assurance',  colors: { primary: '#4A148C', accent: '#CE93D8', dark: '#311B92', error: '#C62828' } },
+        { name: 'Prism Digital',   colors: { primary: '#2979FF', accent: '#FF9100', dark: '#1A1A2E', error: '#FF1744' } },
+        { name: 'Mosaic Labs',     colors: { primary: '#2196F3', accent: '#FFC107', dark: '#212121', error: '#F44336' } },
+        { name: 'Nexus Group',     colors: { primary: '#E91E63', accent: '#00BCD4', dark: '#1A1A2E', error: '#FF5722' } },
     ];
 
     /** Derive lighter/darker variants from a hex color */
