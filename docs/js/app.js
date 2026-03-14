@@ -2892,10 +2892,6 @@
 
     // Logo sets: each set has icon (30x30), mail (120x60), login (314x100)
     const LOGO_SETS = [
-        { name: 'inSign Default', prefix: null,
-          icon: 'https://app.getinsign.de/resstart/img/insign_logo_editor_desktop.png',
-          mail: 'https://app.getinsign.de/resstart/img/logo-insign.svg',
-          login: 'https://app.getinsign.de/resstart/img/logo-insign.svg' },
         { name: 'ACME Corp', prefix: 'acme' },
         { name: 'GreenLeaf', prefix: 'greenleaf' },
         { name: 'NOVA Finance', prefix: 'nova' },
@@ -2904,7 +2900,6 @@
     ];
 
     function getLogoSrc(set, variant) {
-        if (set.prefix === null) return set[variant]; // inSign default uses direct URLs
         return `img/sample-logos/${set.prefix}-${variant}.svg`;
     }
 
@@ -2949,9 +2944,9 @@
         // Highlight active card (index+1 because first card is Default)
         document.querySelectorAll('.logo-set-card').forEach((c, j) => c.classList.toggle('active', j === index + 1));
 
-        const iconUrl = set.prefix === null ? set.icon : buildAbsoluteUrl(getLogoSrc(set, 'icon'));
-        const mailUrl = set.prefix === null ? set.mail : buildAbsoluteUrl(getLogoSrc(set, 'mail'));
-        const loginUrl = set.prefix === null ? set.login : buildAbsoluteUrl(getLogoSrc(set, 'login'));
+        const iconUrl = buildAbsoluteUrl(getLogoSrc(set, 'icon'));
+        const mailUrl = buildAbsoluteUrl(getLogoSrc(set, 'mail'));
+        const loginUrl = buildAbsoluteUrl(getLogoSrc(set, 'login'));
 
         // Apply to JSON body
         if (!state.editors['create-session']) return;
