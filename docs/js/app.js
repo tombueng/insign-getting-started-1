@@ -2393,7 +2393,7 @@
     function startStatusPolling() {
         stopStatusPolling();
         pollNow();
-        _pollInterval = setInterval(pollNow, 5000);
+        _pollInterval = setInterval(pollNow, 15000);
         startCountdownAnimation();
         updatePollingToggleButton(true);
     }
@@ -2429,7 +2429,7 @@
 
         function animate() {
             const elapsed = Date.now() - _pollCountdownStart;
-            const pct = Math.max(0, 100 - (elapsed / 5000) * 100);
+            const pct = Math.max(0, 100 - (elapsed / 15000) * 100);
             $bar.css('transition', 'none');
             $bar.css('width', pct + '%');
             if (pct > 0 && _pollInterval) {
@@ -2459,8 +2459,10 @@
 
             if ($statusText.length) $statusText.text('Last poll: ' + new Date().toLocaleTimeString());
 
-            // Detect and display changes
-            if (_lastPollBody !== null && typeof body === 'object') {
+            // First poll: show full status; subsequent polls: show diffs
+            if (_lastPollBody === null && typeof body === 'object') {
+                addPollFullCard(body);
+            } else if (_lastPollBody !== null && typeof body === 'object') {
                 const diffs = jsonDiff(_lastPollBody, body);
                 if (diffs.length > 0) {
                     addPollChangeCard(diffs);
@@ -2528,6 +2530,29 @@
         return String(val);
     }
 
+    function addPollFullCard(body) {
+        const $container = $('#polling-changes');
+        if (!$container.length) return;
+        $container.find('.text-center').remove();
+
+        const time = new Date().toLocaleTimeString();
+        const json = JSON.stringify(body, null, 2);
+
+        const $card = $('<div>');
+        $card.addClass('webhook-entry');
+        $card.html(`
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>
+                    <span class="webhook-method">STATUS</span>
+                    <span class="webhook-time ms-2">${time}</span>
+                </span>
+                <span class="badge bg-info" style="font-size:0.65rem">initial</span>
+            </div>
+            <pre style="font-size:0.7rem;margin:0;max-height:300px;overflow:auto;background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all">${escapeHtml(json)}</pre>
+        `);
+        $container.prepend($card);
+    }
+
     function addPollChangeCard(diffs) {
         const $container = $('#polling-changes');
         if (!$container.length) return;
@@ -2552,7 +2577,7 @@
                 valueHtml = `<span style="color:#ff9999;text-decoration:line-through">${escapeHtml(formatDiffValue(d.oldVal))}</span>`;
             }
 
-            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace" title="${escapeHtml(d.path)}: ${escapeHtml(formatDiffValue(d.oldVal))} → ${escapeHtml(formatDiffValue(d.newVal))}">` +
+            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};word-break:break-all;font-family:monospace">` +
                 `<span style="display:inline-block;min-width:14px;text-align:center;font-weight:700;color:${textColor}">${label}</span> ` +
                 `<span style="color:#79b8ff">${escapeHtml(d.path)}</span> ` +
                 valueHtml +
