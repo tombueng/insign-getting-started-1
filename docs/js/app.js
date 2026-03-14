@@ -652,9 +652,7 @@
             foruser: owner.foruser,
             userFullName: owner.userFullName,
             documents: [doc],
-            callbackURL: getCallbackUrl(),
-            externEmailBetreff: '',
-            externEmailInhalt: ''
+            callbackURL: getCallbackUrl()
         };
 
         if (owner.userEmail) {
@@ -904,7 +902,6 @@
                 const body = getEditorValue('create-session');
                 if (typeof body === 'object') {
                     body.displayname = getSessionDisplayName();
-                    body.externEmailBetreff = '';
                     setEditorValue('create-session', body);
                 }
             }
