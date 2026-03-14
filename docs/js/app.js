@@ -1145,6 +1145,9 @@
                 }
             }
 
+            // Free request editor with default sessionid body
+            createEditor('op-free', getSessionIdBody(), null);
+
             // Sync extern option buttons when user edits the extern JSON
             if (state.editors['op-extern']) {
                 state.editors['op-extern'].onDidChangeModelContent(() => {
@@ -1699,6 +1702,49 @@
         }
 
         // Update code snippets
+        updateCodeSnippets();
+    }
+
+    // =====================================================================
+    // Free Request
+    // =====================================================================
+
+    async function executeFreeRequest() {
+        const method = $('#free-method').val() || 'POST';
+        const endpoint = $('#free-endpoint').val() || '/';
+        const contentType = $('#free-content-type').val() || 'application/json';
+        const accept = $('#free-accept').val() || 'application/json';
+
+        let body = null;
+        if (method !== 'GET' && state.editors['op-free']) {
+            body = getEditorValue('op-free');
+        }
+
+        const result = await state.apiClient.call(method, endpoint, {
+            body,
+            contentType,
+            accept
+        });
+
+        state.lastRequest = { method, path: endpoint, body };
+
+        const $responseDiv = $(`.op-response[data-op="free"]`);
+        if ($responseDiv.length) $responseDiv.removeClass('d-none');
+
+        const $statusEl = $(`.response-status[data-op="free"]`);
+        if ($statusEl.length) {
+            $statusEl.attr('class', 'response-status ' + (result.ok ? 'success' : 'error'));
+            $statusEl.html(`
+                <strong>${result.status}</strong> ${result.statusText}
+                <span class="ms-auto text-muted-sm">${result.duration}ms</span>
+            `);
+        }
+
+        const $responseEditorContainer = $('#editor-op-free-response');
+        if ($responseEditorContainer.length) {
+            showResponseEditor('op-free', result.body);
+        }
+
         updateCodeSnippets();
     }
 
@@ -3092,6 +3138,7 @@
         openInSign,
         openSessionManager,
         executeOperation,
+        executeFreeRequest,
         executeExtern,
         executeDownload,
         executeDocumentSingle,
