@@ -39,7 +39,7 @@ The **API Explorer** is a browser-based tool that lets you interact with the inS
 
 ### 1. Open the API Explorer
 
-Visit the [Interactive Demo](./docs/index.html) in your browser. Sandbox credentials are pre-filled.
+Visit the [Interactive Demo](https://getinsign.github.io/insign-getting-started/) in your browser. Sandbox credentials are pre-filled.
 
 ### 2. Create a Session
 
