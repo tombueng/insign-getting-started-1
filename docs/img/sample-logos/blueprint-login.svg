@@ -1,10 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 314 100" width="314" height="100">
-  <rect x="15" y="24" width="40" height="56" rx="5" ry="5" fill="#78909C"/>
-  <rect x="28" y="14" width="40" height="56" rx="5" ry="5" fill="#37474F"/>
-  <line x1="34" y1="28" x2="58" y2="28" stroke="#78909C" stroke-width="2"/>
-  <line x1="34" y1="36" x2="54" y2="36" stroke="#78909C" stroke-width="2"/>
-  <line x1="34" y1="44" x2="58" y2="44" stroke="#78909C" stroke-width="2"/>
-  <text x="82" y="48" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="30" fill="#37474F">BluePrint</text>
-  <line x1="82" y1="55" x2="250" y2="55" stroke="#78909C" stroke-width="2"/>
-  <text x="82" y="72" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#78909C">Architecture &amp; Design</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150" width="1200" height="450">
+  <defs>
+    <linearGradient id="blg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#546E7A"/>
+      <stop offset="100%" stop-color="#263238"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="18" width="100" height="108" rx="20" fill="url(#blg)"/>
+  <rect x="30" y="32" width="42" height="58" rx="5" fill="none" stroke="#90A4AE" stroke-width="2.5"/>
+  <rect x="46" y="24" width="42" height="58" rx="5" fill="#455A64"/>
+  <line x1="54" y1="36" x2="78" y2="36" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"/>
+  <line x1="54" y1="44" x2="72" y2="44" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"/>
+  <line x1="54" y1="52" x2="78" y2="52" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"/>
+  <line x1="54" y1="60" x2="68" y2="60" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"/>
+  <line x1="54" y1="68" x2="76" y2="68" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="82" cy="94" r="20" fill="#78909C" stroke="#263238" stroke-width="2"/>
+  <path d="M72 94 L77 84 L82 94 L87 86" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="136" y="66" font-family="'Segoe UI',system-ui,sans-serif" font-weight="700" font-size="48" fill="#37474F" letter-spacing="-1">BluePrint</text>
+  <text x="136" y="92" font-family="'Segoe UI',system-ui,sans-serif" font-weight="300" font-size="18" fill="#78909C" letter-spacing="4">DESIGN STUDIO</text>
+  <line x1="136" y1="102" x2="370" y2="102" stroke="#B0BEC5" stroke-width="2" opacity="0.5"/>
+  <text x="136" y="120" font-family="'Segoe UI',system-ui,sans-serif" font-weight="400" font-size="12" fill="#90A4AE">Architecture · Engineering · Digital Planning</text>
 </svg>
