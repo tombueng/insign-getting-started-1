@@ -648,7 +648,7 @@
         if (state.webhookUrl) {
             body.serverSidecallbackURL = state.webhookUrl;
             body.serversideCallbackMethod = 'POST';
-            body.serversideCallbackContenttype = 'JSON';
+            body.serversideCallbackContenttype = 'json';
         }
 
         return body;
@@ -936,7 +936,7 @@
                         if ($webhooksToggle.is(':checked') && state.webhookUrl) {
                             body.serverSidecallbackURL = state.webhookUrl;
                             body.serversideCallbackMethod = 'POST';
-                            body.serversideCallbackContenttype = 'JSON';
+                            body.serversideCallbackContenttype = 'json';
                         } else {
                             delete body.serverSidecallbackURL;
                             delete body.serversideCallbackMethod;
@@ -2333,7 +2333,7 @@
                 if (typeof body === 'object') {
                     body.serverSidecallbackURL = customUrl;
                     body.serversideCallbackMethod = 'POST';
-                    body.serversideCallbackContenttype = 'JSON';
+                    body.serversideCallbackContenttype = 'json';
                     setEditorValue('create-session', body);
                 }
             }
@@ -2363,7 +2363,7 @@
                 if (typeof body === 'object') {
                     body.serverSidecallbackURL = url;
                     body.serversideCallbackMethod = 'POST';
-                    body.serversideCallbackContenttype = 'JSON';
+                    body.serversideCallbackContenttype = 'json';
                     setEditorValue('create-session', body);
                 }
             }
