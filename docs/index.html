@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>inSign API Explorer — Interactive Getting Started</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom styles -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ====================================================================
+     NAVBAR
+     ==================================================================== -->
+<nav class="navbar navbar-insign">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <img src="https://www.getinsign.com/wp-content/uploads/inSign_blank-1.svg" alt="inSign" onerror="this.src='../DEV/inSign_logo.svg'">
+            <span>API Explorer</span>
+            <span class="badge-version">Sandbox</span>
+        </a>
+
+        <!-- Step navigation in navbar -->
+        <div class="step-indicator" id="navbar-steps">
+            <div class="step active" data-step="1" onclick="window.app.goToStep(1)">
+                <span class="step-number">1</span>
+                Create Session
+            </div>
+            <div class="step" data-step="2" onclick="window.app.goToStep(2)">
+                <span class="step-number">2</span>
+                Operate &amp; Trace
+            </div>
+            <div class="step" data-step="3" onclick="window.app.goToStep(3)">
+                <span class="step-number">3</span>
+                Code Snippets
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Session ID in top bar -->
+            <div class="d-none align-items-center gap-1" id="navbar-session" style="font-size:0.78rem">
+                <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
+                <input type="text" class="form-control form-control-sm" id="navbar-session-id"
+                       placeholder="No session"
+                       style="width:240px;font-family:'Roboto Mono',monospace;font-size:0.75rem;padding:2px 6px;height:28px"
+                       onchange="window.app.applyNavbarSessionId()">
+                <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID" style="padding:2px 6px;height:28px">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+                <button class="btn btn-insign btn-insign-sm btn-insign-cta d-none" id="navbar-btn-open" onclick="window.app.openInSign()" title="Open in inSign" style="padding:2px 8px;height:28px">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>
+            </div>
+            <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" target="_blank"
+               class="btn btn-insign btn-insign-sm btn-insign-outline">
+                <i class="bi bi-book"></i> Swagger
+            </a>
+            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.toggleDarkMode()" title="Toggle dark mode" id="btn-dark-mode">
+                <i class="bi bi-moon"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- ====================================================================
+     MAIN CONTENT
+     ==================================================================== -->
+<div class="container-fluid py-3">
+    <div class="row g-3">
+
+        <!-- ============================================================
+             SIDEBAR — switches between Step 1 and Step 2 content
+             ============================================================ -->
+        <div class="col-lg-3 col-md-4">
+
+            <!-- ===== Sidebar for Step 1: Connection Settings ===== -->
+            <div class="sidebar" id="sidebar-step1">
+                <h6><i class="bi bi-gear"></i> Connection Settings</h6>
+
+                <div class="mb-2">
+                    <label class="form-label" for="cfg-base-url">API Base URL</label>
+                    <input type="text" class="form-control" id="cfg-base-url"
+                           value="https://sandbox.test.getinsign.show">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="cfg-username">Username</label>
+                    <input type="text" class="form-control" id="cfg-username" value="controller">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" for="cfg-password">Password</label>
+                    <input type="password" class="form-control" id="cfg-password" value="pwd.insign.sandbox.4561">
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="cfg-save-credentials">
+                    <label class="form-check-label" for="cfg-save-credentials" style="font-size:0.78rem">
+                        Remember URL &amp; credentials
+                    </label>
+                </div>
+
+                <hr>
+
+                <div class="d-flex gap-3 mb-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfg-cors-proxy">
+                        <label class="form-check-label" for="cfg-cors-proxy" style="font-size:0.82rem">
+                            CORS proxy
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfg-webhooks" checked>
+                        <label class="form-check-label" for="cfg-webhooks" style="font-size:0.82rem">
+                            Webhooks
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-2" id="cors-proxy-url-group" style="display:none">
+                    <label class="form-label" for="cfg-cors-proxy-url">Proxy URL</label>
+                    <input type="text" class="form-control" id="cfg-cors-proxy-url"
+                           value="https://corsproxy.io/?">
+                </div>
+
+                <!-- Webhook provider selector (shown when webhooks enabled) -->
+                <div id="webhook-provider-group" class="mb-2">
+                    <label class="form-label" style="font-size:0.82rem">Webhook Provider</label>
+                    <select class="form-select form-select-sm" id="cfg-webhook-provider" onchange="window.app.setWebhookProvider(this.value)">
+                        <option value="webhook.site" selected>webhook.site (auto, poll)</option>
+                        <option value="smee">smee.io (SSE real-time)</option>
+                        <option value="postbin">postb.in / Toptal (poll)</option>
+                        <option value="ntfy">ntfy.sh (SSE, creative abuse)</option>
+                        <option value="cfworker">CF Worker (self-deploy)</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
+                    <div id="webhook-custom-url-group" style="display:none" class="mt-1">
+                        <input type="text" class="form-control form-control-sm" id="cfg-webhook-custom-url"
+                               placeholder="https://your-endpoint.example.com/webhook"
+                               onchange="window.app.setWebhookProvider('custom')">
+                    </div>
+                    <div class="text-muted-sm mt-1" id="webhook-provider-hint" style="font-size:0.7rem">
+                        <i class="bi bi-info-circle"></i> Real-time via SSE. POST callbacks only.
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6 class="mt-3">
+                    <i class="bi bi-file-earmark-pdf"></i> Test Document
+                    <button class="btn btn-insign btn-insign-sm btn-insign-outline float-end" onclick="window.app.previewDocument()" title="Preview selected document" style="padding:1px 8px;font-size:0.72rem">
+                        <i class="bi bi-eye"></i> Preview
+                    </button>
+                </h6>
+                <div class="doc-selector flex-column" id="doc-selector">
+                    <!-- populated by app.js from DOCUMENTS catalog -->
+                </div>
+
+                <!-- Custom file input (shown when "Your Own File" is selected) -->
+                <div id="custom-file-group" class="mt-2" style="display:none">
+                    <input type="file" class="form-control form-control-sm" id="custom-file-input" accept=".pdf" onchange="window.app.onCustomFileSelected(this)">
+                    <div class="text-muted-sm mt-1" id="custom-file-info"></div>
+                </div>
+
+                <h6 class="mt-3"><i class="bi bi-arrow-left-right"></i> File Delivery</h6>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="radio" name="fileDelivery" id="fd-base64" value="base64" checked onchange="window.app.setFileDelivery('base64')">
+                    <label class="form-check-label" for="fd-base64" style="font-size:0.82rem">
+                        Base64 embed <span class="text-muted-sm">(in JSON body)</span>
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="radio" name="fileDelivery" id="fd-upload" value="upload" onchange="window.app.setFileDelivery('upload')">
+                    <label class="form-check-label" for="fd-upload" style="font-size:0.82rem">
+                        Upload after create <span class="text-muted-sm">(separate call)</span>
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="radio" name="fileDelivery" id="fd-url" value="url" onchange="window.app.setFileDelivery('url')">
+                    <label class="form-check-label" for="fd-url" style="font-size:0.82rem">
+                        URL reference <span class="text-muted-sm">(server fetches)</span>
+                    </label>
+                </div>
+                <div class="text-muted-sm mt-1" id="file-delivery-hint">
+                    <i class="bi bi-info-circle"></i> File is fetched in your browser and sent as base64 inside the JSON request.
+                </div>
+
+                <hr>
+
+                <div class="trust-hint">
+                    <i class="bi bi-shield-lock" style="color:var(--insign-success);font-size:1.1rem"></i>
+                    <div>
+                        <strong>Your credentials are safe</strong>
+                        <div class="text-muted-sm">Sent only to the inSign server above. Nothing is stored or transmitted to any third party. This app runs entirely in your browser.</div>
+                        <div class="text-mono text-muted-sm mt-1" id="trust-target-url" style="font-size:0.72rem"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== Sidebar for Step 2: Webhook Viewer + Status Polling ===== -->
+            <div class="sidebar d-none" id="sidebar-step2">
+
+                <!-- Webhooks section -->
+                <div id="sidebar-webhook-mode" class="mb-3">
+                    <h6 class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-broadcast" style="color:var(--insign-orange)"></i> Webhooks
+                        <span class="badge bg-success ms-1" style="font-size:0.6rem;vertical-align:middle" id="webhook-live-badge">live</span>
+                        <div class="form-check form-switch ms-auto mb-0">
+                            <input class="form-check-input" type="checkbox" id="sidebar-webhooks-toggle" checked
+                                   onchange="window.app.toggleWebhookSection(this.checked)">
+                        </div>
+                    </h6>
+                    <div id="sidebar-webhook-content">
+                        <div id="sidebar-webhook-container">
+                            <div class="webhook-url-section mb-2">
+                                <div class="text-center text-muted-sm py-2">
+                                    <span class="spinner-insign spinner-dark me-2"></span>
+                                    Creating endpoint...
+                                </div>
+                            </div>
+                            <div class="webhook-requests webhook-panel" style="max-height:300px;overflow-y:auto">
+                                <div class="text-center text-muted-sm py-3">
+                                    <i class="bi bi-hourglass-split"></i> Waiting for webhooks...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Polling section -->
+                <div id="sidebar-polling-mode">
+                    <h6 class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-arrow-repeat" style="color:var(--insign-blue)"></i> Status Polling
+                        <div class="form-check form-switch ms-auto mb-0">
+                            <input class="form-check-input" type="checkbox" id="sidebar-polling-toggle"
+                                   onchange="window.app.togglePollingSection(this.checked)">
+                        </div>
+                    </h6>
+                    <div id="sidebar-polling-content" style="display:none">
+                        <div class="text-muted-sm mb-2" style="font-size:0.75rem">
+                            Polling <code>/get/status</code> every 5s for changes.
+                        </div>
+                        <!-- Countdown bar -->
+                        <div class="polling-countdown mb-2" style="height:3px;background:var(--insign-border);border-radius:2px;overflow:hidden">
+                            <div id="polling-countdown-bar" style="height:100%;width:100%;background:var(--insign-blue);transition:width 5s linear"></div>
+                        </div>
+                        <div class="d-flex gap-2 mb-2 align-items-center">
+                            <button class="btn btn-insign btn-insign-sm" id="btn-polling-toggle" onclick="window.app.togglePolling()">
+                                <i class="bi bi-pause-fill"></i> Pause
+                            </button>
+                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.pollNow()">
+                                <i class="bi bi-arrow-clockwise"></i> Poll Now
+                            </button>
+                            <span class="text-muted-sm" id="polling-status-text" style="font-size:0.72rem"></span>
+                        </div>
+                        <div id="polling-changes" style="max-height:300px;overflow-y:auto">
+                            <div class="text-center text-muted-sm py-3">
+                                <i class="bi bi-hourglass-split"></i> Waiting for status changes...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================
+             MAIN AREA
+             ============================================================ -->
+        <div class="col-lg-9 col-md-8">
+
+            <!-- ==========================================================
+                 STEP 1 — Create Session
+                 ========================================================== -->
+            <div id="step-1-panel">
+                <div class="card-insign">
+                    <div class="card-header">
+                        <span class="badge-method badge-method-post">POST</span>
+                        <span class="endpoint-path">/configure/session</span>
+                        <h5 class="ms-auto mb-0" style="font-size:0.9rem">Create a signing session</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted-sm mb-3">
+                            Creates a new session with document metadata. Use <code>&lt;filedata&gt;</code> as placeholder
+                            — the file is loaded automatically before sending based on your delivery method (base64 embed, upload, or URL).
+                        </p>
+
+                        <!-- Headers -->
+                        <div class="section-title">Request Headers</div>
+                        <div class="headers-display mb-3" id="step1-headers"></div>
+
+                        <!-- Feature Configurator (visual toggles that modify the JSON) -->
+                        <div class="feature-configurator-box mb-3">
+                            <div class="feature-configurator-header" data-bs-toggle="collapse" data-bs-target="#feature-configurator">
+                                <div class="feature-configurator-title">
+                                    <i class="bi bi-sliders"></i> Session Feature Configurator
+                                </div>
+                                <div class="feature-configurator-subtitle">
+                                    Configure UI behavior, signing devices, form editing, external signing and more.
+                                    Toggle properties visually — only non-default values are included in the JSON request body.
+                                </div>
+                                <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                            </div>
+                            <div class="collapse" id="feature-configurator">
+                                <div class="feature-panel p-3">
+                                    <div class="text-muted-sm mb-2">
+                                        <i class="bi bi-info-circle"></i>
+                                        <strong>Default</strong> = uses the server-configured value (property omitted from JSON).
+                                        Only <strong>On</strong>/<strong>Off</strong> values are sent in the request.
+                                        Hover over a toggle to see its description; click <i class="bi bi-info-circle"></i> to pin it.
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text" style="font-size:0.78rem"><i class="bi bi-search"></i></span>
+                                            <input type="text" class="form-control" id="feature-search" placeholder="Search features by name, key, property, or description..."
+                                                   style="font-size:0.78rem" oninput="window.app.filterFeatures(this.value)">
+                                            <button class="btn btn-outline-secondary" type="button" id="feature-search-clear"
+                                                    style="font-size:0.72rem;display:none" onclick="document.getElementById('feature-search').value='';window.app.filterFeatures('');">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                        <div id="feature-search-count" class="text-muted" style="font-size:0.68rem;margin-top:2px;display:none"></div>
+                                    </div>
+                                    <div id="feature-toggles">
+                                        <!-- populated by app.js -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Branding & CSS Customizer -->
+                        <div class="feature-configurator-box mb-3">
+                            <div class="feature-configurator-header" data-bs-toggle="collapse" data-bs-target="#branding-configurator">
+                                <div class="feature-configurator-title">
+                                    <i class="bi bi-palette"></i> Branding &amp; CSS Customizer
+                                </div>
+                                <div class="feature-configurator-subtitle">
+                                    Customize colors, logos, and email branding. Choose a color scheme or pick your own colors —
+                                    the CSS is generated from the inSign farbpalette template and injected via <code>externalPropertiesURL</code>.
+                                </div>
+                                <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                            </div>
+                            <div class="collapse" id="branding-configurator">
+                                <div class="feature-panel p-3">
+
+                                    <!-- Color Scheme Presets -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-brush"></i> Color Scheme
+                                        </label>
+                                        <div class="d-flex flex-wrap gap-2 mb-2" id="color-scheme-presets">
+                                            <!-- populated by JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Custom Color Pickers -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-eyedropper"></i> Custom Colors
+                                        </label>
+                                        <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label" style="font-size:0.72rem">Primary</label>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="color" class="form-control form-control-color" id="brand-color-primary" value="#0165BC"
+                                                           onchange="window.app.updateBrandColor()">
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-primary-hex" value="#0165BC"
+                                                           style="font-size:0.72rem;font-family:monospace;width:75px"
+                                                           onchange="document.getElementById('brand-color-primary').value=this.value;window.app.updateBrandColor()">
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label" style="font-size:0.72rem">Accent</label>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="color" class="form-control form-control-color" id="brand-color-accent" value="#E48803"
+                                                           onchange="window.app.updateBrandColor()">
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-accent-hex" value="#E48803"
+                                                           style="font-size:0.72rem;font-family:monospace;width:75px"
+                                                           onchange="document.getElementById('brand-color-accent').value=this.value;window.app.updateBrandColor()">
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label" style="font-size:0.72rem">Dark / Nav</label>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="color" class="form-control form-control-color" id="brand-color-dark" value="#2C2C2C"
+                                                           onchange="window.app.updateBrandColor()">
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-dark-hex" value="#2C2C2C"
+                                                           style="font-size:0.72rem;font-family:monospace;width:75px"
+                                                           onchange="document.getElementById('brand-color-dark').value=this.value;window.app.updateBrandColor()">
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label" style="font-size:0.72rem">Error / Danger</label>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="color" class="form-control form-control-color" id="brand-color-error" value="#BD2318"
+                                                           onchange="window.app.updateBrandColor()">
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-error-hex" value="#BD2318"
+                                                           style="font-size:0.72rem;font-family:monospace;width:75px"
+                                                           onchange="document.getElementById('brand-color-error').value=this.value;window.app.updateBrandColor()">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- CSS Preview -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-code-slash"></i> Generated CSS
+                                            <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
+                                                — raw CSS string set as <code>externalPropertiesURL</code>
+                                            </span>
+                                        </label>
+                                        <textarea class="form-control" id="brand-css-preview" rows="4" readonly
+                                                  style="font-family:'Roboto Mono',monospace;font-size:0.7rem;background:var(--insign-code-bg);resize:vertical"></textarea>
+                                        <div class="d-flex gap-2 mt-1">
+                                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.applyBrandingCSS()" title="Apply to JSON body">
+                                                <i class="bi bi-check2"></i> Apply to JSON
+                                            </button>
+                                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.resetBranding()" title="Reset to defaults">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <hr style="margin:12px 0;border-color:var(--insign-border)">
+
+                                    <!-- Sample Logo Sets -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-collection"></i> Logo Sets
+                                            <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
+                                                — click a set to apply all 3 logos at once
+                                            </span>
+                                        </label>
+                                        <div class="text-muted-sm mb-2" style="font-size:0.7rem">
+                                            Each set provides: <strong>App icon</strong> (square, 30x30 — editor desktop via <code>message</code>),
+                                            <strong>Mail header</strong> (banner, 120x60 — <code>message.mt.header.image</code>),
+                                            <strong>Login logo</strong> (wide, 314x100 — <code>logoExtern</code>).
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-3" id="logo-sets">
+                                            <!-- populated by JS -->
+                                        </div>
+                                    </div>
+
+                                    <hr style="margin:12px 0;border-color:var(--insign-border)">
+
+                                    <!-- Individual Logo Overrides -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-pencil-square"></i> Individual Logo Overrides
+                                            <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
+                                                — or upload/paste your own per slot
+                                            </span>
+                                        </label>
+
+                                        <!-- App Icon (editor desktop) -->
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-auto" style="min-width:90px">
+                                                <span style="font-size:0.72rem;font-weight:600"><i class="bi bi-app"></i> App icon</span>
+                                                <div style="font-size:0.62rem;color:var(--insign-text-muted)">30x30 square</div>
+                                            </div>
+                                            <div class="col">
+                                                <input type="text" class="form-control form-control-sm" id="brand-app-icon"
+                                                       placeholder="URL or upload" style="font-size:0.72rem"
+                                                       onchange="window.app.updateBrandLogo('icon', this.value)">
+                                            </div>
+                                            <div class="col-auto">
+                                                <label class="btn btn-insign btn-insign-sm btn-insign-outline" for="brand-app-icon-upload" style="margin:0;font-size:0.7rem">
+                                                    <i class="bi bi-upload"></i>
+                                                </label>
+                                                <input type="file" id="brand-app-icon-upload" accept="image/png,image/svg+xml"
+                                                       style="display:none" onchange="window.app.uploadBrandLogo(this, 'icon')">
+                                            </div>
+                                            <div class="col-auto" id="brand-app-icon-preview" style="min-width:34px"></div>
+                                        </div>
+
+                                        <!-- Mail Header -->
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-auto" style="min-width:90px">
+                                                <span style="font-size:0.72rem;font-weight:600"><i class="bi bi-envelope"></i> Mail header</span>
+                                                <div style="font-size:0.62rem;color:var(--insign-text-muted)">120x60 banner</div>
+                                            </div>
+                                            <div class="col">
+                                                <input type="text" class="form-control form-control-sm" id="brand-mail-header-image"
+                                                       placeholder="URL or upload" style="font-size:0.72rem"
+                                                       onchange="window.app.updateBrandLogo('mail', this.value)">
+                                            </div>
+                                            <div class="col-auto">
+                                                <label class="btn btn-insign btn-insign-sm btn-insign-outline" for="brand-mail-header-upload" style="margin:0;font-size:0.7rem">
+                                                    <i class="bi bi-upload"></i>
+                                                </label>
+                                                <input type="file" id="brand-mail-header-upload" accept="image/png,image/svg+xml,image/jpeg"
+                                                       style="display:none" onchange="window.app.uploadBrandLogo(this, 'mail')">
+                                            </div>
+                                            <div class="col-auto" id="brand-mail-header-preview" style="min-width:60px"></div>
+                                        </div>
+
+                                        <!-- Login Logo -->
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-auto" style="min-width:90px">
+                                                <span style="font-size:0.72rem;font-weight:600"><i class="bi bi-box-arrow-in-right"></i> Login logo</span>
+                                                <div style="font-size:0.62rem;color:var(--insign-text-muted)">314x100 wide</div>
+                                            </div>
+                                            <div class="col">
+                                                <input type="text" class="form-control form-control-sm" id="brand-logo-extern"
+                                                       placeholder="URL or upload" style="font-size:0.72rem"
+                                                       onchange="window.app.updateBrandLogo('login', this.value)">
+                                            </div>
+                                            <div class="col-auto">
+                                                <label class="btn btn-insign btn-insign-sm btn-insign-outline" for="brand-logo-extern-upload" style="margin:0;font-size:0.7rem">
+                                                    <i class="bi bi-upload"></i>
+                                                </label>
+                                                <input type="file" id="brand-logo-extern-upload" accept="image/png,image/svg+xml,image/jpeg"
+                                                       style="display:none" onchange="window.app.uploadBrandLogo(this, 'login')">
+                                            </div>
+                                            <div class="col-auto" id="brand-logo-extern-preview" style="min-width:80px"></div>
+                                        </div>
+                                    </div>
+                                        <div class="mt-1" id="brand-logo-extern-preview" style="min-height:30px"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        <!-- Session Owner -->
+                        <div class="section-title">Session Owner</div>
+                        <div class="text-muted-sm mb-2" style="font-size:0.75rem">
+                            The owner (e.g. broker) can open the session via the <code>accessURL</code> returned after creation.
+                            This link is single-use — call <strong>Load</strong> to reactivate it.
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="cfg-displayname" style="font-size:0.78rem">displayname</label>
+                                <input type="text" class="form-control form-control-sm" id="cfg-displayname"
+                                       placeholder="Auto from document" style="font-size:0.8rem">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="cfg-foruser" style="font-size:0.78rem">foruser <span class="text-muted-sm">(owner ID)</span></label>
+                                <input type="text" class="form-control form-control-sm" id="cfg-foruser"
+                                       placeholder="Auto-generated UUID"
+                                       style="font-family:'Roboto Mono',monospace;font-size:0.75rem">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="cfg-userfullname" style="font-size:0.78rem">userFullName</label>
+                                <input type="text" class="form-control form-control-sm" id="cfg-userfullname"
+                                       placeholder="Demo User" style="font-size:0.8rem">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="cfg-userEmail" style="font-size:0.78rem">userEmail <span class="text-muted-sm">(optional)</span></label>
+                                <input type="text" class="form-control form-control-sm" id="cfg-userEmail"
+                                       placeholder="owner@example.com" style="font-size:0.8rem">
+                            </div>
+                        </div>
+
+                        <!-- Request Body Editor -->
+                        <div class="section-title">Request Body (JSON)</div>
+                        <div class="editor-container" id="editor-create-session"></div>
+
+                        <!-- Actions -->
+                        <div class="d-flex gap-2 mt-3 flex-wrap">
+                            <button class="btn btn-insign btn-insign-primary" id="btn-create-session" onclick="window.app.createSession()">
+                                <i class="bi bi-send"></i> Send Request
+                            </button>
+                            <button class="btn btn-insign btn-insign-primary d-none" id="btn-goto-step2" onclick="window.app.goToStep(2)">
+                                <i class="bi bi-arrow-right"></i> Operate &amp; Trace
+                            </button>
+                            <button class="btn btn-insign btn-insign-outline" onclick="window.app.resetRequestBody('create-session')">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+
+                        <!-- Response -->
+                        <div id="step1-response" class="d-none">
+                            <div class="section-title mt-4">Response</div>
+                            <div class="response-panel">
+                                <div class="response-status" id="step1-response-status"></div>
+                                <div class="editor-container" id="editor-create-session-response"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================================
+                 STEP 2 — Session Operations
+                 ========================================================== -->
+            <div id="step-2-panel" class="d-none">
+                <!-- Session ID Bar -->
+                <div class="alert alert-insign mb-3" style="background:rgba(1,101,188,0.06);color:var(--insign-dark)">
+                    <i class="bi bi-key" style="color:var(--insign-blue)"></i>
+                    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+                        <strong style="white-space:nowrap">Session ID:</strong>
+                        <input type="text" class="form-control form-control-sm" id="manual-session-id"
+                               placeholder="Paste an existing session ID or create one in Step 1"
+                               style="max-width:420px;font-family:'Roboto Mono',monospace;font-size:0.82rem">
+                        <code id="active-session-id" class="d-none"></code>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-primary" onclick="window.app.applyManualSessionId()" title="Use this session ID">
+                            <i class="bi bi-arrow-right-circle"></i> Apply
+                        </button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="d-flex gap-2 mb-3 flex-wrap" id="step2-quick-actions">
+                    <button class="btn btn-insign btn-insign-cta d-none" id="btn-open-insign" onclick="window.app.openInSign()">
+                        <i class="bi bi-box-arrow-up-right"></i> Open in inSign
+                    </button>
+                    <button class="btn btn-insign btn-insign-outline d-none" id="btn-open-session-manager" onclick="window.app.openSessionManager()">
+                        <i class="bi bi-kanban"></i> Session Manager
+                    </button>
+                </div>
+
+                <!-- Operation Tabs -->
+                <ul class="nav nav-operations" id="operation-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#op-status" type="button">
+                            <i class="bi bi-info-circle"></i> Status
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-load" type="button">
+                            <i class="bi bi-arrow-repeat"></i> Load
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-documents" type="button">
+                            <i class="bi bi-file-earmark-text"></i> Documents
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-document-single" type="button">
+                            <i class="bi bi-file-earmark-pdf"></i> Single Doc
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-download" type="button">
+                            <i class="bi bi-download"></i> Download All
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern" type="button">
+                            <i class="bi bi-people"></i> External Signing
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-abort-extern" type="button">
+                            <i class="bi bi-x-circle"></i> Abort External
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-upload" type="button">
+                            <i class="bi bi-upload"></i> Upload Doc
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern-users" type="button">
+                            <i class="bi bi-person-lines-fill"></i> Extern Users
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-finish" type="button">
+                            <i class="bi bi-check-circle"></i> Finish
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-restart" type="button">
+                            <i class="bi bi-arrow-clockwise"></i> Restart
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-delete" type="button">
+                            <i class="bi bi-x-octagon"></i> Reject
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-delete-session" type="button">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-audit" type="button">
+                            <i class="bi bi-journal-text"></i> Audit
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-version" type="button">
+                            <i class="bi bi-tag"></i> Version
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content mt-3">
+
+                    <!-- Status -->
+                    <div class="tab-pane fade show active" id="op-status" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/status</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get session status</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns the current status of the session including signing progress, handout status, and document information.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="status"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-status"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('status')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="status">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="status"></div>
+                                        <div class="editor-container" id="editor-op-status-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Load Session -->
+                    <div class="tab-pane fade" id="op-load" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/persistence/loadsession</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Load / reactivate session</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">
+                                    Reactivates a session so the owner can open it again via the <code>accessURL</code> (<code>/index</code> link).
+                                    The access link is <strong>consumed on first use</strong> &mdash; after the owner opens the session,
+                                    this endpoint must be called again to generate a fresh link.
+                                    This is only needed while the session is <strong>not</strong> in external mode.
+                                </p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="load"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-load"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('load')">
+                                        <i class="bi bi-arrow-repeat"></i> Load Session
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="load">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="load"></div>
+                                        <div class="editor-container" id="editor-op-load-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Full -->
+                    <div class="tab-pane fade" id="op-documents" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/documents/full</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get all documents metadata</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Retrieves complete metadata about all session documents including annotations, signatures, and form fields.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="documents"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-documents"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('documents')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="documents">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="documents"></div>
+                                        <div class="editor-container" id="editor-op-documents-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single Document Download -->
+                    <div class="tab-pane fade" id="op-document-single" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/document</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Download single document</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">
+                                    Downloads a single PDF document by its <code>docid</code>.
+                                    Unlike <em>Download All</em> (which returns a ZIP for multi-doc sessions),
+                                    this always returns the individual PDF file.
+                                </p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="document-single"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-document-single"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeDocumentSingle()">
+                                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="document-single">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="document-single"></div>
+                                        <pre class="response-body" data-op="document-single"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download All -->
+                    <div class="tab-pane fade" id="op-download" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/documents/download</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Download all documents</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Downloads all session documents as a ZIP file (or PDF for single document). Includes signed versions with all signatures applied.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="download"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-download"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeDownload()">
+                                        <i class="bi bi-download"></i> Download
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="download">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="download"></div>
+                                        <pre class="response-body" data-op="download"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- External Signing -->
+                    <div class="tab-pane fade" id="op-extern" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/extern/beginmulti</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Start external signing</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">
+                                    Starts external mode for multiple recipients. Each user gets a unique signing link.
+                                    Assign roles to match signature fields in the document.
+                                </p>
+
+                                <!-- Smart flow: discover fields first -->
+                                <div class="alert alert-insign mb-3" id="extern-fields-info" style="background:rgba(248,169,9,0.08);color:var(--insign-dark);display:none">
+                                    <i class="bi bi-diagram-3" style="color:var(--insign-orange)"></i>
+                                    <div>
+                                        <strong>Document Fields &amp; Roles</strong>
+                                        <div id="extern-fields-summary" class="text-muted-sm mt-1"></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mb-3">
+                                    <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.discoverFieldsAndRoles()">
+                                        <i class="bi bi-search"></i> Discover Fields &amp; Roles
+                                    </button>
+                                </div>
+
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="extern"></div>
+
+                                <!-- Extern user options -->
+                                <div class="mb-3">
+                                    <div class="section-title">Signing Options</div>
+                                    <div class="text-muted-sm mb-2" style="font-size:0.72rem">
+                                        These apply to all extern users. If users have different values in JSON, the control shows mixed (gray). Changing overrides all users.
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <div class="btn-group btn-group-sm" role="group" id="extern-opt-sendEmails">
+                                            <button type="button" class="btn btn-outline-primary active" data-val="true"
+                                                    onclick="window.app.setExternOption('sendEmails', true)">
+                                                <i class="bi bi-envelope"></i> Send emails
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary" data-val="false"
+                                                    onclick="window.app.setExternOption('sendEmails', false)">
+                                                <i class="bi bi-link-45deg"></i> Return links
+                                            </button>
+                                        </div>
+                                        <div class="btn-group btn-group-sm" role="group" id="extern-opt-singleSignOnEnabled">
+                                            <button type="button" class="btn btn-outline-primary active" data-val="true"
+                                                    onclick="window.app.setExternOption('singleSignOnEnabled', true)">
+                                                <i class="bi bi-unlock"></i> No password
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary" data-val="false"
+                                                    onclick="window.app.setExternOption('singleSignOnEnabled', false)">
+                                                <i class="bi bi-lock"></i> Password required
+                                            </button>
+                                        </div>
+                                        <div class="btn-group btn-group-sm" role="group" id="extern-opt-sendSMS">
+                                            <button type="button" class="btn btn-outline-primary" data-val="true"
+                                                    onclick="window.app.setExternOption('sendSMS', true)">
+                                                <i class="bi bi-phone"></i> Send SMS
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary active" data-val="false"
+                                                    onclick="window.app.setExternOption('sendSMS', false)">
+                                                <i class="bi bi-key"></i> Return password
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-extern"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeExtern()">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="extern">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="extern"></div>
+                                        <div class="editor-container" id="editor-op-extern-response"></div>
+                                    </div>
+                                    <!-- Signing links rendered here -->
+                                    <div id="extern-signing-links" class="mt-3" style="display:none"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Abort External -->
+                    <div class="tab-pane fade" id="op-abort-extern" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/extern/abort</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Abort external mode</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns the session from external state back to normal. All external signing links become invalid.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="abort-extern"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-abort-extern"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('abort-extern')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="abort-extern">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="abort-extern"></div>
+                                        <div class="editor-container" id="editor-op-abort-extern-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Document -->
+                    <div class="tab-pane fade" id="op-upload" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/configure/uploaddocument</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Upload additional document</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Upload a PDF document to an existing session via multipart/form-data.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="upload"></div>
+                                <div class="mb-3">
+                                    <label class="form-label">PDF File</label>
+                                    <input type="file" class="form-control" id="upload-file" accept=".pdf">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Document ID</label>
+                                    <input type="text" class="form-control" id="upload-docid" value="uploaded-doc-1">
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.uploadDocument()">
+                                        <i class="bi bi-upload"></i> Upload
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="upload">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="upload"></div>
+                                        <pre class="response-body" data-op="upload"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Session -->
+                    <div class="tab-pane fade" id="op-delete" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/configure/ablehnen</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Delete / reject session</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Aborts and deletes the session. All documents and signing data are removed. This action cannot be undone.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="delete"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-delete"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" style="background:var(--insign-danger)" onclick="window.app.executeOperation('delete')">
+                                        <i class="bi bi-trash"></i> Delete Session
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="delete">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="delete"></div>
+                                        <div class="editor-container" id="editor-op-delete-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extern Users -->
+                    <div class="tab-pane fade" id="op-extern-users" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/extern/users</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">List external users</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns all external users and their signing status for this session.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="extern-users"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-extern-users"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('extern-users')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="extern-users">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="extern-users"></div>
+                                        <div class="editor-container" id="editor-op-extern-users-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Finish -->
+                    <div class="tab-pane fade" id="op-finish" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/configure/fertig</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Finish session</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Marks the session as finished. Triggers final processing: emails, archiving, and cleanup according to session configuration.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="finish"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-finish"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('finish')">
+                                        <i class="bi bi-send"></i> Finish
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="finish">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="finish"></div>
+                                        <div class="editor-container" id="editor-op-finish-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Restart -->
+                    <div class="tab-pane fade" id="op-restart" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/configure/restartsession</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Restart session</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Restarts a closed or finished session, allowing new signatures and modifications. Resets completion state.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="restart"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-restart"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('restart')">
+                                        <i class="bi bi-send"></i> Restart
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="restart">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="restart"></div>
+                                        <div class="editor-container" id="editor-op-restart-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Session (permanent) -->
+                    <div class="tab-pane fade" id="op-delete-session" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-delete">POST</span>
+                                <span class="endpoint-path">/configure/deletesession</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Delete session permanently</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Permanently deletes the session from the database. Unlike reject, this removes persisted sessions. Cannot be undone.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="delete-session"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-delete-session"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" style="background:var(--insign-danger)" onclick="window.app.executeOperation('delete-session')">
+                                        <i class="bi bi-trash"></i> Delete Permanently
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="delete-session">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="delete-session"></div>
+                                        <div class="editor-container" id="editor-op-delete-session-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="tab-pane fade" id="op-audit" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/audit</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get audit trail</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns the complete audit trail for the session: every action, timestamp, user, and IP address.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="audit"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-audit"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('audit')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="audit">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="audit"></div>
+                                        <div class="editor-container" id="editor-op-audit-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Version -->
+                    <div class="tab-pane fade" id="op-version" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-get">GET</span>
+                                <span class="endpoint-path">/version</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get API version</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Returns the current inSign application version.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="version"></div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('version')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="version">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="version"></div>
+                                        <pre class="response-body" data-op="version"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /tab-content -->
+            </div>
+
+            <!-- ==========================================================
+                 STEP 3 — Code Snippets
+                 ========================================================== -->
+            <div id="step-3-panel" class="d-none">
+                <div class="row g-3">
+                    <!-- Code Snippets -->
+                    <div class="col-12">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <i class="bi bi-code-slash" style="color:var(--insign-blue)"></i>
+                                <h5>Code Snippets</h5>
+                                <span class="text-muted-sm ms-auto">Generated from your current request</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">
+                                    These code snippets are generated from the last API request you made.
+                                    They show how to make the same call in different programming languages.
+                                </p>
+                                <ul class="nav code-tabs mb-0" id="code-lang-tabs" role="tablist">
+                                    <!-- populated by app.js -->
+                                </ul>
+                                <div class="code-snippet-container">
+                                    <div class="editor-container" id="editor-code-snippet"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /col main -->
+    </div><!-- /row -->
+</div><!-- /container -->
+
+<!-- ====================================================================
+     SCRIPTS
+     ==================================================================== -->
+
+<!-- jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Monaco Editor AMD loader -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs/loader.js"></script>
+
+<!-- App modules -->
+<script src="js/openapi-schema-loader.js"></script>
+<script src="js/api-client.js"></script>
+<script src="js/webhook-viewer.js"></script>
+<script src="js/code-generator.js"></script>
+<script src="js/pdf-viewer.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

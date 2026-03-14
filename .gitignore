@@ -1,0 +1,24 @@
+# Documentation package (downloaded, not tracked)
+.docs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Build
+target/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+.claude/
+
+# Dev-only notes
+DEV/
+next.md
+thoughts,txt
