@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://getinsign.github.io/insign-getting-started/"><strong>Try the Interactive Demo &rarr;</strong></a>
+  <a href="https://tombueng.github.io/insign-getting-started-1/"><strong>Try the Interactive Demo &rarr;</strong></a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
   <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html">Swagger Docs</a>
   &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -31,7 +31,7 @@ The **API Explorer** is a browser-based tool that lets you interact with the inS
 - Live webhook viewer for server-side callbacks
 - Auto-generated code snippets in Java, PHP, C#, and Node.js
 
-**Open the demo:** [getinsign.github.io/insign-getting-started](https://getinsign.github.io/insign-getting-started/)
+**Open the demo:** [tombueng.github.io/insign-getting-started-1](https://tombueng.github.io/insign-getting-started-1/)
 
 ---
 
@@ -39,7 +39,7 @@ The **API Explorer** is a browser-based tool that lets you interact with the inS
 
 ### 1. Open the API Explorer
 
-Visit the [Interactive Demo](https://getinsign.github.io/insign-getting-started/) in your browser. Sandbox credentials are pre-filled.
+Visit the [Interactive Demo](https://tombueng.github.io/insign-getting-started-1/) in your browser. Sandbox credentials are pre-filled.
 
 ### 2. Create a Session
 
