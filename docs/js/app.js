@@ -2941,7 +2941,7 @@
         if (!body.guiProperties) body.guiProperties = {};
 
         // App icon — via message ID for editor desktop logo
-        body.guiProperties['start.logo.url.editor.desktop'] = iconUrl;
+        body.guiProperties['message.start.logo.url.editor.desktop'] = iconUrl;
         // Mail header — right-side logo
         body.guiProperties['message.mt.header.image'] = mailUrl;
         // Login logo
@@ -2969,7 +2969,7 @@
 
         // Remove logo keys
         if (body.guiProperties) {
-            delete body.guiProperties['start.logo.url.editor.desktop'];
+            delete body.guiProperties['message.start.logo.url.editor.desktop'];
             delete body.guiProperties['message.mt.header.image'];
             delete body.guiProperties['message.mt.header.image.left'];
             if (Object.keys(body.guiProperties).length === 0) delete body.guiProperties;
@@ -2996,7 +2996,7 @@
 
         const dataUrl = url ? await toBase64DataUrl(url) : null;
         const config = {
-            icon:  { key: 'start.logo.url.editor.desktop', path: 'guiProperties', input: 'brand-app-icon', preview: 'brand-app-icon-preview' },
+            icon:  { key: 'message.start.logo.url.editor.desktop', path: 'guiProperties', input: 'brand-app-icon', preview: 'brand-app-icon-preview' },
             mail:  { key: 'message.mt.header.image',       path: 'guiProperties', input: 'brand-mail-header-image', preview: 'brand-mail-header-preview' },
             login: { key: 'logoExtern',                    path: 'root',          input: 'brand-logo-extern', preview: 'brand-logo-extern-preview' }
         }[slot];
