@@ -1367,9 +1367,11 @@
         $('#navbar-session-id').val(sessionId);
         $('#navbar-btn-open').toggleClass('d-none', !accessURL);
 
-        // Show/hide buttons
-        $('#btn-open-insign').toggleClass('d-none', !accessURL);
-        $('#btn-open-session-manager').toggleClass('d-none', !state.accessURLProcessManagement);
+        // Show/hide buttons and set tooltip with full URL
+        $('#btn-open-insign').toggleClass('d-none', !accessURL).attr('title', accessURL || '');
+        $('#navbar-btn-open').attr('title', accessURL || '');
+        $('#btn-open-session-manager').toggleClass('d-none', !state.accessURLProcessManagement)
+            .attr('title', state.accessURLProcessManagement || '');
         $('#btn-goto-step2').removeClass('d-none');
 
         // Reset histories and create new webhook URL for new sessions
@@ -1659,11 +1661,12 @@
             const resp = typeof result.body === 'object' ? result.body : {};
             if (resp.accessURL) {
                 state.accessURL = resp.accessURL;
-                $('#btn-open-insign').removeClass('d-none');
+                $('#btn-open-insign').removeClass('d-none').attr('title', resp.accessURL);
+                $('#navbar-btn-open').removeClass('d-none').attr('title', resp.accessURL);
             }
             if (resp.accessURLProcessManagement) {
                 state.accessURLProcessManagement = resp.accessURLProcessManagement;
-                $('#btn-open-session-manager').removeClass('d-none');
+                $('#btn-open-session-manager').removeClass('d-none').attr('title', resp.accessURLProcessManagement);
             }
         }
 
