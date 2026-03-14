@@ -2897,6 +2897,13 @@
         { name: 'NOVA Finance', prefix: 'nova' },
         { name: 'BluePrint', prefix: 'blueprint' },
         { name: 'SOLIS Tech', prefix: 'solis' },
+        { name: 'Sentinel Ins.', prefix: 'sentinel' },
+        { name: 'Aegis Life', prefix: 'aegis' },
+        { name: 'Harbor Re', prefix: 'harbor' },
+        { name: 'Apex Assurance', prefix: 'apex' },
+        { name: 'Prism Digital', prefix: 'prism' },
+        { name: 'Mosaic Labs', prefix: 'mosaic' },
+        { name: 'Nexus Group', prefix: 'nexus' },
     ];
 
     function getLogoSrc(set, variant) {
