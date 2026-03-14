@@ -908,6 +908,8 @@
                 const currentBody = getEditorValue('create-session');
                 if (typeof currentBody === 'object' && !currentBody.serverSidecallbackURL) {
                     currentBody.serverSidecallbackURL = url;
+                    currentBody.serversideCallbackMethod = 'POST';
+                    currentBody.serversideCallbackContenttype = 'json';
                     setEditorValue('create-session', currentBody);
                 }
             }
