@@ -2690,7 +2690,7 @@
         { name: 'Harbor Re',       colors: { primary: '#880E4F', accent: '#F48FB1', dark: '#6A0039', error: '#C62828' } },
         { name: 'Apex Assurance',  colors: { primary: '#4A148C', accent: '#CE93D8', dark: '#311B92', error: '#C62828' } },
         { name: 'Prism Digital',   colors: { primary: '#2979FF', accent: '#FF9100', dark: '#1A1A2E', error: '#FF1744' } },
-        { name: 'Mosaic Labs',     colors: { primary: '#2196F3', accent: '#FFC107', dark: '#212121', error: '#F44336' } },
+        { name: 'Mosaic Labs',     colors: { primary: '#1976D2', accent: '#F57C00', dark: '#212121', error: '#C62828' } },
         { name: 'Nexus Group',     colors: { primary: '#1B3A5C', accent: '#C9963A', dark: '#0F2440', error: '#C75B4A' } },
     ];
 
