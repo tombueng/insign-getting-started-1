@@ -31,7 +31,7 @@
         schemaLoader: new window.OpenApiSchemaLoader(),
         monacoReady: false,
         _editorSyncLock: false,        // prevent infinite loops during bidirectional sync
-        webhookProvider: 'webhook.site' // current webhook provider
+        webhookProvider: 'smee' // current webhook provider
     };
 
     /** Generate a stable human-readable user ID stored in localStorage */
