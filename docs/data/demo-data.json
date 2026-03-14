@@ -1,0 +1,24 @@
+{
+  "seller": {
+    "name": "Hans Mueller",
+    "email": "hans.mueller@example.com",
+    "phone": "+49 170 1234567",
+    "address": "Musterstrasse 12, 80331 Munich, Germany"
+  },
+  "buyer": {
+    "name": "Maria Schmidt",
+    "email": "maria.schmidt@example.com",
+    "phone": "+49 171 9876543",
+    "address": "Lindenweg 5, 10115 Berlin, Germany"
+  },
+  "car": {
+    "make": "BMW",
+    "model": "320i",
+    "year": 2021,
+    "vin": "WBA8E9C50HK123456",
+    "price": 38500.0,
+    "currency": "EUR",
+    "color": "Alpine White",
+    "mileage_km": 45000
+  }
+}

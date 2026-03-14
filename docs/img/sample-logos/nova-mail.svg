@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="120" height="60">
+  <polygon points="22,5 27,17 38,17 29,24 32,36 22,28 12,36 15,24 6,17 17,17" fill="#C62828"/>
+  <polygon points="22,12 24.5,19 31,19 26,23 28,30 22,26 16,30 18,23 13,19 19.5,19" fill="#EF5350"/>
+  <text x="44" y="26" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="16" fill="#C62828">NOVA</text>
+  <text x="44" y="38" font-family="Arial,Helvetica,sans-serif" font-size="9" fill="#EF5350">Finance</text>
+</svg>

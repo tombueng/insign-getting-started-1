@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="120" height="60">
+  <path d="M20 5 C10 13 6 24 9 36 C14 30 18 22 20 5 Z" fill="#2E7D32"/>
+  <path d="M20 5 C30 13 34 24 31 36 C26 30 22 22 20 5 Z" fill="#81C784"/>
+  <text x="42" y="26" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="14" fill="#2E7D32">GreenLeaf</text>
+  <line x1="42" y1="30" x2="108" y2="30" stroke="#81C784" stroke-width="1"/>
+</svg>

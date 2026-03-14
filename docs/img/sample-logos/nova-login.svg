@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 314 100" width="314" height="100">
+  <polygon points="45,6 53,28 76,28 58,42 64,64 45,50 26,64 32,42 14,28 37,28" fill="#C62828"/>
+  <polygon points="45,18 49.5,29 60,29 52,36 55,47 45,40 35,47 38,36 30,29 40.5,29" fill="#EF5350"/>
+  <text x="90" y="45" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="34" fill="#C62828">NOVA</text>
+  <text x="215" y="45" font-family="Arial,Helvetica,sans-serif" font-weight="300" font-size="34" fill="#EF5350">Finance</text>
+  <text x="90" y="66" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#EF5350">Trusted Financial Services</text>
+</svg>

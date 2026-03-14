@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 314 100" width="314" height="100">
+  <circle cx="45" cy="50" r="18" fill="#E65100"/>
+  <line x1="45" y1="20" x2="45" y2="26" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="45" y1="74" x2="45" y2="80" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="15" y1="50" x2="21" y2="50" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="69" y1="50" x2="75" y2="50" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="23.8" y1="28.8" x2="28" y2="33" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="62" y1="67" x2="66.2" y2="71.2" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="23.8" y1="71.2" x2="28" y2="67" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <line x1="62" y1="33" x2="66.2" y2="28.8" stroke="#FF9800" stroke-width="3" stroke-linecap="round"/>
+  <text x="90" y="50" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="34" fill="#E65100">SOLIS</text>
+  <text x="225" y="50" font-family="Arial,Helvetica,sans-serif" font-weight="300" font-size="34" fill="#FF9800">Tech</text>
+  <text x="90" y="70" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#FF9800">Powered by Innovation</text>
+</svg>
