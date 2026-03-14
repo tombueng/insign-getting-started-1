@@ -2552,7 +2552,7 @@
                 valueHtml = `<span style="color:#ff9999;text-decoration:line-through">${escapeHtml(formatDiffValue(d.oldVal))}</span>`;
             }
 
-            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};white-space:nowrap;font-family:monospace">` +
+            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace" title="${escapeHtml(d.path)}: ${escapeHtml(formatDiffValue(d.oldVal))} → ${escapeHtml(formatDiffValue(d.newVal))}">` +
                 `<span style="display:inline-block;min-width:14px;text-align:center;font-weight:700;color:${textColor}">${label}</span> ` +
                 `<span style="color:#79b8ff">${escapeHtml(d.path)}</span> ` +
                 valueHtml +
