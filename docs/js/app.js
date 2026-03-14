@@ -247,7 +247,24 @@
             userfullname: $('#cfg-userfullname').val() || '',
             userEmail: $('#cfg-userEmail').val() || '',
             pollingEnabled: $('#sidebar-polling-toggle').is(':checked'),
-            saveCredentials
+            saveCredentials,
+            brandColors: {
+                primary: $('#brand-color-primary').val() || '',
+                accent: $('#brand-color-accent').val() || '',
+                dark: $('#brand-color-dark').val() || '',
+                error: $('#brand-color-error').val() || ''
+            },
+            brandColorScheme: document.querySelector('.color-scheme-btn.active')
+                ? [...document.querySelectorAll('.color-scheme-btn')].indexOf(document.querySelector('.color-scheme-btn.active'))
+                : -1,
+            brandLogoSet: document.querySelector('.logo-set-card.active')
+                ? [...document.querySelectorAll('.logo-set-card')].indexOf(document.querySelector('.logo-set-card.active'))
+                : 0,
+            brandLogos: {
+                icon: $('#brand-app-icon').val() || '',
+                mail: $('#brand-mail-header-image').val() || '',
+                login: $('#brand-logo-extern').val() || ''
+            }
         };
         if (saveCredentials) {
             data.baseUrl = $('#cfg-base-url').val() || '';
@@ -828,8 +845,9 @@
         buildDocumentSelector();
         buildFeatureToggles();
         buildColorSchemePresets();
-        updateBrandColor();
         buildLogoSets();
+        restoreBranding();
+        updateBrandColor();
 
         // Init API client
         updateApiClient();
@@ -2811,6 +2829,7 @@
 
         // Auto-apply to JSON body
         applyBrandingCSS();
+        saveAppState();
     }
 
     function applyBrandingCSS() {
@@ -2956,6 +2975,34 @@
         showPreview('brand-app-icon-preview', iconUrl);
         showPreview('brand-mail-header-preview', mailUrl);
         showPreview('brand-logo-extern-preview', loginUrl);
+        saveAppState();
+    }
+
+    function restoreBranding() {
+        const saved = loadAppState();
+        if (!saved) return;
+
+        if (saved.brandColors) {
+            const c = saved.brandColors;
+            if (c.primary) { $('#brand-color-primary').val(c.primary); $('#brand-color-primary-hex').val(c.primary); }
+            if (c.accent)  { $('#brand-color-accent').val(c.accent);   $('#brand-color-accent-hex').val(c.accent); }
+            if (c.dark)    { $('#brand-color-dark').val(c.dark);        $('#brand-color-dark-hex').val(c.dark); }
+            if (c.error)   { $('#brand-color-error').val(c.error);      $('#brand-color-error-hex').val(c.error); }
+        }
+        if (saved.brandColorScheme >= 0) {
+            document.querySelectorAll('.color-scheme-btn').forEach((btn, j) =>
+                btn.classList.toggle('active', j === saved.brandColorScheme));
+        }
+        if (saved.brandLogoSet >= 0) {
+            document.querySelectorAll('.logo-set-card').forEach((c, j) =>
+                c.classList.toggle('active', j === saved.brandLogoSet));
+        }
+        if (saved.brandLogos) {
+            const l = saved.brandLogos;
+            if (l.icon)  { $('#brand-app-icon').val(l.icon);           showPreview('brand-app-icon-preview', l.icon); }
+            if (l.mail)  { $('#brand-mail-header-image').val(l.mail);   showPreview('brand-mail-header-preview', l.mail); }
+            if (l.login) { $('#brand-logo-extern').val(l.login);        showPreview('brand-logo-extern-preview', l.login); }
+        }
     }
 
     /** Remove all custom logos from JSON — revert to server defaults */
@@ -2985,6 +3032,7 @@
         document.getElementById('brand-app-icon-preview').innerHTML = '';
         document.getElementById('brand-mail-header-preview').innerHTML = '';
         document.getElementById('brand-logo-extern-preview').innerHTML = '';
+        saveAppState();
     }
 
     /** Update a single logo slot: icon | mail | login */
@@ -3012,6 +3060,7 @@
             else delete body[config.key];
         }
         setEditorValue('create-session', body);
+        saveAppState();
     }
 
     function uploadBrandLogo(input, slot) {
