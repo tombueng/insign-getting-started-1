@@ -857,6 +857,18 @@
         restoreBranding();
         updateBrandColor();
 
+        // Derive GitHub repo link from Pages URL (user.github.io/repo → github.com/user/repo)
+        const ghLink = document.getElementById('github-repo-link');
+        if (ghLink) {
+            const m = location.hostname.match(/^(.+)\.github\.io$/);
+            if (m) {
+                const repo = location.pathname.split('/')[1] || '';
+                ghLink.href = 'https://github.com/' + m[1] + (repo ? '/' + repo : '');
+            } else {
+                ghLink.style.display = 'none';
+            }
+        }
+
         // Init API client
         updateApiClient();
 
