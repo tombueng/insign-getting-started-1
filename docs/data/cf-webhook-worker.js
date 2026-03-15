@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker — Webhook Relay for inSign API Explorer
+ * Cloudflare Worker - Webhook Relay for inSign API Explorer
  *
  * Deploy this script to Cloudflare Workers (free tier, no credit card).
  * It acts as a webhook relay: inSign POSTs callbacks to it, your browser
@@ -12,10 +12,10 @@
  *   4. In the API Explorer, select "Cloudflare Worker" provider and paste the URL
  *
  * ENDPOINTS:
- *   POST /channel/{id}         — inSign posts callbacks here (the webhook URL)
- *   GET  /channel/{id}/requests — browser polls for stored requests
- *   POST /channel/new          — browser creates a new channel
- *   DELETE /channel/{id}       — cleanup
+ *   POST /channel/{id}         - inSign posts callbacks here (the webhook URL)
+ *   GET  /channel/{id}/requests - browser polls for stored requests
+ *   POST /channel/new          - browser creates a new channel
+ *   DELETE /channel/{id}       - cleanup
  *
  * Data is stored in-memory (Workers global scope) and survives for the
  * lifetime of the Worker isolate (~minutes). For longer persistence,
@@ -49,7 +49,7 @@ export default {
             return new Response(null, { status: 204, headers: CORS_HEADERS });
         }
 
-        // POST /channel/new — create a new channel
+        // POST /channel/new - create a new channel
         if (request.method === 'POST' && path === '/channel/new') {
             const id = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
             channels.set(id, []);
@@ -69,7 +69,7 @@ export default {
         const channelId = match[1];
         const sub = match[2] || '';
 
-        // POST /channel/{id} — receive a webhook callback from inSign
+        // POST /channel/{id} - receive a webhook callback from inSign
         if (request.method === 'POST' && !sub) {
             if (!channels.has(channelId)) channels.set(channelId, []);
             const queue = channels.get(channelId);
@@ -93,7 +93,7 @@ export default {
             return jsonResponse({ ok: true, requestId: entry.id });
         }
 
-        // GET /channel/{id}/requests — browser polls for stored requests
+        // GET /channel/{id}/requests - browser polls for stored requests
         if (request.method === 'GET' && sub === '/requests') {
             const since = url.searchParams.get('since'); // ISO timestamp filter
             const queue = channels.get(channelId) || [];
@@ -107,7 +107,7 @@ export default {
             return jsonResponse({ data, total: data.length });
         }
 
-        // DELETE /channel/{id} — cleanup
+        // DELETE /channel/{id} - cleanup
         if (request.method === 'DELETE' && !sub) {
             channels.delete(channelId);
             return jsonResponse({ ok: true, msg: 'Channel deleted' });

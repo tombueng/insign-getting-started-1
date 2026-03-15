@@ -12,6 +12,8 @@
 # Build
 target/
 *.class
+test/generated/
+test/run/
 
 # OS
 .DS_Store

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PDF Viewer — Lightweight PDF preview using PDF.js from CDN
+   PDF Viewer - Lightweight PDF preview using PDF.js from CDN
    Shows uploaded/downloaded documents in a modal with page navigation
    ========================================================================== */
 
@@ -8,7 +8,7 @@ window.PdfViewer = class PdfViewer {
     constructor() {
         this.pdfDoc = null;
         this.currentPage = 1;
-        this.scale = 1.2;
+        this.scale = 1.5;
         this.modal = null;
         this.$canvas = null;
         this.ctx = null;
@@ -50,7 +50,7 @@ window.PdfViewer = class PdfViewer {
                             <canvas id="pdf-canvas" style="max-width:100%;box-shadow:0 2px 12px rgba(0,0,0,0.4)"></canvas>
                             <div id="pdf-error" class="text-warning py-4" style="display:none"></div>
                         </div>
-                        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.1);padding:6px 16px;justify-content:space-between">
+                        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.1);padding:6px 16px;justify-content:space-between;background:var(--insign-dark)">
                             <span class="text-white-50" style="font-size:0.75rem" id="pdf-file-info"></span>
                             <button type="button" class="btn btn-sm btn-outline-light" data-bs-dismiss="modal">Close</button>
                         </div>
@@ -125,11 +125,16 @@ window.PdfViewer = class PdfViewer {
     async _renderPage() {
         if (!this.pdfDoc) return;
         const page = await this.pdfDoc.getPage(this.currentPage);
+        const dpr = window.devicePixelRatio || 2;
         const viewport = page.getViewport({ scale: this.scale });
+        const hiResViewport = page.getViewport({ scale: this.scale * dpr });
 
-        this.$canvas[0].width = viewport.width;
-        this.$canvas[0].height = viewport.height;
-        await page.render({ canvasContext: this.ctx, viewport }).promise;
+        const canvas = this.$canvas[0];
+        canvas.width = hiResViewport.width;
+        canvas.height = hiResViewport.height;
+        canvas.style.width = viewport.width + 'px';
+        canvas.style.height = viewport.height + 'px';
+        await page.render({ canvasContext: this.ctx, viewport: hiResViewport }).promise;
 
         $('#pdf-page-info').text(this.currentPage + ' / ' + this.pdfDoc.numPages);
     }

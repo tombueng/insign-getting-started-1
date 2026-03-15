@@ -9,83 +9,56 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 
 public class InSignApiCall {
-    private static final String BASE_URL = "{{BASE_URL}}";
-    private static RestClient client;
+    static RestClient client;
 
     public static void main(String[] args) throws Exception {
-        String auth = "{{USERNAME}}:{{PASSWORD}}";
-        String encoded = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-
         client = RestClient.builder()
-            .baseUrl(BASE_URL)
-            .defaultHeader("Authorization", "Basic " + encoded)
+            .baseUrl("{{BASE_URL}}")
+            .defaultHeader("Authorization", "Basic " + Base64.getEncoder()
+                .encodeToString("{{USERNAME}}:{{PASSWORD}}".getBytes(StandardCharsets.UTF_8)))
             .build();
 
 {{#if HAS_BODY}}
-        // Build request body using Jackson
+        // Build request body
         ObjectMapper mapper = new ObjectMapper();
 {{BODY_BUILD}}
+{{SAMPLES}}
 
+{{FILE_COMMENT}}
 {{/if}}
-        ResponseEntity<String> response = client
-            .{{METHOD_LOWER}}()
+        // 1) {{METHOD}} {{PATH}}
+        ResponseEntity<String> res = client.{{METHOD_LOWER}}()
             .uri("{{PATH}}")
 {{#if HAS_BODY}}
             .contentType(MediaType.APPLICATION_JSON)
             .body(mapper.writeValueAsString(body))
 {{/if}}
-            .retrieve()
-            .toEntity(String.class);
+            .retrieve().toEntity(String.class);
+        System.out.println("HTTP " + res.getStatusCode().value());
+        System.out.println(res.getBody());
 
-        System.out.println("HTTP Status: " + response.getStatusCode());
-        System.out.println("Response: " + response.getBody());
+        // 2) Get status
+        var json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(res.getBody());
+        String sid = json.path("sessionid").asText(null);
+        if (sid != null) {
+            ResponseEntity<String> r2 = client.post().uri("/get/status?sessionid=" + sid)
+                .retrieve().toEntity(String.class);
+            System.out.println("\n=== Status (HTTP " + r2.getStatusCode().value() + ") ===");
+            System.out.println(r2.getBody());
 
-        // Extract sessionid and call helper methods
-        ObjectMapper mapper2 = new ObjectMapper();
-        var json = mapper2.readTree(response.getBody());
-        String sessionId = json.has("sessionid") ? json.get("sessionid").asText() : null;
-        if (sessionId != null) {
-            getStatus(sessionId);
-            downloadDocument(sessionId);
+            // 3) Download document (first doc)
+            var statusJson = new com.fasterxml.jackson.databind.ObjectMapper().readTree(r2.getBody());
+            String docId = statusJson.at("/documentData/0/docid").asText("0");
+            byte[] doc = client.post()
+                .uri("/get/document?sessionid=" + sid + "&docid=" + docId)
+                .retrieve().body(byte[].class);
+            Files.write(Path.of("document.pdf"), doc);
+            System.out.println("Saved document.pdf (" + doc.length + " bytes)");
         }
-    }
-
-    /** Check session status */
-    static void getStatus(String sessionId) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode body = mapper.createObjectNode();
-        body.put("sessionid", sessionId);
-
-        ResponseEntity<String> response = client
-            .post()
-            .uri("/get/status")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(mapper.writeValueAsString(body))
-            .retrieve()
-            .toEntity(String.class);
-
-        var status = mapper.readTree(response.getBody());
-        System.out.println("\n=== Session Status ===");
-        System.out.println("Successfully completed: " + status.path("successfullycompleted").asBoolean());
-        System.out.println("Signatures done: " + status.path("numberofsignaturesdone").asInt());
-        System.out.println("Signatures missing: " + status.path("numberofsignaturesmissing").asInt());
-    }
-
-    /** Download signed document(s) and save to disk */
-    static void downloadDocument(String sessionId) throws Exception {
-        byte[] bytes = client
-            .post()
-            .uri("/get/documents/download")
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(MediaType.ALL)
-            .body("{\"sessionid\": \"" + sessionId + "\"}")
-            .retrieve()
-            .body(byte[].class);
-
-        java.nio.file.Files.write(java.nio.file.Path.of("signed-document.pdf"), bytes);
-        System.out.println("\nDocument saved to: signed-document.pdf (" + bytes.length + " bytes)");
     }
 }

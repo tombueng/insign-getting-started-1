@@ -44,12 +44,12 @@ public class PdfTestFileGenerator {
     // --- Fictive data ---
     static final String SELLER_NAME = "Hans Mueller";
     static final String SELLER_EMAIL = "hans.mueller@example.com";
-    static final String SELLER_PHONE = "+49 170 1234567";
+    static final String SELLER_PHONE = "+49 100 0000001";
     static final String SELLER_ADDRESS = "Musterstrasse 12, 80331 Munich, Germany";
 
     static final String BUYER_NAME = "Maria Schmidt";
     static final String BUYER_EMAIL = "maria.schmidt@example.com";
-    static final String BUYER_PHONE = "+49 171 9876543";
+    static final String BUYER_PHONE = "+49 100 0000002";
     static final String BUYER_ADDRESS = "Lindenweg 5, 10115 Berlin, Germany";
 
     static final String CAR_MAKE = "BMW";
@@ -67,18 +67,18 @@ public class PdfTestFileGenerator {
     // --- Fictive data: Street Work Contract ---
     static final String BROKER_NAME = "Thomas Weber";
     static final String BROKER_EMAIL = "thomas.weber@immo-weber.de";
-    static final String BROKER_PHONE = "+49 89 5551234";
+    static final String BROKER_PHONE = "+49 100 0000003";
     static final String BROKER_ADDRESS = "Leopoldstrasse 42, 80802 Munich, Germany";
     static final String BROKER_COMPANY = "Weber Immobilien & Bau GmbH";
 
     static final String CUSTOMER_NAME = "Claudia Fischer";
     static final String CUSTOMER_EMAIL = "claudia.fischer@example.com";
-    static final String CUSTOMER_PHONE = "+49 172 8765432";
+    static final String CUSTOMER_PHONE = "+49 100 0000004";
     static final String CUSTOMER_ADDRESS = "Rosenheimer Strasse 88, 81669 Munich, Germany";
 
     static final String AGENCY_NAME = "Stefan Lang";
     static final String AGENCY_EMAIL = "s.lang@strassen-bau-bayern.de";
-    static final String AGENCY_PHONE = "+49 89 7779000";
+    static final String AGENCY_PHONE = "+49 100 0000005";
     static final String AGENCY_ADDRESS = "Industriestrasse 15, 85748 Garching, Germany";
     static final String AGENCY_COMPANY = "Bayerische Strassenbau AG";
 

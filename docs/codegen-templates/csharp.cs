@@ -1,92 +1,60 @@
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 
-class Program
-{
-    private static readonly string BaseUrl = "{{BASE_URL}}";
-    private static HttpClient _client;
-
-    static async Task Main(string[] args)
-    {
-        _client = new HttpClient();
-
-        var credentials = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes("{{USERNAME}}:{{PASSWORD}}"));
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Basic", credentials);
+var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes("{{USERNAME}}:{{PASSWORD}}"));
+var http = new HttpClient { BaseAddress = new Uri("{{BASE_URL}}") };
+http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
 {{#if HAS_BODY}}
-        // Build request body
+// Build request body
 {{BODY_BUILD}}
+{{SAMPLES}}
 
-        var content = new StringContent(
-            body.ToJsonString(new JsonSerializerOptions { WriteIndented = true }),
-            Encoding.UTF8,
-            "{{CONTENT_TYPE}}");
+var content = new StringContent(body.ToJsonString(), Encoding.UTF8, "{{CONTENT_TYPE}}");
 
+{{FILE_COMMENT}}
 {{/if}}
-        try
-        {
+// 1) {{METHOD}} {{PATH}}
 {{CSHARP_CALL}}
+var text = await response.Content.ReadAsStringAsync();
+Console.WriteLine($"HTTP {(int)response.StatusCode}");
+Console.WriteLine(text);
+if (!response.IsSuccessStatusCode)
+{
+    Console.Error.WriteLine($"FAILED: expected HTTP 200, got {(int)response.StatusCode}");
+    return;
+}
 
-            var responseBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"HTTP Status: {(int)response.StatusCode}");
-            Console.WriteLine(responseBody);
-
-            var json = JsonNode.Parse(responseBody);
-            var sessionId = json?["sessionid"]?.ToString();
-            if (sessionId != null)
-            {
-                await GetStatus(sessionId);
-                await DownloadDocument(sessionId);
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"Request error: {ex.Message}");
-        }
-    }
-
-    /// <summary>Check session status — prints completion flag and signature counts</summary>
-    static async Task GetStatus(string sessionId)
+// 2) Get status
+var sessionId = JsonNode.Parse(text)?["sessionid"]?.ToString();
+if (sessionId != null)
+{
+    var r2 = await http.PostAsync($"/get/status?sessionid={sessionId}", null);
+    var statusText = await r2.Content.ReadAsStringAsync();
+    Console.WriteLine($"\n=== Status (HTTP {(int)r2.StatusCode}) ===");
+    Console.WriteLine(statusText);
+    if (!r2.IsSuccessStatusCode)
     {
-        var body = new JsonObject { ["sessionid"] = sessionId };
-        var content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync(BaseUrl + "/get/status", content);
-        var text = await response.Content.ReadAsStringAsync();
-        var status = JsonNode.Parse(text);
-
-        Console.WriteLine("\n=== Session Status ===");
-        Console.WriteLine($"Successfully completed: {status?["successfullycompleted"]}");
-        Console.WriteLine($"Signatures done: {status?["numberofsignaturesdone"]}");
-        Console.WriteLine($"Signatures missing: {status?["numberofsignaturesmissing"]}");
+        Console.Error.WriteLine($"FAILED: get/status returned HTTP {(int)r2.StatusCode}");
+        return;
     }
+    var status = JsonNode.Parse(statusText);
 
-    /// <summary>Download signed document(s) and save to disk</summary>
-    static async Task DownloadDocument(string sessionId)
+    // 3) Download document (first doc)
+    var docId = status?["documentData"]?[0]?["docid"]?.ToString() ?? "0";
+    var r3 = await http.PostAsync($"/get/document?sessionid={sessionId}&docid={docId}", null);
+    Console.WriteLine($"\n=== Download (HTTP {(int)r3.StatusCode}) ===");
+    if (r3.IsSuccessStatusCode)
     {
-        var body = new JsonObject { ["sessionid"] = sessionId };
-        var request = new HttpRequestMessage(HttpMethod.Post, BaseUrl + "/get/documents/download");
-        request.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-
-        var response = await _client.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var fileName = "signed-document.pdf";
-            await File.WriteAllBytesAsync(fileName, bytes);
-            Console.WriteLine($"\nDocument saved to: {fileName} ({bytes.Length} bytes)");
-        }
-        else
-        {
-            Console.WriteLine($"Download failed: HTTP {(int)response.StatusCode}");
-        }
+        var doc = await r3.Content.ReadAsByteArrayAsync();
+        await File.WriteAllBytesAsync("document.pdf", doc);
+        Console.WriteLine($"Saved document.pdf ({doc.Length} bytes)");
+    }
+    else
+    {
+        var err = await r3.Content.ReadAsStringAsync();
+        Console.Error.WriteLine($"Download failed: {err}");
     }
 }

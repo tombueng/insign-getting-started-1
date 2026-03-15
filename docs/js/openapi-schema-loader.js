@@ -1,5 +1,5 @@
 /* ==========================================================================
-   OpenAPI Schema Loader — Fetches /v3/api-docs from the inSign server
+   OpenAPI Schema Loader - Fetches /v3/api-docs from the inSign server
    and registers JSON schemas with Monaco Editor for autocomplete.
    ========================================================================== */
 
@@ -50,10 +50,82 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
             const key = this._toCamelCase(name);
             const uri = 'insign://schemas/' + key;
             const converted = this._convertRefs(structuredClone(schema));
+            this._addMarkdownDescriptions(converted);
             result[key] = { uri, schema: converted };
         }
 
         return result;
+    }
+
+    /**
+     * Recursively add markdownDescription to every node that has a description.
+     * Monaco renders markdownDescription in the suggest details panel with
+     * rich formatting. Also adds the property name as a bold header and
+     * formats enum values for better readability.
+     */
+    _addMarkdownDescriptions(obj, propertyName) {
+        if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return;
+
+        if (obj.description && !obj.markdownDescription) {
+            let desc = obj.description;
+
+            // Shorten Java FQCN: de.is2.sign.service.rest.json.JSONSignConfig → signConfig
+            desc = desc.replace(/de\.is2\.sign\.service\.rest\.json\.JSONSignConfig/g, 'signConfig');
+
+            // Extract "replacement: ..." and "since: ..." metadata from description
+            let replacement = null;
+            let since = null;
+
+            desc = desc.replace(/[,;.]?\s*replacement:\s*(\S+)/gi, (_, val) => {
+                replacement = val.replace(/de\.is2\.sign\.service\.rest\.json\.JSONSignConfig\./g, 'signConfig.');
+                return '';
+            });
+            desc = desc.replace(/[,;.]?\s*since:\s*(\S+)/gi, (_, val) => {
+                since = val;
+                return '';
+            });
+
+            desc = desc.trim();
+
+            const parts = [];
+            if (propertyName) parts.push(`**${propertyName}**`);
+            if (obj.type) parts.push(`\`${obj.type}\``);
+            if (obj.enum) parts.push('- enum: ' + obj.enum.map(v => `\`${v}\``).join(', '));
+            if (replacement) parts.push(' \u26a0\ufe0f **Deprecated**');
+            if (since) parts.push(`- since: \`${since}\``);
+            if (parts.length) parts.push('\n\n');
+            if (replacement) parts.push(`> \u26a0\ufe0f Replacement: \`${replacement}\`\n\n`);
+            parts.push(desc);
+
+            obj.markdownDescription = parts.join(' ');
+            obj.description = desc;
+        }
+
+        // Recurse into properties
+        if (obj.properties) {
+            for (const [key, prop] of Object.entries(obj.properties)) {
+                this._addMarkdownDescriptions(prop, key);
+            }
+        }
+
+        // Recurse into items (arrays)
+        if (obj.items) {
+            this._addMarkdownDescriptions(obj.items);
+        }
+
+        // Recurse into combiners
+        for (const combiner of ['allOf', 'oneOf', 'anyOf']) {
+            if (Array.isArray(obj[combiner])) {
+                for (const sub of obj[combiner]) {
+                    this._addMarkdownDescriptions(sub);
+                }
+            }
+        }
+
+        // Recurse into additionalProperties
+        if (obj.additionalProperties && typeof obj.additionalProperties === 'object') {
+            this._addMarkdownDescriptions(obj.additionalProperties);
+        }
     }
 
     /**
@@ -131,6 +203,85 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
             allowComments: false,
             trailingCommas: 'error'
         });
+    }
+
+    /**
+     * Enrich the guiProperties schema inside configureSession (and any schema
+     * that references it) with per-property definitions parsed from the
+     * feature-descriptions data.  This replaces the server's opaque
+     * Map<String,Object> / freeform-string description with a proper typed
+     * object so Monaco can offer autocomplete and hover tooltips for every
+     * guiProperties key.
+     *
+     * @param {Array} featureGroups - The featureGroups array from feature-descriptions.json
+     */
+    enrichGuiProperties(featureGroups) {
+        if (!this.loaded || !featureGroups?.length || this._guiPropsEnriched) return;
+        this._guiPropsEnriched = true;
+
+        // Build a JSON-Schema "properties" map from the feature groups
+        const props = {};
+        for (const group of featureGroups) {
+            for (const f of group.features) {
+                if (f.path !== 'guiProperties') continue;
+
+                const propSchema = {};
+
+                if (f.type === 'bool') {
+                    propSchema.type = 'boolean';
+                } else if (f.type === 'select' && f.options) {
+                    propSchema.enum = f.options;
+                } else {
+                    propSchema.type = 'string';
+                }
+
+                // Build a rich description: label + global property + description
+                const parts = [];
+                if (f.label) parts.push(`**${f.label}**`);
+                if (f.globalProperty) parts.push(`\`${f.globalProperty}\``);
+                if (f.desc) parts.push('\n\n' + f.desc);
+                propSchema.markdownDescription = parts.join(' - ');
+                // Plain description fallback for validators that don't support markdown
+                propSchema.description = f.desc || f.label || f.key;
+
+                props[f.key] = propSchema;
+            }
+        }
+
+        if (!Object.keys(props).length) return;
+
+        const guiSchema = {
+            type: 'object',
+            description: 'UI behavior properties - toggle features like exit buttons, signing devices, form editing, navigation and more.',
+            markdownDescription: 'UI behavior properties - toggle features like exit buttons, signing devices, form editing, navigation and more.\n\nType a property name to see autocomplete suggestions.',
+            properties: props,
+            additionalProperties: true  // allow unknown keys the spec doesn't list
+        };
+
+        // Patch every schema that has a "guiProperties" property
+        for (const entry of Object.values(this.schemas)) {
+            this._patchGuiProperties(entry.schema, guiSchema);
+        }
+    }
+
+    /**
+     * Recursively find and replace guiProperties definitions in a schema.
+     */
+    _patchGuiProperties(schema, replacement) {
+        if (!schema || typeof schema !== 'object') return;
+
+        if (schema.properties && 'guiProperties' in schema.properties) {
+            schema.properties.guiProperties = replacement;
+        }
+
+        // Recurse into allOf / oneOf / anyOf
+        for (const combiner of ['allOf', 'oneOf', 'anyOf']) {
+            if (Array.isArray(schema[combiner])) {
+                for (const sub of schema[combiner]) {
+                    this._patchGuiProperties(sub, replacement);
+                }
+            }
+        }
     }
 
     /**

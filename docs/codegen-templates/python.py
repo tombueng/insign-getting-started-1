@@ -1,68 +1,39 @@
-import requests
-import json
+import requests, json, sys
 
-BASE_URL = "{{BASE_URL}}"
+BASE = "{{BASE_URL}}"
 auth = ("{{USERNAME}}", "{{PASSWORD}}")
 
-
-def main():
-    """{{METHOD}} {{PATH}}"""
 {{#if HAS_BODY}}
-    payload = {{BODY_BUILD}}
+payload = {{BODY_BUILD}}
+{{SAMPLES}}
 
+{{FILE_COMMENT}}
 {{/if}}
-    response = requests.{{METHOD_LOWER}}(
-        f"{BASE_URL}{{PATH}}",
-        auth=auth,
-{{#if HAS_BODY}}
-        json=payload,
-{{/if}}
-    )
+# 1) {{METHOD}} {{PATH}}
+r = requests.{{METHOD_LOWER}}(f"{BASE}{{PATH}}", auth=auth{{#if HAS_BODY}}, json=payload{{/if}})
+print(f"HTTP {r.status_code}")
+print(r.text)
+if r.status_code != 200:
+    sys.exit(f"FAILED: expected HTTP 200, got {r.status_code}")
+data = r.json()
 
-    print(f"HTTP Status: {response.status_code}")
-    data = response.json()
-    print(json.dumps(data, indent=2))
+# 2) Get status
+sid = data.get("sessionid")
+if sid:
+    r2 = requests.post(f"{BASE}/get/status?sessionid={sid}", auth=auth)
+    print(f"\n=== Status (HTTP {r2.status_code}) ===")
+    print(r2.text)
+    if r2.status_code != 200:
+        sys.exit(f"FAILED: get/status returned HTTP {r2.status_code}")
+    status = r2.json()
 
-    session_id = data.get("sessionid")
-    if session_id:
-        get_status(session_id)
-        download_document(session_id)
-
-
-def get_status(session_id: str):
-    """Check session status — prints completion flag and signature counts"""
-    response = requests.post(
-        f"{BASE_URL}/get/status",
-        auth=auth,
-        json={"sessionid": session_id},
-    )
-    status = response.json()
-    print("\n=== Session Status ===")
-    print(f"Successfully completed: {status.get('successfullycompleted', False)}")
-    print(f"Signatures done: {status.get('numberofsignaturesdone', 0)}")
-    print(f"Signatures missing: {status.get('numberofsignaturesmissing', 0)}")
-
-
-def download_document(session_id: str):
-    """Download signed document(s) and save to disk"""
-    response = requests.post(
-        f"{BASE_URL}/get/documents/download",
-        auth=auth,
-        json={"sessionid": session_id},
-        headers={"Accept": "*/*"},
-    )
-
-    if response.ok:
-        filename = "signed-document.pdf"
-        cd = response.headers.get("Content-Disposition", "")
-        if "filename=" in cd:
-            filename = cd.split("filename=")[1].strip('"').strip()
-        with open(filename, "wb") as f:
-            f.write(response.content)
-        print(f"\nDocument saved to: {filename} ({len(response.content)} bytes)")
+    # 3) Download document (first doc)
+    doc_id = (status.get("documentData") or [{}])[0].get("docid", "0")
+    r3 = requests.post(f"{BASE}/get/document?sessionid={sid}&docid={doc_id}", auth=auth)
+    print(f"\n=== Download (HTTP {r3.status_code}) ===")
+    if r3.status_code == 200:
+        open("document.pdf", "wb").write(r3.content)
+        print(f"Saved document.pdf ({len(r3.content)} bytes)")
     else:
-        print(f"Download failed: HTTP {response.status_code}")
-
-
-if __name__ == "__main__":
-    main()
+        print(f"Download failed: {r3.text}")
+        sys.exit(1)
