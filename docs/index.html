@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>!function(){var d=!0;try{var s=localStorage.getItem('insign-dark-mode');if(s!==null)d=s==='true'}catch(e){}document.documentElement.setAttribute('data-theme',d?'dark':'light')}()</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>inSign API Explorer - Interactive Getting Started</title>
 
@@ -54,7 +55,7 @@
             <!-- Session ID in top bar -->
             <div class="d-none align-items-center gap-1" id="navbar-session" style="font-size:0.78rem">
                 <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
-                <input type="text" class="form-control form-control-sm" id="navbar-session-id"
+                <input type="text" class="form-control form-control-sm" id="navbar-session-id" name="navbar-session-id"
                        placeholder="No session"
                        style="width:240px;font-family:'Roboto Mono',monospace;font-size:0.75rem;padding:2px 6px;height:28px"
                        onchange="window.app.applyNavbarSessionId()">
@@ -87,83 +88,6 @@
     <div class="row g-3">
 
         <!-- ============================================================
-             SIDEBAR - Webhook Viewer + Status Polling (Step 3+)
-             ============================================================ -->
-        <div class="col-lg-3 col-md-4 d-none" id="sidebar-column">
-
-            <!-- sidebar-step1 kept as hidden anchor for JS -->
-            <div class="d-none" id="sidebar-step1"></div>
-
-            <!-- ===== Sidebar for Step 2: Webhook Viewer + Status Polling ===== -->
-            <div class="sidebar d-none" id="sidebar-step2">
-
-                <!-- Webhooks section -->
-                <div id="sidebar-webhook-mode" class="mb-3">
-                    <h6 class="d-flex align-items-center gap-2 mb-2">
-                        <i class="bi bi-broadcast" style="color:var(--insign-orange)"></i> Webhooks
-                        <span class="badge bg-success ms-1" style="font-size:0.6rem;vertical-align:middle" id="webhook-live-badge">live</span>
-                        <div class="form-check form-switch ms-auto mb-0">
-                            <input class="form-check-input" type="checkbox" id="sidebar-webhooks-toggle" checked
-                                   onchange="window.app.toggleWebhookSection(this.checked)">
-                        </div>
-                    </h6>
-                    <div id="sidebar-webhook-content">
-                        <div id="sidebar-webhook-container">
-                            <div class="webhook-url-section mb-2">
-                                <div class="text-center text-muted-sm py-2">
-                                    <span class="spinner-insign spinner-dark me-2"></span>
-                                    Creating endpoint...
-                                </div>
-                            </div>
-                            <div class="webhook-requests webhook-panel" style="max-height:300px;overflow-y:auto">
-                                <div class="text-center text-muted-sm py-3">
-                                    <i class="bi bi-hourglass-split"></i> Waiting for webhooks...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-
-                <!-- Polling section -->
-                <div id="sidebar-polling-mode">
-                    <h6 class="d-flex align-items-center gap-2 mb-2">
-                        <i class="bi bi-arrow-repeat" style="color:var(--insign-blue)"></i> Status Polling
-                        <div class="form-check form-switch ms-auto mb-0">
-                            <input class="form-check-input" type="checkbox" id="sidebar-polling-toggle"
-                                   onchange="window.app.togglePollingSection(this.checked)">
-                        </div>
-                    </h6>
-                    <div id="sidebar-polling-content" style="display:none">
-                        <div class="text-muted-sm mb-2" style="font-size:0.75rem">
-                            Polling <code>/get/status</code> every 15s for changes.
-                        </div>
-                        <!-- Countdown bar -->
-                        <div class="polling-countdown mb-2" style="height:3px;background:var(--insign-border);border-radius:2px;overflow:hidden">
-                            <div id="polling-countdown-bar" style="height:100%;width:100%;background:var(--insign-blue);transition:width 5s linear"></div>
-                        </div>
-                        <div class="d-flex gap-2 mb-2 align-items-center">
-                            <button class="btn btn-insign btn-insign-sm" id="btn-polling-toggle" onclick="window.app.togglePolling()">
-                                <i class="bi bi-pause-fill"></i> Pause
-                            </button>
-                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.pollNow()">
-                                <i class="bi bi-arrow-clockwise"></i> Poll Now
-                            </button>
-                            <span class="text-muted-sm" id="polling-status-text" style="font-size:0.72rem"></span>
-                        </div>
-                        <div id="polling-changes" style="max-height:300px;overflow-y:auto">
-                            <div class="text-center text-muted-sm py-3">
-                                <i class="bi bi-hourglass-split"></i> Waiting for status changes...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ============================================================
              MAIN AREA
              ============================================================ -->
         <div class="col" id="main-column">
@@ -181,50 +105,257 @@
                     </div>
                     <div class="card-body">
                         <div class="mb-2">
-                            <label class="form-label" for="cfg-base-url">API Base URL</label>
-                            <input type="text" class="form-control" id="cfg-base-url"
-                                   value="https://sandbox.test.getinsign.show">
+                            <label class="form-label" for="cfg-base-url">API Base URL <span class="d-none" id="cors-direct-version" style="font-size:0.68rem;font-weight:400;color:var(--insign-success)"></span></label>
+                            <input type="text" class="form-control" id="cfg-base-url" name="api-base-url"
+                                   autocomplete="url" value="https://sandbox.test.getinsign.show">
                         </div>
                         <div class="d-flex gap-2 mb-2">
                             <div class="flex-grow-1">
                                 <label class="form-label" for="cfg-username">Username</label>
-                                <input type="text" class="form-control" id="cfg-username" value="controller">
+                                <input type="text" class="form-control" id="cfg-username" name="api-username"
+                                       autocomplete="username" value="controller">
                             </div>
                             <div class="flex-grow-1">
                                 <label class="form-label" for="cfg-password">Password</label>
-                                <input type="password" class="form-control" id="cfg-password" value="pwd.insign.sandbox.4561">
+                                <input type="password" class="form-control" id="cfg-password" name="api-password"
+                                       autocomplete="current-password" value="pwd.insign.sandbox.4561">
                             </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 mb-2">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="cfg-save-credentials">
-                                <label class="form-check-label" for="cfg-save-credentials" style="font-size:0.78rem">
-                                    Remember URL &amp; credentials
-                                </label>
+                        <div class="mb-2">
+                            <button type="button" class="btn-sandbox" id="btn-use-sandbox">
+                                <i class="bi bi-cloud-check"></i>
+                                <span>Use public sandbox</span>
+                                <code>sandbox.test.getinsign.show</code>
+                            </button>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                            <label class="toggle-pill" for="cfg-save-credentials">
+                                <input type="checkbox" id="cfg-save-credentials">
+                                <span class="toggle-pill-switch"></span>
+                                <span class="toggle-pill-label">Save in browser</span>
+                            </label>
+                            <label class="toggle-pill d-none" for="cfg-cors-proxy" id="cors-proxy-toggle-wrap">
+                                <input type="checkbox" id="cfg-cors-proxy">
+                                <span class="toggle-pill-switch"></span>
+                                <span class="toggle-pill-label">CORS proxy</span>
+                            </label>
+                            <label class="toggle-pill toggle-pill-warn" for="cfg-webhooks">
+                                <input type="checkbox" id="cfg-webhooks" checked>
+                                <span class="toggle-pill-switch"></span>
+                                <span class="toggle-pill-label"><i class="bi bi-broadcast" style="font-size:0.7rem"></i> Webhook relay</span>
+                            </label>
+                        </div>
+
+                        <!-- Security warning: Save in browser -->
+                        <div class="security-hint security-hint-info d-none" id="save-credentials-warning">
+                            <div class="security-hint-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                            <div>
+                                <strong>localStorage is not secure storage.</strong>
+                                Your API base URL, username, and password will be saved in the browser's <code>localStorage</code> - unencrypted, accessible to any JavaScript running on this page.
+                                <ul class="security-hint-list">
+                                    <li>Any browser extension or XSS vulnerability could read the stored credentials</li>
+                                    <li>Data persists even after closing the browser - anyone with access to this device can retrieve it</li>
+                                    <li>localStorage is never cleared automatically - you must manually uncheck this to remove stored data</li>
+                                </ul>
+                                <span class="security-hint-rec"><i class="bi bi-shield-check"></i> Only enable on trusted devices for non-production credentials.</span>
                             </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="cfg-cors-proxy">
-                                <label class="form-check-label" for="cfg-cors-proxy" style="font-size:0.82rem">
-                                    CORS proxy
-                                </label>
+                        </div>
+
+                        <!-- Security warning: Webhook relay -->
+                        <div class="security-hint security-hint-danger d-none" id="webhook-relay-warning">
+                            <div class="security-hint-icon"><i class="bi bi-shield-exclamation"></i></div>
+                            <div>
+                                <strong>Webhook data passes through 3rd party servers.</strong>
+                                When inSign sends a webhook callback, the payload is routed through a public relay service that you do not control. The webhook payload may contain:
+                                <ul class="security-hint-list">
+                                    <li><strong>Session IDs</strong> and <strong>transaction IDs</strong> that could be used to query or manipulate signing sessions</li>
+                                    <li><strong>Signer names</strong>, <strong>email addresses</strong>, and other personal data embedded in callback parameters</li>
+                                    <li><strong>Document metadata</strong> including filenames and status information</li>
+                                    <li><strong>Status changes</strong> that reveal the signing workflow and timing</li>
+                                </ul>
+                                The relay service operator can <strong>see, log, and store all of this data</strong> in plain text. Endpoints are typically public URLs that anyone with the link could monitor.
+                                <div class="security-hint-rec mt-1"><i class="bi bi-shield-check"></i> Acceptable for sandbox/demo use. For production data, use a self-hosted webhook endpoint or the CF Worker option.</div>
                             </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="cfg-webhooks" checked>
-                                <label class="form-check-label" for="cfg-webhooks" style="font-size:0.82rem">
-                                    Webhooks
-                                </label>
+                        </div>
+
+                        <div class="cors-hint-banner d-none" id="cors-hint-banner">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>Your inSign server may block browser requests (CORS). Enable the <strong>CORS proxy</strong> above, or configure CORS on your server.
+                            <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a></span>
+                        </div>
+                        <div class="mb-2" id="webhook-provider-group">
+                            <label class="form-label">
+                                Webhook Relay
+                                <span class="text-muted-sm" style="font-size:0.66rem;font-weight:400"> - 3rd party services, data passes through external servers</span>
+                            </label>
+                            <div class="wh-dropdown position-relative" id="wh-dropdown">
+                                <div class="wh-dd-selected" id="wh-dd-toggle"></div>
+                                <div class="wh-dd-menu" id="wh-dd-menu"></div>
+                            </div>
+                            <div id="webhook-custom-url-group" style="display:none" class="mt-1">
+                                <input type="text" class="form-control form-control-sm" id="cfg-webhook-custom-url" name="cfg-webhook-custom-url"
+                                       placeholder="https://your-endpoint.example.com/webhook"
+                                       onchange="window.app.setWebhookProvider('custom')">
                             </div>
                         </div>
                         <div class="mb-2" id="cors-proxy-url-group" style="display:none">
-                            <label class="form-label" for="cfg-cors-proxy-url">Proxy URL</label>
-                            <input type="text" class="form-control" id="cfg-cors-proxy-url"
-                                   value="https://corsproxy.io/?">
+                            <label class="form-label">Local CORS Proxy</label>
+
+                            <!-- Probe status + download + run instructions -->
+                            <div class="proxy-local-panel">
+                                <div class="proxy-local-status">
+                                    <span class="proxy-probe-dot" id="proxy-probe-dot"></span>
+                                    <span class="proxy-probe-label" id="proxy-probe-label">Checking...</span>
+                                </div>
+                                <div class="proxy-local-actions">
+                                    <a href="cors-proxy.js" download="cors-proxy.js" class="btn btn-insign btn-insign-sm" style="font-size:0.74rem;padding:2px 10px">
+                                        <i class="bi bi-download"></i> Download cors-proxy.js
+                                    </a>
+                                    <span class="text-muted-sm" style="font-size:0.72rem">then run:</span>
+                                    <code style="font-size:0.72rem">node cors-proxy.js</code>
+                                </div>
+                                <div class="text-muted-sm mt-1" style="font-size:0.7rem">
+                                    Single-file Node.js proxy (~80 lines, zero dependencies). Runs on <code>localhost:9009</code>. Credentials never leave your machine.
+                                </div>
+                            </div>
+
+                            <input type="text" class="form-control form-control-sm mt-2" id="cfg-cors-proxy-url" name="cors-proxy-url"
+                                   autocomplete="url" value="http://localhost:9009/?" style="font-family:'Roboto Mono',monospace;font-size:0.78rem">
+
+                            <!-- Expandable: Why is this needed? -->
+                            <div class="mt-2" style="font-size:0.76rem">
+                                <a href="#cors-proxy-info" data-bs-toggle="collapse" class="cors-info-toggle">
+                                    <i class="bi bi-info-circle me-1"></i>Why is this needed? What are my options?
+                                    <i class="bi bi-chevron-down cors-info-chevron"></i>
+                                </a>
+                                <div class="collapse mt-2" id="cors-proxy-info">
+                                    <div class="cors-info-panel">
+
+                                        <!-- The problem -->
+                                        <div class="cors-info-section">
+                                            <div class="cors-info-heading"><i class="bi bi-diagram-3"></i> The problem: browsers block cross-origin requests</div>
+                                            <div class="cors-flow">
+                                                <div class="cors-flow-node cors-flow-browser">
+                                                    <i class="bi bi-window"></i>
+                                                    <span>Browser</span>
+                                                </div>
+                                                <div class="cors-flow-arrow cors-flow-blocked">
+                                                    <i class="bi bi-x-circle-fill"></i>
+                                                    <span>blocked</span>
+                                                </div>
+                                                <div class="cors-flow-node cors-flow-server">
+                                                    <i class="bi bi-server"></i>
+                                                    <span>inSign</span>
+                                                </div>
+                                            </div>
+                                            <p class="cors-info-text">This app runs in your browser (e.g. on GitHub Pages) but needs to talk to your inSign server on a different domain. Browsers enforce <em>Cross-Origin Resource Sharing (CORS)</em> and block these requests unless the server explicitly allows them.</p>
+                                        </div>
+
+                                        <!-- Option A: local proxy (recommended) -->
+                                        <div class="cors-info-section">
+                                            <div class="cors-info-heading" style="color:var(--insign-success)"><i class="bi bi-star-fill"></i> Option A: Local CORS proxy (recommended)</div>
+                                            <div class="cors-flow">
+                                                <div class="cors-flow-node cors-flow-browser">
+                                                    <i class="bi bi-window"></i>
+                                                    <span>Browser</span>
+                                                </div>
+                                                <div class="cors-flow-arrow cors-flow-ok">
+                                                    <i class="bi bi-arrow-right"></i>
+                                                </div>
+                                                <div class="cors-flow-node cors-flow-proxy">
+                                                    <i class="bi bi-shuffle"></i>
+                                                    <span>Proxy</span>
+                                                </div>
+                                                <div class="cors-flow-arrow cors-flow-ok">
+                                                    <i class="bi bi-arrow-right"></i>
+                                                </div>
+                                                <div class="cors-flow-node cors-flow-server">
+                                                    <i class="bi bi-server"></i>
+                                                    <span>inSign</span>
+                                                </div>
+                                            </div>
+                                            <p class="cors-info-text">A tiny Node.js proxy runs on your machine, forwards requests to inSign, and adds the CORS headers the browser expects. No server configuration needed, credentials never leave localhost.</p>
+                                            <div class="cors-setup-tabs">
+                                                <button class="cors-setup-tab active" onclick="document.querySelectorAll('.cors-setup-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.cors-setup-pane').forEach(p=>p.style.display='none');document.getElementById('cors-setup-quick').style.display=''">
+                                                    <i class="bi bi-lightning-charge"></i> Quick start
+                                                </button>
+                                                <button class="cors-setup-tab" onclick="document.querySelectorAll('.cors-setup-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.cors-setup-pane').forEach(p=>p.style.display='none');document.getElementById('cors-setup-windows').style.display=''">
+                                                    <i class="bi bi-windows"></i> Windows
+                                                </button>
+                                                <button class="cors-setup-tab" onclick="document.querySelectorAll('.cors-setup-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.cors-setup-pane').forEach(p=>p.style.display='none');document.getElementById('cors-setup-mac').style.display=''">
+                                                    <i class="bi bi-apple"></i> macOS
+                                                </button>
+                                                <button class="cors-setup-tab" onclick="document.querySelectorAll('.cors-setup-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.cors-setup-pane').forEach(p=>p.style.display='none');document.getElementById('cors-setup-linux').style.display=''">
+                                                    <i class="bi bi-ubuntu"></i> Linux
+                                                </button>
+                                                <button class="cors-setup-tab" onclick="document.querySelectorAll('.cors-setup-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.cors-setup-pane').forEach(p=>p.style.display='none');document.getElementById('cors-setup-docker').style.display=''">
+                                                    <i class="bi bi-box-seam"></i> Docker
+                                                </button>
+                                            </div>
+                                            <div class="cors-setup-pane" id="cors-setup-quick">
+                                                <pre class="cors-code"><code>node cors-proxy.js</code></pre>
+                                                <p class="cors-info-text">Proxy runs on <code>http://localhost:9009</code>. That's it.</p>
+                                            </div>
+                                            <div class="cors-setup-pane" id="cors-setup-windows" style="display:none">
+                                                <p class="cors-info-text mb-1">Install <a href="https://nodejs.org" target="_blank">Node.js LTS</a>, then open PowerShell:</p>
+                                                <pre class="cors-code"><code>cd $env:USERPROFILE\Downloads
+node cors-proxy.js</code></pre>
+                                            </div>
+                                            <div class="cors-setup-pane" id="cors-setup-mac" style="display:none">
+                                                <pre class="cors-code"><code>brew install node
+node ~/Downloads/cors-proxy.js</code></pre>
+                                            </div>
+                                            <div class="cors-setup-pane" id="cors-setup-linux" style="display:none">
+                                                <pre class="cors-code"><code>sudo apt install nodejs
+node ~/Downloads/cors-proxy.js</code></pre>
+                                            </div>
+                                            <div class="cors-setup-pane" id="cors-setup-docker" style="display:none">
+                                                <p class="cors-info-text mb-1">No Node.js install needed:</p>
+                                                <pre class="cors-code"><code>docker run --rm -p 9009:9009 -v ./cors-proxy.js:/app.js node:alpine node /app.js</code></pre>
+                                            </div>
+                                        </div>
+
+                                        <!-- Option B: inSign server CORS config -->
+                                        <div class="cors-info-section">
+                                            <div class="cors-info-heading"><i class="bi bi-gear"></i> Option B: Configure CORS on the inSign server</div>
+                                            <p class="cors-info-text">If you have access to the inSign server configuration, you can allow this app's origin directly. Two properties are needed:</p>
+                                            <div class="cors-config-table">
+                                                <div class="cors-config-row">
+                                                    <code class="cors-config-key">cors.filteringenabled</code>
+                                                    <div class="cors-config-val">
+                                                        Must be set to <code>true</code> to activate CORS header processing.
+                                                        <span class="cors-config-default">Default: <strong>off</strong></span>
+                                                    </div>
+                                                </div>
+                                                <div class="cors-config-row">
+                                                    <code class="cors-config-key">cors.alloworigin</code>
+                                                    <div class="cors-config-val">
+                                                        Comma-separated list of allowed origins. The <code>Access-Control-Allow-Origin</code> header is set to the matching value.
+                                                        <span class="cors-config-default">Default includes origins for Azure SAML login and the Word add-in</span>
+                                                        <div class="cors-config-hint mt-1"><i class="bi bi-lightbulb"></i> Add this app's origin to the list: <code id="cors-origin-hint"></code></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p class="cors-info-text mt-2"><i class="bi bi-exclamation-triangle" style="color:var(--insign-orange)"></i> Be careful not to remove the existing default origins - they are required for Azure SAML and the Word add-in. Append your origin to the existing list.</p>
+                                        </div>
+
+                                        <!-- When you don't need either -->
+                                        <div class="cors-info-section">
+                                            <div class="cors-info-heading"><i class="bi bi-check2-circle"></i> When you don't need any of this</div>
+                                            <p class="cors-info-text"><strong>The inSign sandbox</strong> at <code>sandbox.test.getinsign.show</code> has relaxed CORS settings and works directly from any origin - no proxy or server configuration needed. That's why the CORS proxy option is hidden when the sandbox is selected.</p>
+                                            <p class="cors-info-text">For your own server: if it is on the same origin as this app, or if you have already set <code>cors.filteringenabled=true</code> with your origin in <code>cors.alloworigin</code>, then you can disable the CORS proxy toggle - no proxy needed.</p>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="trust-hint mt-2">
                             <i class="bi bi-shield-lock" style="color:var(--insign-success);font-size:1.1rem"></i>
                             <div>
                                 <strong>Your credentials are safe</strong>
                                 <div class="text-muted-sm">Sent only to the inSign server above. This app runs entirely in your browser. Optional features like webhook visualization, real email testing, or custom file uploads may use external services (e.g. smee.io).</div>
+                                <div class="text-muted-sm" id="cors-proxy-security-warning" style="display:none;color:var(--insign-blue)"><i class="bi bi-shuffle me-1"></i><strong>CORS proxy active</strong> - requests are routed through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.76rem">Learn more</a></div>
                                 <div class="text-mono text-muted-sm mt-1" id="trust-target-url" style="font-size:0.72rem"></div>
                             </div>
                         </div>
@@ -236,20 +367,18 @@
                     <div class="card-header">
                         <i class="bi bi-shield-lock" style="font-size:1.1rem"></i>
                         <h5 class="ms-0 mb-0" style="font-size:0.9rem">API Authentication</h5>
-                        <div class="ms-auto d-flex align-items-center gap-2">
-                            <div class="btn-group btn-group-sm" id="auth-mode-toggle">
-                                <button type="button" class="btn btn-insign btn-insign-sm active" data-mode="basic"
-                                        onclick="window.app.setAuthMode('basic')">
-                                    <i class="bi bi-key"></i> Basic Auth
-                                </button>
-                                <button type="button" class="btn btn-insign btn-insign-sm btn-insign-outline" data-mode="oauth2"
-                                        onclick="window.app.setAuthMode('oauth2')">
-                                    <i class="bi bi-shield-check"></i> OAuth2
-                                </button>
-                            </div>
-                        </div>
                     </div>
                     <div class="card-body">
+                        <div class="auth-mode-selector mb-3" id="auth-mode-toggle">
+                            <button type="button" class="auth-mode-btn active" data-mode="basic"
+                                    onclick="window.app.setAuthMode('basic')">
+                                <i class="bi bi-key"></i> Basic Auth
+                            </button>
+                            <button type="button" class="auth-mode-btn" data-mode="oauth2"
+                                    onclick="window.app.setAuthMode('oauth2')">
+                                <i class="bi bi-shield-check"></i> OAuth2
+                            </button>
+                        </div>
 
                         <!-- ===== Basic Auth info ===== -->
                         <div id="auth-basic-panel">
@@ -290,15 +419,15 @@
                                     <div class="mb-3" style="font-family:'Roboto Mono',monospace;font-size:0.82rem;background:var(--insign-bg);border:1px solid var(--insign-border);border-radius:6px;padding:10px">
                                         <div class="row g-2 align-items-center mb-2">
                                             <div class="col-auto"><span class="text-muted-sm" style="width:100px;display:inline-block">grant_type</span></div>
-                                            <div class="col"><input type="text" class="form-control form-control-sm" id="oauth2-grant-type" value="client_credentials" readonly style="font-family:monospace;font-size:0.8rem"></div>
+                                            <div class="col"><input type="text" class="form-control form-control-sm" id="oauth2-grant-type" name="oauth2-grant-type" value="client_credentials" readonly style="font-family:monospace;font-size:0.8rem"></div>
                                         </div>
                                         <div class="row g-2 align-items-center mb-2">
                                             <div class="col-auto"><span class="text-muted-sm" style="width:100px;display:inline-block">client_id</span></div>
-                                            <div class="col"><input type="text" class="form-control form-control-sm" id="oauth2-client-id" style="font-family:monospace;font-size:0.8rem"></div>
+                                            <div class="col"><input type="text" class="form-control form-control-sm" id="oauth2-client-id" name="oauth2-client-id" autocomplete="username" style="font-family:monospace;font-size:0.8rem"></div>
                                         </div>
                                         <div class="row g-2 align-items-center">
                                             <div class="col-auto"><span class="text-muted-sm" style="width:100px;display:inline-block">client_secret</span></div>
-                                            <div class="col"><input type="password" class="form-control form-control-sm" id="oauth2-client-secret" style="font-family:monospace;font-size:0.8rem"></div>
+                                            <div class="col"><input type="password" class="form-control form-control-sm" id="oauth2-client-secret" name="oauth2-client-secret" autocomplete="current-password" style="font-family:monospace;font-size:0.8rem"></div>
                                         </div>
                                     </div>
 
@@ -382,7 +511,7 @@
                                     <div class="mb-2 d-flex align-items-start gap-2">
                                         <div class="input-group input-group-sm" style="flex:1">
                                             <span class="input-group-text" style="font-size:0.78rem"><i class="bi bi-search"></i></span>
-                                            <input type="text" class="form-control" id="feature-search" placeholder="Search features by name, key, property, or description..."
+                                            <input type="text" class="form-control" id="feature-search" name="feature-search" placeholder="Search features by name, key, property, or description..."
                                                    style="font-size:0.78rem" oninput="window.app.filterFeatures(this.value)">
                                             <button class="btn btn-outline-secondary" type="button" id="feature-search-clear"
                                                     style="font-size:0.72rem;display:none" onclick="document.getElementById('feature-search').value='';window.app.filterFeatures('');">
@@ -442,7 +571,7 @@
                                                 <div class="d-flex align-items-center gap-1">
                                                     <input type="color" class="form-control form-control-color" id="brand-color-primary" value="#0165BC"
                                                            onchange="window.app.updateBrandColor()">
-                                                    <input type="text" class="form-control form-control-sm" id="brand-color-primary-hex" value="#0165BC"
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-primary-hex" name="brand-color-primary-hex" value="#0165BC"
                                                            style="font-size:0.72rem;font-family:monospace;width:75px"
                                                            onchange="document.getElementById('brand-color-primary').value=this.value;window.app.updateBrandColor()">
                                                 </div>
@@ -452,7 +581,7 @@
                                                 <div class="d-flex align-items-center gap-1">
                                                     <input type="color" class="form-control form-control-color" id="brand-color-accent" value="#E48803"
                                                            onchange="window.app.updateBrandColor()">
-                                                    <input type="text" class="form-control form-control-sm" id="brand-color-accent-hex" value="#E48803"
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-accent-hex" name="brand-color-accent-hex" value="#E48803"
                                                            style="font-size:0.72rem;font-family:monospace;width:75px"
                                                            onchange="document.getElementById('brand-color-accent').value=this.value;window.app.updateBrandColor()">
                                                 </div>
@@ -462,7 +591,7 @@
                                                 <div class="d-flex align-items-center gap-1">
                                                     <input type="color" class="form-control form-control-color" id="brand-color-dark" value="#2C2C2C"
                                                            onchange="window.app.updateBrandColor()">
-                                                    <input type="text" class="form-control form-control-sm" id="brand-color-dark-hex" value="#2C2C2C"
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-dark-hex" name="brand-color-dark-hex" value="#2C2C2C"
                                                            style="font-size:0.72rem;font-family:monospace;width:75px"
                                                            onchange="document.getElementById('brand-color-dark').value=this.value;window.app.updateBrandColor()">
                                                 </div>
@@ -472,7 +601,7 @@
                                                 <div class="d-flex align-items-center gap-1">
                                                     <input type="color" class="form-control form-control-color" id="brand-color-error" value="#BD2318"
                                                            onchange="window.app.updateBrandColor()">
-                                                    <input type="text" class="form-control form-control-sm" id="brand-color-error-hex" value="#BD2318"
+                                                    <input type="text" class="form-control form-control-sm" id="brand-color-error-hex" name="brand-color-error-hex" value="#BD2318"
                                                            style="font-size:0.72rem;font-family:monospace;width:75px"
                                                            onchange="document.getElementById('brand-color-error').value=this.value;window.app.updateBrandColor()">
                                                 </div>
@@ -536,7 +665,7 @@
                                                 <div style="font-size:0.62rem;color:var(--insign-text-muted)">30x30 square</div>
                                             </div>
                                             <div class="col">
-                                                <input type="text" class="form-control form-control-sm" id="brand-app-icon"
+                                                <input type="text" class="form-control form-control-sm" id="brand-app-icon" name="brand-app-icon"
                                                        placeholder="URL or upload" style="font-size:0.72rem"
                                                        onchange="window.app.updateBrandLogo('icon', this.value)">
                                             </div>
@@ -557,7 +686,7 @@
                                                 <div style="font-size:0.62rem;color:var(--insign-text-muted)">120x60 banner</div>
                                             </div>
                                             <div class="col">
-                                                <input type="text" class="form-control form-control-sm" id="brand-mail-header-image"
+                                                <input type="text" class="form-control form-control-sm" id="brand-mail-header-image" name="brand-mail-header-image"
                                                        placeholder="URL or upload" style="font-size:0.72rem"
                                                        onchange="window.app.updateBrandLogo('mail', this.value)">
                                             </div>
@@ -578,7 +707,7 @@
                                                 <div style="font-size:0.62rem;color:var(--insign-text-muted)">314x100 wide</div>
                                             </div>
                                             <div class="col">
-                                                <input type="text" class="form-control form-control-sm" id="brand-logo-extern"
+                                                <input type="text" class="form-control form-control-sm" id="brand-logo-extern" name="brand-logo-extern"
                                                        placeholder="URL or upload" style="font-size:0.72rem"
                                                        onchange="window.app.updateBrandLogo('login', this.value)">
                                             </div>
@@ -607,23 +736,23 @@
                         <div class="row g-2 mb-3">
                             <div class="col-sm-6">
                                 <label class="form-label" for="cfg-displayname" style="font-size:0.78rem">displayname</label>
-                                <input type="text" class="form-control form-control-sm" id="cfg-displayname"
+                                <input type="text" class="form-control form-control-sm" id="cfg-displayname" name="cfg-displayname"
                                        placeholder="Auto from document" style="font-size:0.8rem">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label" for="cfg-foruser" style="font-size:0.78rem">foruser <span class="text-muted-sm">(owner ID)</span></label>
-                                <input type="text" class="form-control form-control-sm" id="cfg-foruser"
+                                <input type="text" class="form-control form-control-sm" id="cfg-foruser" name="cfg-foruser"
                                        placeholder="Auto-generated UUID"
                                        style="font-family:'Roboto Mono',monospace;font-size:0.75rem">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label" for="cfg-userfullname" style="font-size:0.78rem">userFullName</label>
-                                <input type="text" class="form-control form-control-sm" id="cfg-userfullname"
+                                <input type="text" class="form-control form-control-sm" id="cfg-userfullname" name="cfg-userfullname"
                                        placeholder="Demo User" style="font-size:0.8rem">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label" for="cfg-userEmail" style="font-size:0.78rem">userEmail <span class="text-muted-sm">(optional)</span></label>
-                                <input type="text" class="form-control form-control-sm" id="cfg-userEmail"
+                                <input type="text" class="form-control form-control-sm" id="cfg-userEmail" name="cfg-userEmail"
                                        placeholder="owner@example.com" style="font-size:0.8rem">
                             </div>
                         </div>
@@ -667,28 +796,6 @@
                                         <span class="text-muted-sm">- server fetches</span>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Webhook Provider -->
-                        <div class="section-title">Webhook Provider</div>
-                        <div id="webhook-provider-group" class="mb-3">
-                            <div class="wh-dropdown position-relative" id="wh-dropdown">
-                                <button class="wh-dd-btn" type="button" id="wh-dd-toggle">
-                                    <i class="bi bi-broadcast wh-dd-icon"></i>
-                                    <span id="wh-dd-label">smee.io</span>
-                                    <span class="wh-dd-badge" id="wh-dd-badge">SSE</span>
-                                    <i class="bi bi-chevron-down wh-dd-chevron"></i>
-                                </button>
-                                <div class="wh-dd-menu" id="wh-dd-menu"></div>
-                            </div>
-                            <div id="webhook-custom-url-group" style="display:none" class="mt-1">
-                                <input type="text" class="form-control form-control-sm" id="cfg-webhook-custom-url"
-                                       placeholder="https://your-endpoint.example.com/webhook"
-                                       onchange="window.app.setWebhookProvider('custom')">
-                            </div>
-                            <div class="text-muted-sm mt-1" id="webhook-provider-hint" style="font-size:0.7rem">
-                                <i class="bi bi-info-circle"></i> Real-time via SSE. POST callbacks only.
                             </div>
                         </div>
 
@@ -743,7 +850,7 @@
                     <i class="bi bi-key" style="color:var(--insign-blue)"></i>
                     <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
                         <strong style="white-space:nowrap">Session ID:</strong>
-                        <input type="text" class="form-control form-control-sm" id="manual-session-id"
+                        <input type="text" class="form-control form-control-sm" id="manual-session-id" name="manual-session-id"
                                placeholder="Paste an existing session ID or create one in Step 1"
                                style="max-width:420px;font-family:'Roboto Mono',monospace;font-size:0.82rem">
                         <code id="active-session-id" class="d-none"></code>
@@ -1189,7 +1296,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Document ID</label>
-                                    <input type="text" class="form-control" id="upload-docid" value="uploaded-doc-1">
+                                    <input type="text" class="form-control" id="upload-docid" name="upload-docid" value="uploaded-doc-1">
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-insign btn-insign-primary" onclick="window.app.uploadDocument()">
@@ -1530,7 +1637,7 @@
                                         <option value="PATCH">PATCH</option>
                                         <option value="DELETE">DELETE</option>
                                     </select>
-                                    <input type="text" id="free-endpoint" class="form-control form-control-sm" value="/get/status"
+                                    <input type="text" id="free-endpoint" name="free-endpoint" class="form-control form-control-sm" value="/get/status"
                                            placeholder="/endpoint/path" style="flex:1;min-width:200px;font-family:'Roboto Mono',monospace;font-size:0.82rem">
                                 </div>
 
@@ -1538,7 +1645,7 @@
                                 <div class="d-flex gap-2 mb-3 align-items-end flex-wrap">
                                     <div style="flex:1;min-width:180px">
                                         <label class="form-label mb-1" style="font-size:0.75rem;color:var(--insign-text-muted)">Content-Type</label>
-                                        <input type="text" id="free-content-type" class="form-control form-control-sm" value="application/json"
+                                        <input type="text" id="free-content-type" name="free-content-type" class="form-control form-control-sm" value="application/json"
                                                list="free-ct-list" style="font-family:'Roboto Mono',monospace;font-size:0.8rem">
                                         <datalist id="free-ct-list">
                                             <option value="application/json">
@@ -1550,7 +1657,7 @@
                                     </div>
                                     <div style="flex:1;min-width:180px">
                                         <label class="form-label mb-1" style="font-size:0.75rem;color:var(--insign-text-muted)">Accept</label>
-                                        <input type="text" id="free-accept" class="form-control form-control-sm" value="application/json"
+                                        <input type="text" id="free-accept" name="free-accept" class="form-control form-control-sm" value="application/json"
                                                list="free-accept-list" style="font-family:'Roboto Mono',monospace;font-size:0.8rem">
                                         <datalist id="free-accept-list">
                                             <option value="application/json">
@@ -1632,26 +1739,114 @@
         </div><!-- /col main -->
 
         <!-- ============================================================
-             API TRACE SIDEBAR (right side, all steps)
+             RIGHT SIDEBAR - Webhooks, Polling, API Trace
              ============================================================ -->
         <div class="col-lg-3 col-md-4 d-none" id="trace-column">
-            <div class="sidebar" id="trace-sidebar" style="top:70px;max-height:calc(100vh - 90px);display:flex;flex-direction:column">
-                <h6 class="d-flex align-items-center gap-2 mb-2" style="flex-shrink:0">
-                    <i class="bi bi-journal-text" style="color:var(--insign-blue)"></i> API Trace
-                    <span class="badge bg-secondary ms-1" style="font-size:0.6rem" id="trace-count">0</span>
-                    <button class="btn btn-insign btn-insign-sm btn-insign-outline ms-auto" onclick="window.app.clearTrace()" title="Clear trace" style="padding:1px 6px;font-size:0.68rem">
-                        <i class="bi bi-trash3"></i>
+            <div class="sidebar" id="trace-sidebar" style="top:70px;max-height:calc(100vh - 90px);display:flex;flex-direction:column;overflow-y:auto">
+
+                <!-- Sidebar collapse button -->
+                <div class="d-flex justify-content-end mb-1" style="flex-shrink:0">
+                    <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.collapseSidebar()" title="Collapse sidebar" style="padding:1px 6px;font-size:0.68rem">
+                        <i class="bi bi-chevron-right"></i>
                     </button>
-                </h6>
-                <div id="trace-entries" style="flex:1;overflow-y:auto;min-height:0">
-                    <div class="text-center text-muted-sm py-3" id="trace-empty">
-                        <i class="bi bi-hourglass-split"></i> No API calls yet
+                </div>
+
+                <!-- Section: Webhooks (visible at step 3+) -->
+                <div class="sidebar-section d-none" id="section-webhooks">
+                    <div class="sidebar-section-header" onclick="window.app.toggleSection('webhooks')">
+                        <i class="bi bi-broadcast" style="color:var(--insign-orange)"></i>
+                        <span>Webhooks</span>
+                        <span class="badge bg-success ms-1" style="font-size:0.6rem" id="webhook-live-badge">live</span>
+                        <div class="form-check form-switch ms-auto mb-0" onclick="event.stopPropagation()">
+                            <input class="form-check-input" type="checkbox" id="sidebar-webhooks-toggle" checked
+                                   onchange="window.app.toggleWebhookSection(this.checked)">
+                        </div>
+                        <i class="bi bi-chevron-down sidebar-section-chevron"></i>
+                    </div>
+                    <div class="sidebar-section-body" id="sidebar-webhook-content">
+                        <div id="sidebar-webhook-container">
+                            <div class="webhook-url-section mb-2">
+                                <div class="text-center text-muted-sm py-2">
+                                    <span class="spinner-insign spinner-dark me-2"></span>
+                                    Creating endpoint...
+                                </div>
+                            </div>
+                            <div class="webhook-requests webhook-panel" style="max-height:250px;overflow-y:auto">
+                                <div class="text-center text-muted-sm py-3">
+                                    <i class="bi bi-hourglass-split"></i> Waiting for webhooks...
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Section: Status Polling (visible at step 3+) -->
+                <div class="sidebar-section d-none" id="section-polling">
+                    <div class="sidebar-section-header" onclick="window.app.toggleSection('polling')">
+                        <i class="bi bi-arrow-repeat" style="color:var(--insign-blue)"></i>
+                        <span>Status Polling</span>
+                        <div class="form-check form-switch ms-auto mb-0" onclick="event.stopPropagation()">
+                            <input class="form-check-input" type="checkbox" id="sidebar-polling-toggle"
+                                   onchange="window.app.togglePollingSection(this.checked)">
+                        </div>
+                        <i class="bi bi-chevron-down sidebar-section-chevron"></i>
+                    </div>
+                    <div class="sidebar-section-body" id="sidebar-polling-content" style="display:none">
+                        <div class="text-muted-sm mb-2" style="font-size:0.75rem">
+                            Polling <code>/get/status</code> every 15s for changes.
+                        </div>
+                        <div class="polling-countdown mb-2" style="height:3px;background:var(--insign-border);border-radius:2px;overflow:hidden">
+                            <div id="polling-countdown-bar" style="height:100%;width:100%;background:var(--insign-blue);transition:width 5s linear"></div>
+                        </div>
+                        <div class="d-flex gap-2 mb-2 align-items-center">
+                            <button class="btn btn-insign btn-insign-sm" id="btn-polling-toggle" onclick="window.app.togglePolling()">
+                                <i class="bi bi-pause-fill"></i> Pause
+                            </button>
+                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.pollNow()">
+                                <i class="bi bi-arrow-clockwise"></i> Poll Now
+                            </button>
+                            <span class="text-muted-sm" id="polling-status-text" style="font-size:0.72rem"></span>
+                        </div>
+                        <div id="polling-changes" style="max-height:200px;overflow-y:auto">
+                            <div class="text-center text-muted-sm py-3">
+                                <i class="bi bi-hourglass-split"></i> Waiting for status changes...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: API Trace -->
+                <div class="sidebar-section" id="section-trace">
+                    <div class="sidebar-section-header" onclick="window.app.toggleSection('trace')">
+                        <i class="bi bi-journal-text" style="color:var(--insign-blue)"></i>
+                        <span>API Trace</span>
+                        <span class="badge bg-secondary ms-1" style="font-size:0.6rem" id="trace-count">0</span>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline ms-auto" onclick="event.stopPropagation();window.app.clearTrace()" title="Clear trace" style="padding:1px 6px;font-size:0.68rem">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                        <i class="bi bi-chevron-down sidebar-section-chevron"></i>
+                    </div>
+                    <div class="sidebar-section-body">
+                        <div id="trace-entries" style="max-height:40vh;overflow-y:auto">
+                            <div class="text-center text-muted-sm py-3" id="trace-empty">
+                                <i class="bi bi-hourglass-split"></i> No API calls yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
     </div><!-- /row -->
+
+    <!-- Expand tab for collapsed sidebar -->
+    <button class="sidebar-expand-tab sidebar-expand-right d-none" id="expand-right-sidebar"
+            onclick="window.app.expandSidebar()" title="Show sidebar">
+        <i class="bi bi-layout-sidebar-reverse"></i>
+        <span class="expand-tab-badge" id="expand-trace-count"></span>
+    </button>
+
 </div><!-- /container -->
 
 <!-- ====================================================================
