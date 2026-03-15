@@ -4211,6 +4211,12 @@
             return escapeHtml(String(body));
         };
 
+        // Look up endpoint description from OpenAPI spec
+        const pathInfo = state.schemaLoader ? state.schemaLoader.getPathInfo(entry.path, entry.method) : null;
+        const descHtml = pathInfo && (pathInfo.summary || pathInfo.description)
+            ? `<div class="trace-desc">${escapeHtml(pathInfo.summary || pathInfo.description)}</div>`
+            : '';
+
         const html = `
             <div class="trace-entry ${entryCls}" data-trace-id="${entry.id}">
                 <div class="trace-summary" onclick="this.parentElement.classList.toggle('open')">
@@ -4220,6 +4226,7 @@
                     <span class="trace-duration">${entry.duration}ms</span>
                 </div>
                 <div class="trace-detail">
+                    ${descHtml}
                     <div class="trace-time">${time}</div>
                     <div class="trace-url">${escapeHtml(entry.url)}</div>
 
