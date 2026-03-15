@@ -7,6 +7,7 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
 
     constructor() {
         this.schemas = {};       // camelCase key -> { uri, schema }
+        this.paths = {};         // path -> { method -> { summary, description } }
         this.loaded = false;
     }
 
@@ -30,6 +31,7 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
             if (!rawSchemas) return false;
 
             this.schemas = this._transform(rawSchemas);
+            this._extractPaths(spec.paths);
             this.loaded = true;
             return true;
         } catch {
@@ -289,5 +291,36 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
      */
     get(key) {
         return this.schemas[key] || null;
+    }
+
+    /**
+     * Extract path summaries/descriptions from the OpenAPI spec.
+     */
+    _extractPaths(paths) {
+        if (!paths) return;
+        for (const [path, methods] of Object.entries(paths)) {
+            this.paths[path] = {};
+            for (const [method, info] of Object.entries(methods)) {
+                if (typeof info === 'object' && info !== null) {
+                    this.paths[path][method.toLowerCase()] = {
+                        summary: info.summary || '',
+                        description: info.description || ''
+                    };
+                }
+            }
+        }
+    }
+
+    /**
+     * Look up a description for a given API path and method.
+     * Returns { summary, description } or null.
+     * Handles paths with query strings by stripping them for lookup.
+     */
+    getPathInfo(path, method) {
+        const cleanPath = path.split('?')[0];
+        const entry = this.paths[cleanPath];
+        if (!entry) return null;
+        const m = (method || 'post').toLowerCase();
+        return entry[m] || Object.values(entry)[0] || null;
     }
 };

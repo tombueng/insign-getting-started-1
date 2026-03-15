@@ -1576,6 +1576,13 @@ code {
     line-height: 1.4;
 }
 
+.trace-desc {
+    font-size: 0.68rem;
+    color: var(--insign-blue);
+    font-style: italic;
+    margin-bottom: 2px;
+}
+
 .trace-time {
     font-size: 0.6rem;
     color: var(--insign-gray);
