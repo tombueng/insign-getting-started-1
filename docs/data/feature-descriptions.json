@@ -644,35 +644,19 @@
       "icon": "bi-envelope",
       "features": [
         {
-          "key": "externEmailBetreff",
-          "label": "Extern email subject",
-          "type": "text",
-          "path": "root",
-          "desc": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} - Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability.",
-          "globalProperty": null
-        },
-        {
-          "key": "externEmailInhalt",
-          "label": "Extern email body",
-          "type": "text",
-          "path": "root",
-          "desc": "The body text of the email sent to external signers when invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for personalization. The email body should explain what the recipient needs to do, provide context about the documents to be signed, and any relevant instructions. The signing link is automatically appended or embedded by the system. Supports HTML formatting for rich-text emails. If not specified, the system uses a default translated email body based on the session locale. Should complement the externEmailBetreff subject line.",
-          "globalProperty": null
-        },
-        {
           "key": "applosKundeMailBetreff",
           "label": "Applos email subject",
           "type": "text",
-          "path": "root",
-          "desc": "The email subject line for app-less (browser-based) signing invitation links sent to customers. This root-level session property is used when the signing process is configured for browser-based access without requiring the inSign mobile app. The subject should clearly indicate that the recipient can sign directly in their browser. Supports the same placeholder syntax as externEmailBetreff for dynamic personalization. If not specified, the system uses a default translated subject. This property is distinct from externEmailBetreff and allows different messaging for app-less versus standard external signing invitations.",
+          "path": "deliveryConfig",
+          "desc": "The email subject line for app-less (browser-based) signing invitation links sent to customers. This deliveryConfig property is used when the signing process is configured for browser-based access without requiring the inSign mobile app. The subject should clearly indicate that the recipient can sign directly in their browser. Supports dynamic placeholders for personalization. If not specified, the system uses a default translated subject.",
           "globalProperty": null
         },
         {
           "key": "applosKundeMailText",
           "label": "Applos email body",
           "type": "text",
-          "path": "root",
-          "desc": "The email body text for app-less (browser-based) signing invitation emails sent to customers. This root-level session property contains the message content explaining how to access and sign documents directly in the browser without installing the inSign app. Should include clear instructions for the recipient. Supports dynamic placeholders such as {name} for personalization and HTML formatting. The browser signing link is automatically included by the system. If not specified, a default translated email body is used. This allows tailored messaging emphasizing the convenience of browser-based signing without app installation requirements.",
+          "path": "deliveryConfig",
+          "desc": "The email body text for app-less (browser-based) signing invitation emails sent to customers. This deliveryConfig property contains the message content explaining how to access and sign documents directly in the browser without installing the inSign app. Should include clear instructions for the recipient. Supports dynamic placeholders such as {name} for personalization and HTML formatting. The browser signing link is automatically included by the system. If not specified, a default translated email body is used.",
           "globalProperty": null
         },
         {
@@ -695,16 +679,16 @@
           "key": "alleEmailBetreff",
           "label": "All-recipients email subject",
           "type": "text",
-          "path": "root",
-          "desc": "The subject line for emails sent to all recipients (non-external). This root-level session property customizes the email subject when documents or notifications are sent to session participants who are not external signers (e.g., the session owner, CC recipients, or internal participants). Supports dynamic placeholders such as {name} for personalization. If not specified, the system uses a default translated subject. This is distinct from externEmailBetreff (for external signers) and applosKundeMailBetreff (for app-less customer invitations).",
+          "path": "deliveryConfig",
+          "desc": "The subject line for emails sent to all recipients (non-external). This deliveryConfig property customizes the email subject when documents or notifications are sent to session participants who are not external signers (e.g., the session owner, CC recipients, or internal participants). Supports dynamic placeholders such as {name} for personalization. If not specified, the system uses a default translated subject.",
           "globalProperty": null
         },
         {
           "key": "alleEmailInhalt",
           "label": "All-recipients email body",
           "type": "text",
-          "path": "root",
-          "desc": "The body text for emails sent to all recipients (non-external). This root-level session property customizes the email content for session participants who are not external signers. Supports dynamic placeholders such as {name} for personalization and HTML formatting. If not specified, the system uses a default translated email body. This property complements alleEmailBetreff and is distinct from externEmailInhalt (for external signers).",
+          "path": "deliveryConfig",
+          "desc": "The body text for emails sent to all recipients (non-external). This deliveryConfig property customizes the email content for session participants who are not external signers. Supports dynamic placeholders such as {name} for personalization and HTML formatting. If not specified, the system uses a default translated email body. This property complements alleEmailBetreff.",
           "globalProperty": null
         },
         {
@@ -1311,24 +1295,14 @@
       "description": "Specifies the default signature level for documents in the session. Supported values: SES (Simple Electronic Signature - text input based), AES (Advanced Electronic Signature - handwriting/drawing based), AESSMS (Advanced Electronic Signature with SMS verification - text input with mobile number verification for added identity assurance), and QES (Qualified Electronic Signature - highest legal standing, requires identity verification through a trust service provider). This root-level session property determines the signature method presented to signers. Different signature levels have different legal implications and user experience flows. Can be overridden at the document or field level."
     },
     {
-      "key": "externEmailBetreff",
-      "globalProperty": null,
-      "description": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} - Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability."
-    },
-    {
-      "key": "externEmailInhalt",
-      "globalProperty": null,
-      "description": "The body text of the email sent to external signers when invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for personalization. The email body should explain what the recipient needs to do, provide context about the documents to be signed, and any relevant instructions. The signing link is automatically appended or embedded by the system. Supports HTML formatting for rich-text emails. If not specified, the system uses a default translated email body based on the session locale. Should complement the externEmailBetreff subject line."
-    },
-    {
       "key": "applosKundeMailBetreff",
       "globalProperty": null,
-      "description": "The email subject line for app-less (browser-based) signing invitation links sent to customers. This root-level session property is used when the signing process is configured for browser-based access without requiring the inSign mobile app. The subject should clearly indicate that the recipient can sign directly in their browser. Supports the same placeholder syntax as externEmailBetreff for dynamic personalization. If not specified, the system uses a default translated subject. This property is distinct from externEmailBetreff and allows different messaging for app-less versus standard external signing invitations."
+      "description": "The email subject line for app-less (browser-based) signing invitation links sent to customers. This deliveryConfig property is used when the signing process is configured for browser-based access without requiring the inSign mobile app. The subject should clearly indicate that the recipient can sign directly in their browser. Supports dynamic placeholders for personalization. If not specified, the system uses a default translated subject."
     },
     {
       "key": "applosKundeMailText",
       "globalProperty": null,
-      "description": "The email body text for app-less (browser-based) signing invitation emails sent to customers. This root-level session property contains the message content explaining how to access and sign documents directly in the browser without installing the inSign app. Should include clear instructions for the recipient. Supports dynamic placeholders such as {name} for personalization and HTML formatting. The browser signing link is automatically included by the system. If not specified, a default translated email body is used. This allows tailored messaging emphasizing the convenience of browser-based signing without app installation requirements."
+      "description": "The email body text for app-less (browser-based) signing invitation emails sent to customers. This deliveryConfig property contains the message content explaining how to access and sign documents directly in the browser without installing the inSign app. Should include clear instructions for the recipient. Supports dynamic placeholders such as {name} for personalization and HTML formatting. The browser signing link is automatically included by the system. If not specified, a default translated email body is used."
     },
     {
       "key": "senderEmail",

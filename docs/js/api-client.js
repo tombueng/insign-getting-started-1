@@ -9,7 +9,7 @@ window.InsignApiClient = class InsignApiClient {
         this.username = username;
         this.password = password;
         this.useCorsProxy = false;
-        this.corsProxyUrl = 'https://corsproxy.io/?';
+        this.corsProxyUrl = 'http://localhost:9009/?';
         // Auth mode: 'basic' or 'oauth2'
         this.authMode = 'basic';
         this.oauth2Token = null;       // current Bearer token
@@ -176,10 +176,18 @@ window.InsignApiClient = class InsignApiClient {
                 }
             }
 
+            // Detect application-level errors: JSON body with "error" != 0
+            let appError = false;
+            let appErrorText = '';
+            if (response.ok && responseBody && typeof responseBody === 'object' && responseBody.error !== undefined && responseBody.error !== 0) {
+                appError = true;
+                appErrorText = responseBody.message || ('Application error: ' + responseBody.error);
+            }
+
             result = {
-                ok: response.ok,
+                ok: response.ok && !appError,
                 status: response.status,
-                statusText: response.statusText,
+                statusText: appError ? appErrorText : response.statusText,
                 headers: responseHeaders,
                 body: responseBody,
                 raw: rawText,
@@ -190,8 +198,17 @@ window.InsignApiClient = class InsignApiClient {
         } catch (err) {
             const duration = Math.round(performance.now() - startTime);
 
-            // Detect CORS errors
+            // Detect CORS errors - auto-retry through proxy if available
             if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('Failed') || err.message.includes('NetworkError'))) {
+                // Auto-enable CORS proxy and retry the request once
+                if (!this.useCorsProxy && this.corsProxyUrl) {
+                    this.useCorsProxy = true;
+                    if (this._onCorsAutoEnabled) {
+                        this._onCorsAutoEnabled();
+                    }
+                    return this.call(method, path, options);
+                }
+
                 result = {
                     ok: false,
                     status: 0,
@@ -201,10 +218,9 @@ window.InsignApiClient = class InsignApiClient {
                         error: 'CORS_OR_NETWORK_ERROR',
                         message: 'Could not reach the API server. This is most likely a CORS (Cross-Origin Resource Sharing) issue - your browser blocks requests from this page to the inSign server because the server has not allowed this origin.',
                         fixes: [
-                            '1. Quick fix: Enable the "CORS proxy" toggle in the Connection settings (routes requests through a proxy)',
-                            '2. Server fix: Set the inSign property cors.allowed-origins=* (or your specific origin) in the inSign server configuration',
-                            '3. Browser fix: Install a CORS browser extension (e.g. "CORS Unblock" for Chrome/Firefox)',
-                            '4. If running locally: serve this page via HTTP (npx serve docs) instead of file://'
+                            '1. Server fix: Set the inSign property cors.allowed-origins=* (or your specific origin) in the inSign server configuration',
+                            '2. Browser fix: Install a CORS browser extension (e.g. "CORS Unblock" for Chrome/Firefox)',
+                            '3. If running locally: serve this page via HTTP (npx serve docs) instead of file://'
                         ],
                         originalError: err.message
                     },

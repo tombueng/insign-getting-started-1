@@ -65,34 +65,43 @@
     }
 
     /** Webhook provider configuration */
+    function faviconUrl(domain) {
+        return 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=32';
+    }
+
     const WEBHOOK_PROVIDERS = {
         'webhook.site': {
             label: 'webhook.site', icon: 'bi-inbox', tag: 'Poll',
+            favicon: faviconUrl('webhook.site'),
             desc: 'Free, no signup. Auto-creates a unique endpoint and polls for incoming requests every 4 seconds.',
             hint: 'Polling every 4s. GET & POST supported.',
             url: 'https://webhook.site', postOnly: false
         },
         smee: {
             label: 'smee.io', icon: 'bi-broadcast', tag: 'SSE',
+            favicon: faviconUrl('smee.io'),
             desc: 'GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events.',
             hint: 'Real-time via SSE. POST callbacks only.',
             url: 'https://smee.io', postOnly: true
         },
         postbin: {
             label: 'postb.in', icon: 'bi-collection', tag: 'Poll',
+            favicon: faviconUrl('postb.in'),
             desc: 'Toptal-hosted request bin. Collects POSTs into a FIFO queue with 30-minute lifetime per bin.',
             hint: 'FIFO queue, 30min bin lifetime.',
             url: 'https://www.toptal.com/developers/postbin', postOnly: false
         },
         ntfy: {
             label: 'ntfy.sh', icon: 'bi-bell', tag: 'SSE',
+            favicon: faviconUrl('ntfy.sh'),
             desc: 'Open-source notification service repurposed as a webhook relay. Real-time SSE, but large JSON bodies may be truncated.',
             hint: 'SSE real-time. Large payloads may be truncated.',
             url: 'https://ntfy.sh', postOnly: false
         },
         cfworker: {
             label: 'CF Worker', icon: 'bi-cloud-arrow-up', tag: 'Self-host',
-            desc: 'Deploy cf-webhook-worker.js to your Cloudflare account. Free tier, fully under your control.',
+            favicon: faviconUrl('workers.cloudflare.com'),
+            desc: 'Deploy <a href="data/cf-webhook-worker.js" download="cf-webhook-worker.js" onclick="event.stopPropagation()" style="font-size:inherit">cf-webhook-worker.js</a> to your Cloudflare account. Free tier, fully under your control.',
             hint: 'Self-hosted on Cloudflare Workers. Enter your worker URL below.',
             url: 'https://workers.cloudflare.com', postOnly: false, needsCustomUrl: true
         },
@@ -410,6 +419,7 @@
         if ($corsToggle.length && saved.corsProxy) {
             $corsToggle.prop('checked', true);
             $('#cors-proxy-url-group').css('display', '');
+            $('#cors-proxy-security-warning').css('display', '');
         }
         if (saved.corsProxyUrl) {
             $('#cfg-cors-proxy-url').val(saved.corsProxyUrl);
@@ -606,6 +616,9 @@
                 } else if (f.path === 'signConfig') {
                     if (!body.signConfig) body.signConfig = {};
                     body.signConfig[f.key] = val;
+                } else if (f.path === 'deliveryConfig') {
+                    if (!body.deliveryConfig) body.deliveryConfig = {};
+                    body.deliveryConfig[f.key] = val;
                 } else if (f.path === 'doc') {
                     if (body.documents && body.documents[0]) body.documents[0][f.key] = val;
                 } else {
@@ -634,6 +647,9 @@
                     } else if (path === 'signConfig' && body.signConfig) {
                         delete body.signConfig[key];
                         if (Object.keys(body.signConfig).length === 0) delete body.signConfig;
+                    } else if (path === 'deliveryConfig' && body.deliveryConfig) {
+                        delete body.deliveryConfig[key];
+                        if (Object.keys(body.deliveryConfig).length === 0) delete body.deliveryConfig;
                     } else if (path === 'doc' && body.documents && body.documents[0]) {
                         delete body.documents[0][key];
                     } else {
@@ -660,6 +676,9 @@
         } else if (path === 'signConfig') {
             if (!body.signConfig) body.signConfig = {};
             body.signConfig[key] = value;
+        } else if (path === 'deliveryConfig') {
+            if (!body.deliveryConfig) body.deliveryConfig = {};
+            body.deliveryConfig[key] = value;
         } else if (path === 'doc') {
             if (body.documents && body.documents[0]) {
                 body.documents[0][key] = value;
@@ -705,6 +724,8 @@
                     jsonVal = body.guiProperties ? body.guiProperties[f.key] : undefined;
                 } else if (f.path === 'signConfig') {
                     jsonVal = body.signConfig ? body.signConfig[f.key] : undefined;
+                } else if (f.path === 'deliveryConfig') {
+                    jsonVal = body.deliveryConfig ? body.deliveryConfig[f.key] : undefined;
                 } else if (f.path === 'doc') {
                     jsonVal = (body.documents && body.documents[0]) ? body.documents[0][f.key] : undefined;
                 } else {
@@ -1060,22 +1081,196 @@
         if ($trustUrl.length) $trustUrl.text('\u2192 ' + $('#cfg-base-url').val());
 
         // Bind sidebar events
-        $('#cfg-base-url').on('change', () => { updateApiClient(); saveAppState(); });
+        $('#cfg-base-url').on('change', () => { updateApiClient(); saveAppState(); updateCorsVisibility(); });
         $('#cfg-username').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
         $('#cfg-password').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
 
+        $('#btn-use-sandbox').on('click', () => {
+            $('#cfg-base-url').val('https://sandbox.test.getinsign.show');
+            $('#cfg-username').val('controller');
+            $('#cfg-password').val('pwd.insign.sandbox.4561');
+            updateApiClient();
+            syncOAuth2Credentials();
+            saveAppState();
+            updateCorsVisibility();
+        });
+
+        // ---- CORS: probe directly first, only offer proxy if needed ----
+        const SANDBOX_URL = 'sandbox.test.getinsign.show';
+        let directProbeAbort = null;
+
+        function isSandboxUrl(url) {
+            return (url || '').toLowerCase().includes(SANDBOX_URL);
+        }
+
+        function setCorsNeeded(needed) {
+            const $toggle = $('#cors-proxy-toggle-wrap');
+            const $hint = $('#cors-hint-banner');
+            const $corsToggle = $('#cfg-cors-proxy');
+            if (needed) {
+                $toggle.removeClass('d-none');
+                if (!$corsToggle.is(':checked')) {
+                    $hint.removeClass('d-none');
+                } else {
+                    $hint.addClass('d-none');
+                }
+            } else {
+                $corsToggle.prop('checked', false).trigger('change');
+                $toggle.addClass('d-none');
+                $hint.addClass('d-none');
+            }
+        }
+
+        function updateCorsVisibility() {
+            const baseUrl = ($('#cfg-base-url').val() || '').replace(/\/+$/, '');
+
+            // Abort any in-flight direct probe and clear version
+            if (directProbeAbort) { directProbeAbort.abort(); directProbeAbort = null; }
+            $('#cors-direct-version').text('').addClass('d-none');
+
+            if (!baseUrl) { setCorsNeeded(false); return; }
+
+            // Sandbox has relaxed CORS - no probe needed
+            if (isSandboxUrl(baseUrl)) { setCorsNeeded(false); return; }
+
+            // Probe the URL directly (no proxy) to see if CORS is an issue
+            directProbeAbort = new AbortController();
+            fetch(baseUrl + '/version', {
+                method: 'GET', mode: 'cors', cache: 'no-store',
+                signal: directProbeAbort.signal
+            })
+                .then(r => {
+                    if (r.ok) {
+                        // Server responds with CORS headers - no proxy needed
+                        setCorsNeeded(false);
+                        r.text().then(t => {
+                            const v = t.trim();
+                            if (v) $('#cors-direct-version').text('inSign ' + v).removeClass('d-none');
+                        });
+                    } else {
+                        // Server reachable but returned error - still no CORS issue
+                        setCorsNeeded(false);
+                    }
+                })
+                .catch(err => {
+                    if (err.name === 'AbortError') return;
+                    // Network/CORS error - proxy is needed
+                    setCorsNeeded(true);
+                });
+        }
+
+        // ---- CORS proxy with local probe ----
+        let probeInterval = null;
+        let probeStatus = null; // 'ok' | 'fail' | null
+
+        function probeLocalProxy() {
+            // Probe the proxy by requesting the inSign base URL through it.
+            // This confirms the full chain: proxy running + can reach the target.
+            const proxyUrl = $('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?';
+            const baseUrl = ($('#cfg-base-url').val() || '').replace(/\/+$/, '');
+            const $dot = $('#proxy-probe-dot');
+            if (!$dot.length) return;
+            $dot.attr('class', 'proxy-probe-dot probe-pending');
+            if (!baseUrl) { applyProbeResult(false, null); return; }
+            const url = proxyUrl + encodeURIComponent(baseUrl + '/version');
+            fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store', signal: AbortSignal.timeout(4000) })
+                .then(r => {
+                    if (r.ok) return r.text().then(t => applyProbeResult(true, t.trim()));
+                    applyProbeResult(false, null);
+                })
+                .catch(() => applyProbeResult(false, null));
+        }
+
+        function applyProbeResult(ok, version) {
+            const prev = probeStatus;
+            probeStatus = ok ? 'ok' : 'fail';
+            const $dot = $('#proxy-probe-dot');
+            const $label = $('#proxy-probe-label');
+            $dot.attr('class', 'proxy-probe-dot probe-' + probeStatus);
+            if (ok) {
+                const vText = version ? 'Connected - inSign ' + version : 'Connected';
+                $label.text(vText).attr('class', 'proxy-probe-label probe-label-ok');
+            } else {
+                $label.text('Not reachable').attr('class', 'proxy-probe-label probe-label-fail');
+            }
+            // Toast on status change (skip first probe)
+            if (prev !== null && prev !== probeStatus) {
+                showProxyToast(ok, version);
+            }
+        }
+
+        function startProbePolling() {
+            stopProbePolling();
+            probeLocalProxy();
+            probeInterval = setInterval(() => {
+                if ($('#cors-proxy-url-group').css('display') !== 'none') {
+                    probeLocalProxy();
+                }
+            }, 1000);
+        }
+
+        function stopProbePolling() {
+            if (probeInterval) {
+                clearInterval(probeInterval);
+                probeInterval = null;
+            }
+            probeStatus = null;
+        }
+
+        function showProxyToast(ok, version) {
+            $('.proxy-toast').remove();
+            const icon = ok ? '<i class="bi bi-check-circle-fill"></i>' : '<i class="bi bi-x-circle-fill"></i>';
+            const msg = ok ? ('Connected to inSign' + (version ? ' ' + version : '')) : 'Proxy - inSign not reachable';
+            const cls = ok ? 'toast-ok' : 'toast-fail';
+            const $toast = $('<div class="proxy-toast ' + cls + '">' + icon + ' ' + msg + '</div>');
+            $('body').append($toast);
+            setTimeout(() => $toast.fadeOut(300, () => $toast.remove()), 3500);
+        }
+
         const $corsToggle = $('#cfg-cors-proxy');
         $corsToggle.on('change', () => {
-            $('#cors-proxy-url-group').css('display', $corsToggle.is(':checked') ? '' : 'none');
+            const on = $corsToggle.is(':checked');
+            $('#cors-proxy-url-group').css('display', on ? '' : 'none');
+            $('#cors-proxy-security-warning').css('display', on ? '' : 'none');
+            // Hide hint when proxy is enabled (user acted on the warning)
+            if (on) {
+                $('#cors-hint-banner').addClass('d-none');
+            } else if (!isSandboxUrl($('#cfg-base-url').val())) {
+                $('#cors-hint-banner').removeClass('d-none');
+            }
             updateApiClient();
             saveAppState();
+            if (on) {
+                startProbePolling();
+            } else {
+                stopProbePolling();
+            }
         });
+
         $('#cfg-cors-proxy-url').on('change', () => { updateApiClient(); saveAppState(); });
 
-        // "Remember credentials" checkbox
+        // Show actual origin in CORS config hint
+        $('#cors-origin-hint').text(window.location.origin);
+
+        // Set initial CORS visibility based on URL
+        updateCorsVisibility();
+
+        // If CORS proxy is already enabled on load, start probing
+        if ($corsToggle.is(':checked')) {
+            setTimeout(() => startProbePolling(), 500);
+        }
+
+        // "Save in browser" checkbox with security warning
         const $saveCredsCheckbox = $('#cfg-save-credentials');
         if ($saveCredsCheckbox.length) {
-            $saveCredsCheckbox.on('change', saveAppState);
+            $saveCredsCheckbox.on('change', function () {
+                $('#save-credentials-warning').toggleClass('d-none', !$saveCredsCheckbox.is(':checked'));
+                saveAppState();
+            });
+            // Show warning if already checked on load
+            if ($saveCredsCheckbox.is(':checked')) {
+                $('#save-credentials-warning').removeClass('d-none');
+            }
         }
 
         // Bind owner field inputs → update JSON editor when changed
@@ -1144,8 +1339,10 @@
         const $webhooksToggle = $('#cfg-webhooks');
         if ($webhooksToggle.length) {
             $webhooksToggle.on('change', () => {
+                const checked = $webhooksToggle.is(':checked');
                 const $providerGroup = $('#webhook-provider-group');
-                if ($providerGroup.length) $providerGroup.css('display', $webhooksToggle.is(':checked') ? '' : 'none');
+                if ($providerGroup.length) $providerGroup.css('display', checked ? '' : 'none');
+                $('#webhook-relay-warning').toggleClass('d-none', !checked);
 
                 // Sync sidebar-step2 webhook toggle
                 const $sidebarWhToggle = $('#sidebar-webhooks-toggle');
@@ -1171,6 +1368,10 @@
                 // Toggle webhook section in sidebar
                 toggleWebhookSection($webhooksToggle.is(':checked'));
             });
+            // Show warning if already enabled on load
+            if ($webhooksToggle.is(':checked')) {
+                $('#webhook-relay-warning').removeClass('d-none');
+            }
         }
 
         // Init Monaco
@@ -1268,9 +1469,16 @@
 
         const corsProxy = $('#cfg-cors-proxy').is(':checked');
         state.apiClient.useCorsProxy = corsProxy;
-        if (corsProxy) {
-            state.apiClient.corsProxyUrl = $('#cfg-cors-proxy-url').val();
-        }
+        state.apiClient.corsProxyUrl = $('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?';
+
+        // Auto-enable CORS proxy on first CORS error: update UI toggle and notify user
+        state.apiClient._onCorsAutoEnabled = () => {
+            $('#cfg-cors-proxy').prop('checked', true);
+            $('#cors-proxy-url-group').css('display', '');
+            $('#cors-proxy-security-warning').css('display', '');
+            showToast('CORS error detected - automatically enabled CORS proxy.', 'info');
+            saveAppState();
+        };
 
         // Update trust indicator
         const $trustUrl = $('#trust-target-url');
@@ -1818,18 +2026,17 @@
             $box.addClass('shine');
         }
 
-        // Show left sidebar column only for step 3+ (webhook/polling viewer)
-        const $sidebarCol = $('#sidebar-column');
-        const $sidebar2 = $('#sidebar-step2');
-        if ($sidebarCol.length && $sidebar2.length) {
-            const showSidebar = step >= 3;
-            $sidebarCol.toggleClass('d-none', !showSidebar);
-            $sidebar2.toggleClass('d-none', !showSidebar);
-
-            // When entering step 3+, start webhook or polling
-            if (showSidebar) {
-                updateSidebarMode();
+        // Show webhook/polling sections in right sidebar for step 3+
+        const showMonitor = step >= 3;
+        $('#section-webhooks').toggleClass('d-none', !showMonitor);
+        $('#section-polling').toggleClass('d-none', !showMonitor);
+        if (showMonitor) {
+            // Ensure right sidebar is visible (unless user collapsed it)
+            if (!state.sidebarCollapsed) {
+                $('#trace-column').removeClass('d-none');
+                $('#expand-right-sidebar').addClass('d-none');
             }
+            updateSidebarMode();
         }
 
         updateMainColumnWidth();
@@ -3171,12 +3378,12 @@
     // =====================================================================
 
     function initDarkMode() {
-        // Check saved preference, then system preference
-        let dark = false;
-        try { dark = localStorage.getItem('insign-dark-mode') === 'true'; } catch { /* ignore */ }
-        if (localStorage.getItem('insign-dark-mode') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            dark = true;
-        }
+        // Default to dark mode; respect saved preference if set
+        let dark = true;
+        try {
+            const saved = localStorage.getItem('insign-dark-mode');
+            if (saved !== null) dark = saved === 'true';
+        } catch { /* ignore */ }
         applyDarkMode(dark);
     }
 
@@ -3223,21 +3430,20 @@
         Object.keys(WEBHOOK_PROVIDERS).forEach(function (key) {
             var p = WEBHOOK_PROVIDERS[key];
             var sel = key === state.webhookProvider ? ' wh-dd-item-selected' : '';
-            var linkHtml = p.url ? ' <a class="wh-dd-item-link" href="' + p.url + '" target="_blank" onclick="event.stopPropagation()"><i class="bi bi-box-arrow-up-right"></i> ' + p.url.replace('https://', '') + '</a>' : '';
             html += '<div class="wh-dd-item' + sel + '" data-wh="' + key + '" onclick="window.app.setWebhookProvider(\'' + key + '\')">'
-                + '<i class="bi ' + p.icon + ' wh-dd-item-icon"></i>'
-                + '<div class="wh-dd-item-body">'
-                + '<div class="wh-dd-item-title">' + p.label + ' <span class="wh-dd-tag">' + p.tag + '</span></div>'
-                + '<div class="wh-dd-item-desc">' + p.desc + linkHtml + '</div>'
-                + '</div></div>';
+                + buildWhItemHtml(key, p)
+                + '</div>';
         });
         $menu.html(html);
 
-        // Update button
-        var cur = WEBHOOK_PROVIDERS[state.webhookProvider] || WEBHOOK_PROVIDERS.smee;
-        $('#wh-dd-label').text(cur.label);
-        $('#wh-dd-badge').text(cur.tag);
-        $('#wh-dd-toggle .wh-dd-icon').attr('class', 'bi ' + cur.icon + ' wh-dd-icon');
+        // Update button and detail panel
+        updateWhDetailPanel();
+
+        // Probe all providers once in background
+        Object.keys(WEBHOOK_PROVIDERS).forEach(function (key) {
+            var p = WEBHOOK_PROVIDERS[key];
+            if (p.url) probeWebhookProvider(key, p.url);
+        });
 
         // Toggle
         var $toggle = $('#wh-dd-toggle');
@@ -3254,23 +3460,64 @@
         });
     }
 
+    function probeWebhookProvider(key, url) {
+        var $dots = $('[data-wh-probe="' + key + '"]');
+        $dots.attr('class', 'wh-probe-dot wh-probe-pending');
+        fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(5000) })
+            .then(function () {
+                $('[data-wh-probe="' + key + '"]').attr('class', 'wh-probe-dot wh-probe-ok').attr('title', 'Reachable');
+            })
+            .catch(function () {
+                $('[data-wh-probe="' + key + '"]').attr('class', 'wh-probe-dot wh-probe-fail').attr('title', 'Unreachable');
+            });
+    }
+
+    /** Build the rich selected-item HTML (same layout as dropdown items) */
+    function buildWhItemHtml(key, p, extra) {
+        var iconHtml = p.favicon
+            ? '<img src="' + p.favicon + '" width="16" height="16" alt="" style="image-rendering:auto">'
+            : '<i class="bi ' + p.icon + '"></i>';
+        var isSelfHosted = (key === 'custom' || key === 'cfworker');
+        var secBadge = isSelfHosted
+            ? '<span class="wh-dd-sec wh-dd-sec-safe"><i class="bi bi-shield-check"></i> your control</span>'
+            : '<span class="wh-dd-sec wh-dd-sec-pub"><i class="bi bi-globe2"></i> public 3rd party</span>';
+        var linkHtml = p.url ? '<a class="wh-dd-item-link" href="' + p.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><i class="bi bi-box-arrow-up-right"></i> ' + p.url.replace('https://', '') + '</a>' : '';
+        return '<div class="wh-dd-item-icon-wrap">' + iconHtml + '</div>'
+            + '<div class="wh-dd-item-body">'
+            + '<div class="wh-dd-item-title">' + p.label + ' <span class="wh-dd-tag wh-dd-tag-' + p.tag.toLowerCase() + '">' + p.tag + '</span>'
+            + ' <span class="wh-probe-dot" data-wh-probe="' + key + '"></span></div>'
+            + '<div class="wh-dd-item-desc">' + p.desc + '</div>'
+            + '<div class="wh-dd-item-footer">' + secBadge + linkHtml + '</div>'
+            + '</div>'
+            + (extra || '');
+    }
+
+    function updateWhDetailPanel() {
+        var key = state.webhookProvider;
+        var cur = WEBHOOK_PROVIDERS[key] || WEBHOOK_PROVIDERS.smee;
+
+        // Render the selected item as a rich card in the toggle area
+        var chevron = '<i class="bi bi-chevron-down wh-dd-chevron"></i>';
+        $('#wh-dd-toggle').html(buildWhItemHtml(key, cur, chevron));
+
+        // Re-sync probe dot from menu (if already probed)
+        var $menuDot = $('#wh-dd-menu [data-wh-probe="' + key + '"]');
+        if ($menuDot.length && $menuDot.attr('class')) {
+            $('#wh-dd-toggle [data-wh-probe="' + key + '"]').attr('class', $menuDot.attr('class'));
+        }
+    }
+
     function setWebhookProvider(provider) {
         state.webhookProvider = provider;
         const info = WEBHOOK_PROVIDERS[provider] || WEBHOOK_PROVIDERS['webhook.site'];
 
-        // Update dropdown button
-        $('#wh-dd-label').text(info.label);
-        $('#wh-dd-badge').text(info.tag);
-        $('#wh-dd-toggle .wh-dd-icon').attr('class', 'bi ' + info.icon + ' wh-dd-icon');
+        // Update dropdown selection and detail panel
         $('#wh-dd-menu .wh-dd-item').each(function () {
             $(this).toggleClass('wh-dd-item-selected', $(this).data('wh') === provider);
         });
         $('#wh-dd-menu').removeClass('open');
         $('#wh-dd-toggle').removeClass('open');
-
-        // Update hint text
-        const $hint = $('#webhook-provider-hint');
-        if ($hint.length) $hint.html(`<i class="bi bi-info-circle"></i> ${info.hint}`);
+        updateWhDetailPanel();
 
         // Show/hide custom URL input
         const $customGroup = $('#webhook-custom-url-group');
@@ -4153,26 +4400,24 @@
     // API Trace sidebar
     // =====================================================================
 
-    /** Recalculate main column width based on which sidebars are visible */
+    /** Recalculate main column width based on sidebar visibility */
     function updateMainColumnWidth() {
         const $main = $('#main-column');
-        const leftVisible = !$('#sidebar-column').hasClass('d-none');
         const rightVisible = !$('#trace-column').hasClass('d-none');
 
-        // Remove all sizing classes, let col auto-expand
         $main.removeClass('col-lg-6 col-lg-9 col-md-4 col-md-8');
-        if (leftVisible && rightVisible) {
-            $main.addClass('col-lg-6 col-md-4');
-        } else if (leftVisible || rightVisible) {
+        if (rightVisible) {
             $main.addClass('col-lg-9 col-md-8');
         }
     }
 
-    /** Show the trace sidebar (first call) */
+    /** Show the right sidebar (first call, or if not manually collapsed) */
     function showTraceColumn() {
+        if (state.sidebarCollapsed) return; // respect manual collapse
         const $col = $('#trace-column');
         if ($col.hasClass('d-none')) {
             $col.removeClass('d-none');
+            $('#expand-right-sidebar').addClass('d-none');
             updateMainColumnWidth();
         }
     }
@@ -4217,18 +4462,31 @@
             ? `<div class="trace-desc">${escapeHtml(pathInfo.summary || pathInfo.description)}</div>`
             : '';
 
+        // Decode proxy URLs for display: "http://localhost:9009/?https%3A%2F%2F..." -> actual URL + proxy hint
+        let displayUrl = entry.url;
+        let proxyHint = '';
+        if (state.apiClient && state.apiClient.useCorsProxy && state.apiClient.corsProxyUrl) {
+            const proxyPrefix = state.apiClient.corsProxyUrl;
+            if (entry.url.startsWith(proxyPrefix)) {
+                const encoded = entry.url.substring(proxyPrefix.length);
+                try { displayUrl = decodeURIComponent(encoded); } catch (_) { displayUrl = encoded; }
+                proxyHint = '<span class="trace-proxy-badge" title="Routed through CORS proxy: ' + escapeHtml(proxyPrefix) + '"><i class="bi bi-shuffle"></i> proxy</span>';
+            }
+        }
+
         const html = `
             <div class="trace-entry ${entryCls}" data-trace-id="${entry.id}">
                 <div class="trace-summary" onclick="this.parentElement.classList.toggle('open')">
                     <span class="trace-method ${methodCls}">${entry.method}</span>
                     <span class="trace-path" title="${escapeHtml(entry.path)}">${escapeHtml(entry.path)}</span>
+                    ${proxyHint}
                     <span class="trace-status ${statusCls}">${entry.status}</span>
                     <span class="trace-duration">${entry.duration}ms</span>
                 </div>
                 <div class="trace-detail">
                     ${descHtml}
                     <div class="trace-time">${time}</div>
-                    <div class="trace-url">${escapeHtml(entry.url)}</div>
+                    <div class="trace-url">${escapeHtml(displayUrl)}</div>
 
                     <div class="trace-section-label">Request Headers</div>
                     <div class="trace-headers">${fmtHeaders(entry.requestHeaders)}</div>
@@ -4245,7 +4503,9 @@
             </div>`;
 
         $container.prepend(html);
-        $('#trace-count').text(state.apiClient ? state.apiClient.getTraceLog().length : '0');
+        const count = state.apiClient ? state.apiClient.getTraceLog().length : 0;
+        $('#trace-count').text(count);
+        $('#expand-trace-count').text(count).toggleClass('has-count', count > 0);
     }
 
     /** Clear all trace entries */
@@ -4253,6 +4513,7 @@
         if (state.apiClient) state.apiClient.clearTraceLog();
         $('#trace-entries').html('<div class="text-center text-muted-sm py-3" id="trace-empty"><i class="bi bi-hourglass-split"></i> No API calls yet</div>');
         $('#trace-count').text('0');
+        $('#expand-trace-count').text('').removeClass('has-count');
     }
 
     /** Hook the apiClient trace listener (called after apiClient is created) */
@@ -4260,6 +4521,27 @@
         if (state.apiClient) {
             state.apiClient.onTrace(renderTraceEntry);
         }
+    }
+
+    /** Collapse the sidebar and show an expand tab on the edge */
+    function collapseSidebar() {
+        state.sidebarCollapsed = true;
+        $('#trace-column').addClass('d-none');
+        $('#expand-right-sidebar').removeClass('d-none');
+        updateMainColumnWidth();
+    }
+
+    /** Expand the sidebar */
+    function expandSidebar() {
+        state.sidebarCollapsed = false;
+        $('#trace-column').removeClass('d-none');
+        $('#expand-right-sidebar').addClass('d-none');
+        updateMainColumnWidth();
+    }
+
+    /** Toggle a sidebar section collapsed/expanded */
+    function toggleSection(name) {
+        $('#section-' + name).toggleClass('collapsed');
     }
 
     window.app = {
@@ -4312,7 +4594,11 @@
         expandAllGroups,
         collapseAllGroups,
         // Trace
-        clearTrace
+        clearTrace,
+        // Sidebar
+        collapseSidebar,
+        expandSidebar,
+        toggleSection
     };
 
     // =====================================================================

@@ -97,8 +97,6 @@
     userEmail:                      { setter: 'setUserEmail',                    type: 'String' },
     userFullName:                   { setter: 'setUserFullName',                 type: 'String' },
     externEnabled:                  { setter: 'setExternEnabled',                type: 'boolean' },
-    externEmailBetreff:             { setter: 'setExternEmailBetreff',           type: 'String' },
-    externEmailInhalt:              { setter: 'setExternEmailInhalt',            type: 'String' },
     externEditAllowed:              { setter: 'setExternEditAllowed',            type: 'boolean' },
     externCompleteOnFinish:         { setter: 'setExternCompleteOnFinish',       type: 'boolean' },
     externSendDocsOnFinish:         { setter: 'setExternSendDocsOnFinish',       type: 'boolean' },
@@ -112,8 +110,6 @@
     serversideCallbackUsername:     { setter: 'setServersideCallbackUsername',   type: 'String' },
     serversideCallbackPassword:     { setter: 'setServersideCallbackPassword',   type: 'String' },
     callbackURL:                    { setter: 'setCallbackURL',                  type: 'String' },
-    alleEmailBetreff:               { setter: 'setAlleEmailBetreff',             type: 'String' },
-    alleEmailInhalt:                { setter: 'setAlleEmailInhalt',              type: 'String' },
     senderEmail:                    { setter: 'setSenderEmail',                  type: 'String' },
     replyTo:                        { setter: 'setReplyTo',                      type: 'String' },
     logoExtern:                     { setter: 'setLogoExtern',                   type: 'String' },
@@ -130,7 +126,8 @@
     dokumente:                      { setter: null, type: 'documents' },
     documents:                      { setter: null, type: 'documents' },
     guiProperties:                  { setter: null, type: 'guiProperties' },
-    signConfig:                     { setter: null, type: 'signConfig' }
+    signConfig:                     { setter: null, type: 'signConfig' },
+    deliveryConfig:                 { setter: null, type: 'deliveryConfig' }
   };
 
   // ---------------------------------------------------------------------------
@@ -436,6 +433,26 @@
     return code;
   }
 
+  /** Generate deliveryConfig setter calls (JSONDeliveryConfig has typed setters) */
+  function buildDeliveryConfigSetters(obj, indent, includeDocs, langKey) {
+    var pad = new Array(indent + 1).join(' ');
+    var code = '';
+    Object.keys(obj).forEach(function (key) {
+      var val = obj[key];
+      if (val === null || val === undefined || val === '') return;
+      if (includeDocs) { var dc = getDocComment(key, langKey); if (dc) code += pad + dc + '\n'; }
+      var setter = setterName(key);
+      if (typeof val === 'boolean') {
+        code += pad + 'deliveryConfig.' + setter + '(' + val + ');\n';
+      } else if (typeof val === 'number') {
+        code += pad + 'deliveryConfig.' + setter + '(' + val + ');\n';
+      } else if (typeof val === 'string') {
+        code += pad + 'deliveryConfig.' + setter + '("' + escapeJava(val) + '");\n';
+      }
+    });
+    return code;
+  }
+
   /** Generate addGUIProperty calls (guiProperties is a HashMap<String, Object>) */
   function buildGuiPropertyCalls(obj, indent, includeDocs, langKey) {
     var pad = new Array(indent + 1).join(' ');
@@ -461,10 +478,12 @@
     var code = '';
     var needsSession = false;
     var needsSignConfig = false;
+    var needsDeliveryConfig = false;
     var needsGuiProps = false;
     var docsList = null;
     var guiProps = null;
     var signCfg = null;
+    var deliveryCfg = null;
     var unmapped = [];
 
     var docKnownKeys = {
@@ -496,12 +515,15 @@
         guiProps = val;
       } else if (mapping && mapping.type === 'signConfig') {
         signCfg = val;
+      } else if (mapping && mapping.type === 'deliveryConfig') {
+        deliveryCfg = val;
       } else {
         unmapped.push(key);
       }
     });
 
     if (signCfg && typeof signCfg === 'object') needsSignConfig = true;
+    if (deliveryCfg && typeof deliveryCfg === 'object') needsDeliveryConfig = true;
     if (guiProps && typeof guiProps === 'object') {
       // Check if any string-valued props need direct map access
       Object.keys(guiProps).forEach(function (k) {
@@ -510,16 +532,19 @@
     }
 
     // Emit local variable declarations
-    if (needsSession || needsSignConfig || needsGuiProps || unmapped.length > 0) {
+    if (needsSession || needsSignConfig || needsDeliveryConfig || needsGuiProps || unmapped.length > 0) {
       code += '        var session = configData.getConfigureSession();\n';
     }
     if (needsSignConfig) {
       code += '        var signConfig = session.getSignConfig();\n';
     }
+    if (needsDeliveryConfig) {
+      code += '        var deliveryConfig = session.getDeliveryConfig();\n';
+    }
     if (needsGuiProps) {
       code += '        var guiProps = session.getGuiProperties();\n';
     }
-    if (needsSession || needsSignConfig || needsGuiProps) code += '\n';
+    if (needsSession || needsSignConfig || needsDeliveryConfig || needsGuiProps) code += '\n';
 
     // Root-level session properties
     if (rootLines.length > 0) {
@@ -536,6 +561,12 @@
     if (signCfg && typeof signCfg === 'object') {
       code += '\n        // Sign configuration (delivery channels, pairing, etc.)\n';
       code += buildSignConfigSetters(signCfg, 8, includeDocs, langKey);
+    }
+
+    // deliveryConfig → deliveryConfig.setXxx(...)
+    if (deliveryCfg && typeof deliveryCfg === 'object') {
+      code += '\n        // Delivery configuration (email subjects, bodies, recipients)\n';
+      code += buildDeliveryConfigSetters(deliveryCfg, 8, includeDocs, langKey);
     }
 
     if (docsList && Array.isArray(docsList)) {
@@ -766,7 +797,7 @@
       xhr.send();
       if (xhr.status === 200) {
         var data = JSON.parse(xhr.responseText);
-        propertyCatalog = { root: [], guiProperties: [], signConfig: [] };
+        propertyCatalog = { root: [], guiProperties: [], signConfig: [], deliveryConfig: [] };
         data.featureGroups.forEach(function (group) {
           group.features.forEach(function (f) {
             var section = f.path || 'root';
@@ -844,14 +875,17 @@
     var existingRoot = {};
     var existingGui = {};
     var existingSign = {};
+    var existingDelivery = {};
     Object.keys(body).forEach(function (k) { existingRoot[k] = true; });
     if (body.guiProperties) Object.keys(body.guiProperties).forEach(function (k) { existingGui[k] = true; });
     if (body.signConfig) Object.keys(body.signConfig).forEach(function (k) { existingSign[k] = true; });
+    if (body.deliveryConfig) Object.keys(body.deliveryConfig).forEach(function (k) { existingDelivery[k] = true; });
 
     var sections = [
       { title: 'Additional session options', items: catalog.root, existing: existingRoot, path: 'root' },
       { title: 'GUI properties', items: catalog.guiProperties || [], existing: existingGui, path: 'guiProperties' },
-      { title: 'Sign configuration', items: catalog.signConfig || [], existing: existingSign, path: 'signConfig' }
+      { title: 'Sign configuration', items: catalog.signConfig || [], existing: existingSign, path: 'signConfig' },
+      { title: 'Delivery configuration', items: catalog.deliveryConfig || [], existing: existingDelivery, path: 'deliveryConfig' }
     ];
 
     var lines = [];
@@ -924,6 +958,8 @@
                 ? 'InSignGUIConstants.' + p.key
                 : '"' + p.key + '"';
               line = pad + cmt + 'InSignConfigurationBuilder.addGUIProperty(configData, ' + keyArg + ', ' + val + ');';
+            } else if (sec.path === 'deliveryConfig') {
+              line = pad + cmt + 'deliveryConfig.' + setterName(p.key) + '(' + val + ');';
             } else {
               line = pad + cmt + 'signConfig.' + setterName(p.key) + '(' + val + ');';
             }
