@@ -1,15 +1,15 @@
 /* ==========================================================================
-   Webhook Viewer — multi-provider webhook receiver for inSign callbacks
+   Webhook Viewer - multi-provider webhook receiver for inSign callbacks
 
    Supported providers (all no-signup, all shown inline):
-     • webhook.site     — free REST API, polls for requests
-     • smee.io          — SSE real-time streaming (GitHub's service)
-     • postb.in         — Toptal PostBin, REST FIFO poll
-     • requestcatcher   — any subdomain, WebSocket real-time
-     • ntfy.sh          — pub/sub notification relay via SSE (creative abuse)
-     • custom           — user provides own URL (no auto-listen)
+     • webhook.site     - free REST API, polls for requests
+     • smee.io          - SSE real-time streaming (GitHub's service)
+     • postb.in         - Toptal PostBin, REST FIFO poll
+     • requestcatcher   - any subdomain, WebSocket real-time
+     • ntfy.sh          - pub/sub notification relay via SSE (creative abuse)
+     • custom           - user provides own URL (no auto-listen)
 
-   No external pages need to be visited — everything is shown inline.
+   No external pages need to be visited - everything is shown inline.
    ========================================================================== */
 
 window.WebhookViewer = class WebhookViewer {
@@ -52,7 +52,7 @@ window.WebhookViewer = class WebhookViewer {
             'cfworker':        () => this._createCfWorker(),
         }[this._provider];
         if (fn) return fn();
-        // custom — no auto-create
+        // custom - no auto-create
         return Promise.resolve(null);
     }
 
@@ -91,7 +91,7 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       1. WEBHOOK.SITE — REST poll
+       1. WEBHOOK.SITE - REST poll
        POST /token → uuid, GET /token/{uuid}/requests
        ================================================================== */
 
@@ -151,7 +151,7 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       2. SMEE.IO — SSE real-time
+       2. SMEE.IO - SSE real-time
        Random channel, EventSource stream
        ================================================================== */
 
@@ -190,7 +190,7 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       3. POSTB.IN (Toptal PostBin) — REST FIFO poll
+       3. POSTB.IN (Toptal PostBin) - REST FIFO poll
        POST /api/bin → {binId}, POST to /{binId}, GET /api/bin/{binId}/req/shift
        Bins expire after 30 min.
        ================================================================== */
@@ -230,7 +230,7 @@ window.WebhookViewer = class WebhookViewer {
                     headers: item.headers || {}
                 });
                 this.renderRequests();
-                // There might be more — poll again immediately
+                // There might be more - poll again immediately
                 setTimeout(poll, 200);
             } catch (err) { console.warn('[webhook] postbin poll error:', err.message); }
         };
@@ -239,7 +239,7 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       4. REQUESTCATCHER.COM — WebSocket real-time
+       4. REQUESTCATCHER.COM - WebSocket real-time
        Any subdomain works: {name}.requestcatcher.com
        WebSocket at wss://{name}.requestcatcher.com
        ================================================================== */
@@ -260,7 +260,7 @@ window.WebhookViewer = class WebhookViewer {
             this._webSocket = new WebSocket(wsUrl);
             this._webSocket.onmessage = (event) => {
                 try {
-                    // requestcatcher sends HTML fragments — try to extract useful data
+                    // requestcatcher sends HTML fragments - try to extract useful data
                     const raw = event.data;
                     let body = raw;
                     let method = 'POST';
@@ -298,10 +298,10 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       5. NTFY.SH — SSE (abusing pub/sub notification service)
+       5. NTFY.SH - SSE (abusing pub/sub notification service)
        POST body goes to topic, subscribe via SSE at /{topic}/sse
        Note: JSON bodies with Content-Type: application/json may be
-       interpreted as ntfy commands — works best with text/plain callbacks.
+       interpreted as ntfy commands - works best with text/plain callbacks.
        ================================================================== */
 
     _createNtfy() {
@@ -322,7 +322,7 @@ window.WebhookViewer = class WebhookViewer {
                 const data = JSON.parse(event.data);
                 if (data.event !== 'message') return; // skip keepalive, open
 
-                // ntfy puts the body in "message" field — try to parse it as JSON
+                // ntfy puts the body in "message" field - try to parse it as JSON
                 let body = data.message || '';
                 body = this._tryParseJson(body) || body;
 
@@ -344,7 +344,7 @@ window.WebhookViewer = class WebhookViewer {
     }
 
     /* ==================================================================
-       6. CLOUDFLARE WORKER — self-deployed relay (poll)
+       6. CLOUDFLARE WORKER - self-deployed relay (poll)
        User deploys cf-webhook-worker.js to their CF account.
        POST /channel/new → {id, url, pollUrl}
        POST /channel/{id} ← inSign callbacks

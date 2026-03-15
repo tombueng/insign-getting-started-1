@@ -1,5 +1,5 @@
 /* ==========================================================================
-   inSign API Explorer — Main Application
+   inSign API Explorer - Main Application
    Orchestrates Monaco editors, API calls, UI state, code generation
    ========================================================================== */
 
@@ -21,7 +21,7 @@
         webhookUrl: null,             // resolved webhook URL (set once endpoint is created)
         demoData: null,
         userId: getOrCreateUserId(),  // persistent UUID for foruser
-        selectedDoc: 'sigtags',
+        selectedDoc: 'acme',
         fileDelivery: 'base64',       // 'base64' | 'upload' | 'url'
         customFileData: null,         // { name, base64, blob } when user picks own file
         discoveredRoles: null,        // ['seller','buyer'] from /get/documents/full
@@ -31,7 +31,8 @@
         schemaLoader: new window.OpenApiSchemaLoader(),
         monacoReady: false,
         _editorSyncLock: false,        // prevent infinite loops during bidirectional sync
-        webhookProvider: 'smee' // current webhook provider
+        webhookProvider: 'smee', // current webhook provider
+        authMode: 'basic'       // 'basic' or 'oauth2'
     };
 
     /** Generate a stable human-readable user ID stored in localStorage */
@@ -65,12 +66,42 @@
 
     /** Webhook provider configuration */
     const WEBHOOK_PROVIDERS = {
-        'webhook.site':   { label: 'webhook.site',       hint: 'Free, no signup. Auto-creates endpoint, polls for requests every 4s.', postOnly: false },
-        smee:             { label: 'smee.io',             hint: 'Real-time SSE stream. POST callbacks only. GitHub service.', postOnly: true },
-        postbin:          { label: 'postb.in (Toptal)',   hint: 'Free, no signup. FIFO request queue, 30min bin lifetime.', postOnly: false },
-        ntfy:             { label: 'ntfy.sh (abuse!)',    hint: 'Notification pub/sub abused as webhook relay. SSE real-time. JSON body may be truncated.', postOnly: false },
-        cfworker:         { label: 'CF Worker (self-deploy)', hint: 'Deploy cf-webhook-worker.js to your Cloudflare account. Free, your own relay.', postOnly: false, needsCustomUrl: true },
-        custom:           { label: 'Custom URL',          hint: 'Enter your own webhook endpoint URL.', postOnly: false, needsCustomUrl: true }
+        'webhook.site': {
+            label: 'webhook.site', icon: 'bi-inbox', tag: 'Poll',
+            desc: 'Free, no signup. Auto-creates a unique endpoint and polls for incoming requests every 4 seconds.',
+            hint: 'Polling every 4s. GET & POST supported.',
+            url: 'https://webhook.site', postOnly: false
+        },
+        smee: {
+            label: 'smee.io', icon: 'bi-broadcast', tag: 'SSE',
+            desc: 'GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events.',
+            hint: 'Real-time via SSE. POST callbacks only.',
+            url: 'https://smee.io', postOnly: true
+        },
+        postbin: {
+            label: 'postb.in', icon: 'bi-collection', tag: 'Poll',
+            desc: 'Toptal-hosted request bin. Collects POSTs into a FIFO queue with 30-minute lifetime per bin.',
+            hint: 'FIFO queue, 30min bin lifetime.',
+            url: 'https://www.toptal.com/developers/postbin', postOnly: false
+        },
+        ntfy: {
+            label: 'ntfy.sh', icon: 'bi-bell', tag: 'SSE',
+            desc: 'Open-source notification service repurposed as a webhook relay. Real-time SSE, but large JSON bodies may be truncated.',
+            hint: 'SSE real-time. Large payloads may be truncated.',
+            url: 'https://ntfy.sh', postOnly: false
+        },
+        cfworker: {
+            label: 'CF Worker', icon: 'bi-cloud-arrow-up', tag: 'Self-host',
+            desc: 'Deploy cf-webhook-worker.js to your Cloudflare account. Free tier, fully under your control.',
+            hint: 'Self-hosted on Cloudflare Workers. Enter your worker URL below.',
+            url: 'https://workers.cloudflare.com', postOnly: false, needsCustomUrl: true
+        },
+        custom: {
+            label: 'Custom URL', icon: 'bi-link-45deg', tag: 'Custom',
+            desc: 'Point to any HTTP endpoint you control. No automatic polling or SSE - just injects the URL into the session JSON.',
+            hint: 'Enter your own webhook endpoint URL below.',
+            postOnly: false, needsCustomUrl: true
+        }
     };
 
     // =====================================================================
@@ -79,25 +110,78 @@
 
     /** Available test documents with metadata */
     const DOCUMENTS = {
-        sigtags: {
-            label: 'Car Contract (SIG-Tags)', local: 'data/contract-sigtags.pdf', scanSigTags: true,
-            pages: 1, sigFields: 0, sigTags: 2, required: 2, optional: 0, roles: ['seller', 'buyer'],
-            desc: '1 page \u2022 2 SIG-tags \u2022 2 required \u2022 roles: seller, buyer'
+        // --- Branded contracts (generated from docs/img/doc-headers + docs/data/branded-contracts.json) ---
+        acme: {
+            label: 'ACME - Software License', local: 'data/acme-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['licensor', 'licensee', 'compliance'],
+            desc: '2 pages • 3 SIG-tags • roles: licensor, licensee, compliance',
+            brand: 'acme', brandName: 'ACME Corporation', logo: 'img/sample-logos/acme-icon.svg', fileSize: 79924
         },
-        sigfields: {
-            label: 'Car Contract (AcroForm)', local: 'data/contract-sigfields.pdf', scanSigTags: false,
-            pages: 1, sigFields: 2, sigTags: 0, required: 0, optional: 2, roles: ['seller', 'buyer'],
-            desc: '1 page \u2022 2 signature fields \u2022 roles: seller, buyer'
+        greenleaf: {
+            label: 'GreenLeaf - Carbon Offset', local: 'data/greenleaf-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['supplier', 'buyer', 'auditor'],
+            desc: '2 pages • 3 SIG-tags • roles: supplier, buyer, auditor',
+            brand: 'greenleaf', brandName: 'GreenLeaf Sustainability', logo: 'img/sample-logos/greenleaf-icon.svg', fileSize: 103802
         },
-        street_sigtags: {
-            label: 'Street Work Contract (SIG-Tags)', local: 'data/street-work-sigtags.pdf', scanSigTags: true,
-            pages: 1, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['broker', 'customer', 'agency'],
-            desc: '1 page \u2022 3 SIG-tags \u2022 3 required \u2022 roles: broker, customer, agency'
+        nova: {
+            label: 'NOVA - Portfolio Management', local: 'data/nova-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['manager', 'client', 'advisor'],
+            desc: '2 pages • 3 SIG-tags • roles: manager, client, advisor',
+            brand: 'nova', brandName: 'NOVA Finance', logo: 'img/sample-logos/nova-icon.svg', fileSize: 92687
         },
-        street_sigfields: {
-            label: 'Street Work Contract (AcroForm)', local: 'data/street-work-sigfields.pdf', scanSigTags: false,
-            pages: 1, sigFields: 3, sigTags: 0, required: 0, optional: 3, roles: ['broker', 'customer', 'agency'],
-            desc: '1 page \u2022 3 signature fields \u2022 roles: broker, customer, agency'
+        blueprint: {
+            label: 'BluePrint - Architecture', local: 'data/blueprint-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['architect', 'developer', 'engineer'],
+            desc: '2 pages • 3 SIG-tags • roles: architect, developer, engineer',
+            brand: 'blueprint', brandName: 'BluePrint Design Studio', logo: 'img/sample-logos/blueprint-icon.svg', fileSize: 72434
+        },
+        solis: {
+            label: 'SOLIS - Solar Installation', local: 'data/solis-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['installer', 'owner', 'inspector'],
+            desc: '2 pages • 3 SIG-tags • roles: installer, owner, inspector',
+            brand: 'solis', brandName: 'SOLIS Technology', logo: 'img/sample-logos/solis-icon.svg', fileSize: 77091
+        },
+        sentinel: {
+            label: 'Sentinel - Property Insurance', local: 'data/sentinel-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['insurer', 'policyholder', 'broker'],
+            desc: '2 pages • 3 SIG-tags • roles: insurer, policyholder, broker',
+            brand: 'sentinel', brandName: 'Sentinel Insurance', logo: 'img/sample-logos/sentinel-icon.svg', fileSize: 98660
+        },
+        aegis: {
+            label: 'Aegis - Group Life Insurance', local: 'data/aegis-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['insurer', 'employer', 'trustee'],
+            desc: '2 pages • 3 SIG-tags • roles: insurer, employer, trustee',
+            brand: 'aegis', brandName: 'Aegis Life', logo: 'img/sample-logos/aegis-icon.svg', fileSize: 84349
+        },
+        harbor: {
+            label: 'Harbor - Reinsurance Treaty', local: 'data/harbor-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['reinsurer', 'cedent', 'actuary'],
+            desc: '2 pages • 3 SIG-tags • roles: reinsurer, cedent, actuary',
+            brand: 'harbor', brandName: 'Harbor Re', logo: 'img/sample-logos/harbor-icon.svg', fileSize: 79431
+        },
+        apex: {
+            label: 'Apex - Prof. Liability', local: 'data/apex-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['underwriter', 'insured', 'witness'],
+            desc: '2 pages • 3 SIG-tags • roles: underwriter, insured, witness',
+            brand: 'apex', brandName: 'Apex Assurance', logo: 'img/sample-logos/apex-icon.svg', fileSize: 75051
+        },
+        prism: {
+            label: 'Prism - Creative Retainer', local: 'data/prism-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['agency', 'client', 'director'],
+            desc: '2 pages • 3 SIG-tags • roles: agency, client, director',
+            brand: 'prism', brandName: 'Prism Digital', logo: 'img/sample-logos/prism-icon.svg', fileSize: 72695
+        },
+        mosaic: {
+            label: 'Mosaic - Research Agreement', local: 'data/mosaic-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['lab', 'partner', 'ethics'],
+            desc: '2 pages • 3 SIG-tags • roles: lab, partner, ethics',
+            brand: 'mosaic', brandName: 'Mosaic Labs', logo: 'img/sample-logos/mosaic-icon.svg', fileSize: 75881
+        },
+        nexus: {
+            label: 'Nexus - Term Sheet', local: 'data/nexus-contract.pdf', scanSigTags: true,
+            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['investor', 'founder', 'counsel'],
+            desc: '2 pages • 3 SIG-tags • roles: investor, founder, counsel',
+            brand: 'nexus', brandName: 'Nexus Group', logo: 'img/sample-logos/nexus-icon.svg', fileSize: 117514
         },
         custom: {
             label: 'Your Own File', local: null, scanSigTags: false,
@@ -107,7 +191,7 @@
     };
 
     function getSelectedDocument() {
-        return DOCUMENTS[state.selectedDoc] || DOCUMENTS.sigtags;
+        return DOCUMENTS[state.selectedDoc] || DOCUMENTS.acme;
     }
 
     /** URL the inSign server can fetch (for URL delivery mode) */
@@ -125,6 +209,20 @@
         const doc = getSelectedDocument();
         if (doc.local) return doc.local;
         return '';
+    }
+
+    /** GitHub raw URL for the selected document (for code snippets) */
+    function getDocumentGithubRawUrl() {
+        const doc = getSelectedDocument();
+        if (!doc.local) return getDocumentAbsoluteUrl();
+        // user.github.io/repo → raw.githubusercontent.com/user/repo/main/docs/...
+        const m = location.hostname.match(/^(.+)\.github\.io$/);
+        if (m) {
+            const repo = location.pathname.split('/')[1] || '';
+            return 'https://raw.githubusercontent.com/' + m[1] + '/' + repo + '/main/docs/' + doc.local;
+        }
+        // Fallback: absolute URL (works for local dev)
+        return getDocumentAbsoluteUrl();
     }
 
     function getDocumentFilename() {
@@ -178,7 +276,7 @@
     }
 
     // =====================================================================
-    // Feature configurator — visual toggles for session properties
+    // Feature configurator - visual toggles for session properties
     // =====================================================================
 
     // Feature groups & descriptions loaded from external JSON
@@ -200,7 +298,7 @@
                     featureDescriptions[item.key] = item;
                 }
             }
-        } catch { /* feature data is optional — graceful fallback */ }
+        } catch { /* feature data is optional - graceful fallback */ }
     }
 
     function getFeatureDesc(key, fallback) {
@@ -235,6 +333,7 @@
         const saveCredentials = $('#cfg-save-credentials').is(':checked');
         const data = {
             sessionId: state.sessionId,
+            lastForuser: state.lastForuser || '',
             accessURL: state.accessURL,
             webhookProvider: state.webhookProvider,
             webhookUrl: state.webhookUrl,
@@ -270,6 +369,12 @@
             data.baseUrl = $('#cfg-base-url').val() || '';
             data.username = $('#cfg-username').val() || '';
             data.password = $('#cfg-password').val() || '';
+            // Persist OAuth2 token if active
+            data.authMode = state.authMode || 'basic';
+            if (state.apiClient && state.apiClient.oauth2Token) {
+                data.oauth2Token = state.apiClient.oauth2Token;
+                data.oauth2ExpiresAt = state.apiClient.oauth2ExpiresAt;
+            }
         }
         try { localStorage.setItem(STATE_STORE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
     }
@@ -321,7 +426,15 @@
         // Restore webhook provider
         if (saved.webhookProvider) {
             state.webhookProvider = saved.webhookProvider;
-            $('#cfg-webhook-provider').val(saved.webhookProvider);
+            var whInfo = WEBHOOK_PROVIDERS[saved.webhookProvider];
+            if (whInfo) {
+                $('#wh-dd-label').text(whInfo.label);
+                $('#wh-dd-badge').text(whInfo.tag);
+                $('#wh-dd-toggle .wh-dd-icon').attr('class', 'bi ' + whInfo.icon + ' wh-dd-icon');
+                $('#wh-dd-menu .wh-dd-item').each(function () {
+                    $(this).toggleClass('wh-dd-item-selected', $(this).data('wh') === saved.webhookProvider);
+                });
+            }
         }
 
         // Restore owner fields
@@ -338,7 +451,14 @@
         // Restore file delivery
         if (saved.fileDelivery) {
             state.fileDelivery = saved.fileDelivery;
-            $('#fd-' + saved.fileDelivery).prop('checked', true);
+            var opt = FD_OPTIONS[saved.fileDelivery];
+            if (opt) {
+                $('#fd-dd-label').text(opt.label);
+                $('#fd-dd-toggle .fd-dd-icon').attr('class', 'bi ' + opt.icon + ' fd-dd-icon');
+                $('#fd-dd-menu .fd-dd-item').each(function () {
+                    $(this).toggleClass('fd-dd-item-selected', $(this).data('fd') === saved.fileDelivery);
+                });
+            }
         }
 
         // Restore selected document
@@ -352,7 +472,8 @@
             $pollToggle.prop('checked', true);
         }
 
-        // Restore session (last so UI elements are ready)
+        // Restore foruser and session (last so UI elements are ready)
+        if (saved.lastForuser) state.lastForuser = saved.lastForuser;
         if (saved.sessionId) {
             // Defer so editors are initialized first
             setTimeout(() => setSessionId(saved.sessionId, saved.accessURL || null), 100);
@@ -361,6 +482,15 @@
         // Restore webhook URL for session JSON
         if (saved.webhookUrl) {
             state.webhookUrl = saved.webhookUrl;
+        }
+
+        // Restore auth mode and OAuth2 token
+        if (saved.authMode) {
+            state.authMode = saved.authMode;
+        }
+        if (saved.oauth2Token && saved.oauth2ExpiresAt && Date.now() < saved.oauth2ExpiresAt) {
+            // Defer until apiClient is created
+            state._pendingOAuth2 = { token: saved.oauth2Token, expiresAt: saved.oauth2ExpiresAt };
         }
     }
 
@@ -473,6 +603,9 @@
                 if (f.path === 'guiProperties') {
                     if (!body.guiProperties) body.guiProperties = {};
                     body.guiProperties[f.key] = val;
+                } else if (f.path === 'signConfig') {
+                    if (!body.signConfig) body.signConfig = {};
+                    body.signConfig[f.key] = val;
                 } else if (f.path === 'doc') {
                     if (body.documents && body.documents[0]) body.documents[0][f.key] = val;
                 } else {
@@ -570,6 +703,8 @@
                 let jsonVal;
                 if (f.path === 'guiProperties') {
                     jsonVal = body.guiProperties ? body.guiProperties[f.key] : undefined;
+                } else if (f.path === 'signConfig') {
+                    jsonVal = body.signConfig ? body.signConfig[f.key] : undefined;
                 } else if (f.path === 'doc') {
                     jsonVal = (body.documents && body.documents[0]) ? body.documents[0][f.key] : undefined;
                 } else {
@@ -645,7 +780,7 @@
         } else if (state.fileDelivery === 'base64') {
             doc.file = '<filedata>';
         }
-        // 'upload' mode: no file reference in create body — uploaded separately
+        // 'upload' mode: no file reference in create body - uploaded separately
 
         const body = {
             displayname: getSessionDisplayName(),
@@ -680,16 +815,16 @@
         // Use discovered roles if available, else use document catalog, else demo defaults
         const roles = state.discoveredRoles || getSelectedDocument().roles || ['seller', 'buyer'];
         const roleData = {
-            seller: { email: seller.email, name: seller.name },
-            buyer: { email: buyer.email, name: buyer.name },
-            broker: { email: broker.email, name: broker.name },
-            customer: { email: customer.email, name: customer.name },
-            agency: { email: agency.email, name: agency.name },
-            role_one: { email: seller.email, name: seller.name },
-            role_two: { email: buyer.email, name: buyer.name }
+            seller: { email: seller.email, name: seller.name, phone: seller.phone },
+            buyer: { email: buyer.email, name: buyer.name, phone: buyer.phone },
+            broker: { email: broker.email, name: broker.name, phone: broker.phone },
+            customer: { email: customer.email, name: customer.name, phone: customer.phone },
+            agency: { email: agency.email, name: agency.name, phone: agency.phone },
+            role_one: { email: seller.email, name: seller.name, phone: seller.phone },
+            role_two: { email: buyer.email, name: buyer.name, phone: buyer.phone }
         };
 
-        let savedOpts = { sendEmails: false, sendSMS: false, singleSignOnEnabled: true };
+        let savedOpts = { sendEmails: false, sendSMS: false, singleSignOnEnabled: true, inOrder: false };
         try {
             const stored = JSON.parse(localStorage.getItem('insign-extern-options'));
             if (stored) savedOpts = { ...savedOpts, ...stored };
@@ -697,20 +832,23 @@
 
         const externUsers = roles.map(role => {
             const data = roleData[role] || {};
-            return {
-                recipient: data.email || `${role}@example.com`,
+            const user = {
+                recipient: data.email || `${role}@nowhere.invalid`,
                 realName: data.name || role,
                 roles: [role],
                 sendEmails: savedOpts.sendEmails,
                 sendSMS: savedOpts.sendSMS,
                 singleSignOnEnabled: savedOpts.singleSignOnEnabled
             };
+            // Include phone number for SMS delivery when available
+            if (data.phone) user.mobileNumber = data.phone.replace(/\s/g, '');
+            return user;
         });
 
         return {
             sessionid: state.sessionId || '<session-id>',
             externUsers,
-            inOrder: false
+            inOrder: savedOpts.inOrder
         };
     }
 
@@ -718,15 +856,36 @@
         return { sessionid: state.sessionId || '<session-id>' };
     }
 
+    function getSSOBody() {
+        const foruser = state.lastForuser || state.userId || '';
+        return {
+            id: foruser,
+            fullName: $('#cfg-userfullname').val() || '',
+            email: $('#cfg-userEmail').val() || ''
+        };
+    }
+
     // =====================================================================
     // Operation definitions
     // =====================================================================
 
     function getDocumentSingleBody() {
+        const includeB = document.getElementById('includeBiodata');
         return {
             sessionid: state.sessionId || '<session-id>',
-            docid: 'contract-1'
+            docid: 'contract-1',
+            includeBiodata: includeB ? includeB.checked : true
         };
+    }
+
+    function toggleIncludeBiodata(checked) {
+        const editor = state.editors['op-document-single'];
+        if (!editor) return;
+        try {
+            const val = JSON.parse(editor.getValue());
+            val.includeBiodata = checked;
+            editor.setValue(JSON.stringify(val, null, 2));
+        } catch (e) { /* ignore parse errors */ }
     }
 
     const OPERATIONS = {
@@ -812,6 +971,12 @@
             getBody: getSessionIdBody,
             schemaKey: 'sessionIDInput'
         },
+        'sso': {
+            method: 'POST', path: '/configure/createSSOForApiuser',
+            getBody: getSSOBody,
+            schemaKey: null,
+            accept: 'text/plain'
+        },
         'version': {
             method: 'GET', path: '/version', accept: '*/*',
             getBody: null,
@@ -851,10 +1016,21 @@
 
         // Build document selector, feature toggles, and branding presets
         buildDocumentSelector();
+        initFileDeliveryDropdown();
+        buildWebhookProviderDropdown();
         buildFeatureToggles();
         buildColorSchemePresets();
         buildLogoSets();
         restoreBranding();
+        // Apply branding matching the selected document if no saved branding
+        var saved = loadAppState();
+        if (!saved || saved.brandColorScheme == null) {
+            var doc = getSelectedDocument();
+            if (doc.brand) {
+                var idx = LOGO_SETS.findIndex(function(s) { return s.prefix === doc.brand; });
+                if (idx >= 0) { selectColorScheme(idx); selectLogoSet(idx); }
+            }
+        }
         updateBrandColor();
 
         // Derive GitHub repo link from Pages URL (user.github.io/repo → github.com/user/repo)
@@ -872,14 +1048,21 @@
         // Init API client
         updateApiClient();
 
+        // Sync OAuth2 credentials from sidebar and initialize auth mode
+        syncOAuth2Credentials();
+        updateAuthHeaders();
+        if (state.authMode === 'oauth2') {
+            setAuthMode('oauth2');
+        }
+
         // Update trust indicator with target URL
         const $trustUrl = $('#trust-target-url');
         if ($trustUrl.length) $trustUrl.text('\u2192 ' + $('#cfg-base-url').val());
 
         // Bind sidebar events
         $('#cfg-base-url').on('change', () => { updateApiClient(); saveAppState(); });
-        $('#cfg-username').on('change', () => { updateApiClient(); saveAppState(); });
-        $('#cfg-password').on('change', () => { updateApiClient(); saveAppState(); });
+        $('#cfg-username').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
+        $('#cfg-password').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
 
         const $corsToggle = $('#cfg-cors-proxy');
         $corsToggle.on('change', () => {
@@ -957,7 +1140,7 @@
             if (url) state.webhookViewer.startPolling();
         });
 
-        // Webhooks toggle in step 1 — sync with sidebar toggle and session JSON
+        // Webhooks toggle in step 1 - sync with sidebar toggle and session JSON
         const $webhooksToggle = $('#cfg-webhooks');
         if ($webhooksToggle.length) {
             $webhooksToggle.on('change', () => {
@@ -1000,7 +1183,7 @@
         if (window.location.protocol === 'file:') {
             const $hintEl = $('#file-delivery-hint');
             if ($hintEl.length) $hintEl.html('<i class="bi bi-exclamation-triangle"></i> ' +
-                'Running from <code>file://</code> — base64/upload requires serving via HTTP ' +
+                'Running from <code>file://</code> - base64/upload requires serving via HTTP ' +
                 '(<code>npx serve docs</code>). Use your own file or URL mode instead.');
         }
 
@@ -1018,10 +1201,10 @@
 
         // Track operation sub-tab switches
         $('#operation-tabs').on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function () {
-            if (state.currentStep === 2) {
+            if (state.currentStep === 3) {
                 const target = $(this).data('bs-target'); // e.g. #op-status
                 const subTab = target ? target.replace('#op-', '') : '';
-                if (subTab) history.replaceState(null, '', '#step2/' + subTab);
+                if (subTab) history.replaceState(null, '', '#step3/' + subTab);
             }
         });
 
@@ -1035,20 +1218,20 @@
         if (match) {
             const step = parseInt(match[1]);
             const subTab = match[2];
-            if (step >= 1 && step <= 3) {
+            if (step >= 1 && step <= 4) {
                 if (step !== state.currentStep) {
                     goToStep(step, true);
                 }
-                // Activate sub-tab on step 2
-                if (step === 2 && subTab) {
+                // Activate sub-tab on step 3 (operations)
+                if (step === 3 && subTab) {
                     const $tab = $(`#operation-tabs button[data-bs-target="#op-${subTab}"]`);
                     if ($tab.length) {
                         const tab = new bootstrap.Tab($tab[0]);
                         tab.show();
                     }
                 }
-                // Focus session ID input if navigating to step 2 with no session
-                if (step === 2 && !state.sessionId) {
+                // Focus session ID input if navigating to step 3 with no session
+                if (step === 3 && !state.sessionId) {
                     const $input = $('#manual-session-id');
                     if ($input.length) setTimeout(() => $input.focus(), 300);
                 }
@@ -1062,6 +1245,26 @@
         const password = $('#cfg-password').val();
 
         state.apiClient = new window.InsignApiClient(baseUrl, username, password);
+        hookTrace();
+
+        // Install pre-call hook for auto-refreshing OAuth2 tokens
+        state.apiClient._beforeCall = async (method, path) => {
+            // Skip for the token endpoint itself to avoid recursion
+            if (path === '/oauth2/token') return;
+            await ensureOAuth2Token();
+        };
+
+        // Restore auth mode
+        state.apiClient.authMode = state.authMode || 'basic';
+
+        // Restore pending OAuth2 token
+        if (state._pendingOAuth2) {
+            state.apiClient.oauth2Token = state._pendingOAuth2.token;
+            state.apiClient.oauth2ExpiresAt = state._pendingOAuth2.expiresAt;
+            delete state._pendingOAuth2;
+            startOAuth2TokenCountdown();
+            updateOAuth2TokenStatus();
+        }
 
         const corsProxy = $('#cfg-cors-proxy').is(':checked');
         state.apiClient.useCorsProxy = corsProxy;
@@ -1079,8 +1282,11 @@
         if (baseUrl && !state.schemaLoader.loaded) {
             const proxy = corsProxy ? (state.apiClient.corsProxyUrl || 'https://corsproxy.io/?') : null;
             state.schemaLoader.load(baseUrl, proxy).then(ok => {
-                if (ok && state.monacoReady) {
-                    state.schemaLoader.registerWithMonaco(monaco);
+                if (ok) {
+                    state.schemaLoader.enrichGuiProperties(FEATURE_GROUPS);
+                    if (state.monacoReady) {
+                        state.schemaLoader.registerWithMonaco(monaco);
+                    }
                 }
             });
         }
@@ -1117,6 +1323,247 @@
     }
 
     // =====================================================================
+    // OAuth2 Authentication
+    // =====================================================================
+
+    function setAuthMode(mode) {
+        state.authMode = mode;
+
+        // Toggle button styles
+        $('#auth-mode-toggle button').each(function () {
+            const $btn = $(this);
+            if ($btn.data('mode') === mode) {
+                $btn.removeClass('btn-insign-outline').addClass('active');
+            } else {
+                $btn.addClass('btn-insign-outline').removeClass('active');
+            }
+        });
+
+        // Show/hide panels
+        $('#auth-basic-panel').css('display', mode === 'basic' ? '' : 'none');
+        $('#auth-oauth2-panel').css('display', mode === 'oauth2' ? '' : 'none');
+
+        // Update API client auth mode
+        if (state.apiClient) {
+            state.apiClient.authMode = mode;
+            updateHeadersDisplay();
+            updateAuthHeaders();
+        }
+
+        saveAppState();
+    }
+
+    function syncOAuth2Credentials() {
+        // Sync client_id/client_secret from sidebar username/password
+        const username = $('#cfg-username').val() || '';
+        const password = $('#cfg-password').val() || '';
+        $('#oauth2-client-id').val(username);
+        $('#oauth2-client-secret').val(password);
+    }
+
+    function updateAuthHeaders() {
+        if (!state.apiClient) return;
+
+        // Basic auth panel headers
+        const basicHeaders = [
+            { name: 'Authorization', value: 'Basic ' + btoa((state.apiClient.username || '') + ':' + (state.apiClient.password || '')) }
+        ];
+        $('#auth-basic-headers').html(basicHeaders.map(h =>
+            `<div><span class="header-name">${h.name}:</span> <span class="header-value">${h.value}</span></div>`
+        ).join(''));
+    }
+
+    async function executeOAuth2Token() {
+        if (!state.apiClient) return;
+
+        const clientId = $('#oauth2-client-id').val() || '';
+        const clientSecret = $('#oauth2-client-secret').val() || '';
+
+        const formBody = new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: clientId,
+            client_secret: clientSecret
+        }).toString();
+
+        const url = state.apiClient.buildUrl('/oauth2/token');
+
+        const $statusEl = $(`.response-status[data-op="oauth2-token"]`);
+        $statusEl.css('display', '').attr('class', 'response-status').html(
+            '<span class="spinner-insign spinner-dark me-2"></span> Requesting token...'
+        );
+
+        const startTime = performance.now();
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formBody,
+                mode: 'cors'
+            });
+            const duration = Math.round(performance.now() - startTime);
+            const rawText = await response.text();
+            let body;
+            try { body = JSON.parse(rawText); } catch { body = rawText; }
+
+            const respHeaders = {};
+            response.headers.forEach((v, k) => { respHeaders[k] = v; });
+
+            $statusEl.attr('class', 'response-status ' + (response.ok ? 'success' : 'error'));
+            $statusEl.html(`
+                <strong>${response.status}</strong> ${response.statusText}
+                <span class="ms-auto text-muted-sm">${duration}ms</span>
+            `);
+
+            // Show response in editor
+            showResponseEditor('op-oauth2-token', body);
+
+            // Trace the OAuth2 call
+            if (state.apiClient) {
+                state.apiClient._trace({
+                    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                    timestamp: new Date().toISOString(),
+                    method: 'POST',
+                    path: '/oauth2/token',
+                    url,
+                    requestHeaders: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    requestBody: formBody,
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    responseHeaders: respHeaders,
+                    responseBody: body,
+                    duration
+                });
+            }
+
+            if (response.ok && body && body.access_token) {
+                // Apply token to API client
+                state.apiClient.setOAuth2Token(body);
+                state.authMode = 'oauth2';
+                updateOAuth2TokenStatus();
+                updateHeadersDisplay();
+                startOAuth2TokenCountdown();
+                saveAppState();
+            }
+        } catch (err) {
+            const duration = Math.round(performance.now() - startTime);
+            $statusEl.attr('class', 'response-status error');
+            $statusEl.html(`
+                <strong>0</strong> Network/CORS Error
+                <span class="ms-auto text-muted-sm">${duration}ms</span>
+            `);
+            const errBody = {
+                error: 'CORS_OR_NETWORK_ERROR',
+                message: err.message,
+                hint: 'Enable the CORS proxy toggle in the Connection settings if you cannot reach the API directly.'
+            };
+            showResponseEditor('op-oauth2-token', errBody);
+
+            // Trace the failed OAuth2 call
+            if (state.apiClient) {
+                state.apiClient._trace({
+                    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                    timestamp: new Date().toISOString(),
+                    method: 'POST',
+                    path: '/oauth2/token',
+                    url,
+                    requestHeaders: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    requestBody: formBody,
+                    status: 0,
+                    statusText: 'Network/CORS Error',
+                    ok: false,
+                    responseHeaders: {},
+                    responseBody: errBody,
+                    duration
+                });
+            }
+        }
+    }
+
+    /**
+     * Auto-request an OAuth2 token if auth mode is oauth2 but no valid token exists.
+     * Populates the token response UI on the Connection tab just like a manual request.
+     */
+    let _tokenRefreshPromise = null;
+    async function ensureOAuth2Token() {
+        if (!state.apiClient) return;
+        if (state.apiClient.authMode !== 'oauth2') return;
+        if (state.apiClient.isOAuth2TokenValid()) return;
+        if (!state.apiClient.username && !state.apiClient.password) return;
+
+        // Deduplicate concurrent callers
+        if (_tokenRefreshPromise) return _tokenRefreshPromise;
+
+        _tokenRefreshPromise = (async () => {
+            try {
+                // Ensure OAuth2 form fields are synced from credentials
+                updateHeadersDisplay();
+                await executeOAuth2Token();
+            } finally {
+                _tokenRefreshPromise = null;
+            }
+        })();
+
+        return _tokenRefreshPromise;
+    }
+
+    function updateOAuth2TokenStatus() {
+        const $status = $('#oauth2-token-status');
+        if (!state.apiClient || !state.apiClient.oauth2Token) {
+            $status.css('display', 'none');
+            return;
+        }
+        $status.css('display', '');
+
+        const ttl = state.apiClient.getOAuth2TokenTTL();
+        const valid = ttl > 0;
+        const $badge = $('#oauth2-status-badge');
+        const $ttl = $('#oauth2-token-ttl');
+        const $header = $('#oauth2-active-header');
+
+        $badge.attr('class', 'badge ' + (valid ? 'bg-success' : 'bg-danger'))
+              .html(valid ? '<i class="bi bi-check-circle"></i> Valid' : '<i class="bi bi-x-circle"></i> Expired');
+
+        const mins = Math.floor(ttl / 60);
+        const secs = ttl % 60;
+        $ttl.text(valid ? `Expires in ${mins}m ${secs}s` : 'Token expired - requests fall back to Basic Auth');
+
+        // Show truncated auth header
+        const authVal = state.apiClient.getAuthHeader();
+        let displayVal = authVal;
+        if (displayVal.length > 80) {
+            displayVal = displayVal.substring(0, 50) + '...' + displayVal.substring(displayVal.length - 15);
+        }
+        $header.html(`<div><span class="header-name">Authorization:</span> <span class="header-value">${displayVal}</span></div>`);
+    }
+
+    let _oauth2CountdownInterval = null;
+    function startOAuth2TokenCountdown() {
+        if (_oauth2CountdownInterval) clearInterval(_oauth2CountdownInterval);
+        _oauth2CountdownInterval = setInterval(() => {
+            updateOAuth2TokenStatus();
+            if (!state.apiClient || !state.apiClient.isOAuth2TokenValid()) {
+                clearInterval(_oauth2CountdownInterval);
+                _oauth2CountdownInterval = null;
+                updateHeadersDisplay();
+            }
+        }, 1000);
+    }
+
+    function clearOAuth2Token() {
+        if (state.apiClient) {
+            state.apiClient.clearOAuth2Token();
+        }
+        if (_oauth2CountdownInterval) {
+            clearInterval(_oauth2CountdownInterval);
+            _oauth2CountdownInterval = null;
+        }
+        $('#oauth2-token-status').css('display', 'none');
+        updateHeadersDisplay();
+        saveAppState();
+    }
+
+    // =====================================================================
     // Monaco Editor
     // =====================================================================
 
@@ -1130,14 +1577,19 @@
 
             // Register JSON schemas from OpenAPI spec (loaded dynamically)
             if (state.schemaLoader && state.schemaLoader.loaded) {
+                state.schemaLoader.enrichGuiProperties(FEATURE_GROUPS);
                 state.schemaLoader.registerWithMonaco(monaco);
             }
 
             // Create Step 1 editor
-            createEditor('create-session', getDefaultCreateSessionBody(), 'configureSession');
+            createEditor('create-session', getDefaultCreateSessionBody(), 'configureSession', { uncapped: true });
 
             // Apply saved feature toggle settings to the editor
             applyFeatureSettingsToEditor();
+
+            // Apply branding (colors + logos) to the newly created editor
+            applyBrandingCSS();
+            applyBrandingLogos();
 
             // Bidirectional sync: editor changes → sidebar inputs & feature toggles
             if (state.editors['create-session']) {
@@ -1166,7 +1618,7 @@
             }
 
             // Code snippet editor (read-only)
-            createReadOnlyEditor('code-snippet', '// Select a language tab above to see code snippets', 'javascript');
+            createReadOnlyEditor('code-snippet', '// Select a language tab above to see code snippets', 'javascript', { uncapped: true });
 
             // Init code language tabs
             initCodeTabs();
@@ -1174,10 +1626,12 @@
     }
 
     /** Auto-resize a Monaco editor to fit its content (clamped to container max-height) */
-    function autoResizeEditor(editor, container) {
-        const MAX_HEIGHT = 600;
+    function autoResizeEditor(editor, container, uncapped) {
+        const MAX_HEIGHT = uncapped ? Infinity : 600;
         const MIN_HEIGHT = 60;
         const PADDING = 10; // extra pixels to avoid scrollbar appearing
+
+        if (uncapped) $(container).addClass('no-max-height');
 
         function resize() {
             const contentHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, editor.getContentHeight() + PADDING));
@@ -1190,9 +1644,10 @@
         resize();
     }
 
-    function createEditor(id, defaultValue, schemaKey) {
+    function createEditor(id, defaultValue, schemaKey, opts) {
         const container = $('#editor-' + id)[0];
         if (!container) return null;
+        const uncapped = opts && opts.uncapped;
 
         // URI must be unique per editor, but the filename part must match the schema's fileMatch
         const filename = schemaKey ? schemaKey + '.json' : id + '.json';
@@ -1204,7 +1659,7 @@
             modelUri
         );
 
-        const editor = monaco.editor.create(container, {
+        const editorOpts = {
             model,
             theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
             minimap: { enabled: false },
@@ -1218,19 +1673,32 @@
             renderLineHighlight: 'none',
             overviewRulerLanes: 0,
             hideCursorInOverviewRuler: true,
-            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false }
-        });
+            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
+            suggest: {
+                showInlineDetails: true,
+                detailsVisible: true
+            }
+        };
 
-        autoResizeEditor(editor, container);
+        // For uncapped editors, disable internal scrolling - the page scrolls instead
+        if (uncapped) {
+            editorOpts.scrollbar.vertical = 'hidden';
+            editorOpts.scrollbar.handleMouseWheel = false;
+        }
+
+        const editor = monaco.editor.create(container, editorOpts);
+
+        autoResizeEditor(editor, container, uncapped);
         state.editors[id] = editor;
         return editor;
     }
 
-    function createReadOnlyEditor(id, content, language) {
+    function createReadOnlyEditor(id, content, language, opts) {
         const container = $('#editor-' + id)[0];
         if (!container) return null;
+        const uncapped = opts && opts.uncapped;
 
-        const editor = monaco.editor.create(container, {
+        const editorOpts = {
             value: content,
             language: language || 'json',
             theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
@@ -1245,10 +1713,21 @@
             renderLineHighlight: 'none',
             overviewRulerLanes: 0,
             hideCursorInOverviewRuler: true,
-            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false }
-        });
+            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
+            suggest: {
+                showInlineDetails: true,
+                detailsVisible: true
+            }
+        };
 
-        autoResizeEditor(editor, container);
+        if (uncapped) {
+            editorOpts.scrollbar.vertical = 'hidden';
+            editorOpts.scrollbar.handleMouseWheel = false;
+        }
+
+        const editor = monaco.editor.create(container, editorOpts);
+
+        autoResizeEditor(editor, container, uncapped);
         state.editors[id] = editor;
         return editor;
     }
@@ -1305,7 +1784,7 @@
         // Update URL hash without triggering hashchange
         if (!skipHash) {
             let newHash = '#step' + step;
-            if (step === 2) {
+            if (step === 3) {
                 const $active = $('#operation-tabs button.nav-link.active');
                 const target = $active.data('bs-target');
                 if (target) newHash += '/' + target.replace('#op-', '');
@@ -1324,23 +1803,36 @@
             else if (s < step) $el.addClass('completed');
         });
 
-        // Show/hide main panels
+        // Show/hide main panels (4 steps now)
         $('#step-1-panel').toggleClass('d-none', step !== 1);
         $('#step-2-panel').toggleClass('d-none', step !== 2);
         $('#step-3-panel').toggleClass('d-none', step !== 3);
+        $('#step-4-panel').toggleClass('d-none', step !== 4);
 
-        // Switch sidebar: step 1 = connection settings, step 2+ = webhook/polling
-        const $sidebar1 = $('#sidebar-step1');
+        // Shine animation on feature configurator when entering step 2
+        if (step === 2) {
+            const $box = $('#step-2-panel .feature-configurator-box').first();
+            $box.removeClass('shine');
+            // Force reflow so re-adding the class restarts the animation
+            void $box[0]?.offsetWidth;
+            $box.addClass('shine');
+        }
+
+        // Show left sidebar column only for step 3+ (webhook/polling viewer)
+        const $sidebarCol = $('#sidebar-column');
         const $sidebar2 = $('#sidebar-step2');
-        if ($sidebar1.length && $sidebar2.length) {
-            $sidebar1.toggleClass('d-none', step >= 2);
-            $sidebar2.toggleClass('d-none', step < 2);
+        if ($sidebarCol.length && $sidebar2.length) {
+            const showSidebar = step >= 3;
+            $sidebarCol.toggleClass('d-none', !showSidebar);
+            $sidebar2.toggleClass('d-none', !showSidebar);
 
-            // When entering step 2, start webhook or polling
-            if (step >= 2) {
+            // When entering step 3+, start webhook or polling
+            if (showSidebar) {
                 updateSidebarMode();
             }
         }
+
+        updateMainColumnWidth();
     }
 
     /** Activate sidebar-step2: start whichever sections are enabled */
@@ -1407,15 +1899,16 @@
         $('#navbar-session-id').val(sessionId);
         $('#navbar-btn-open').toggleClass('d-none', !accessURL);
 
-        // Show/hide buttons and set tooltip with full URL
-        $('#btn-open-insign').toggleClass('d-none', !accessURL).attr('title', accessURL || '');
-        $('#navbar-btn-open').attr('title', accessURL || '');
-        $('#btn-open-session-manager').toggleClass('d-none', !state.accessURLProcessManagement)
+        // Show buttons whenever a session ID exists (tokens are renewed on click via /persistence/loadsession)
+        const hasSession = !!sessionId;
+        $('#btn-open-insign').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
+        $('#navbar-btn-open').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
+        $('#btn-open-session-manager').toggleClass('d-none', !hasSession)
             .attr('title', state.accessURLProcessManagement || '');
         $('#btn-goto-step2').removeClass('d-none');
 
         // Reset histories and create new webhook URL for new sessions
-        // But skip regeneration when coming from createSession — the URL was already sent
+        // But skip regeneration when coming from createSession - the URL was already sent
         if (isNewSession) {
             resetSessionHistories();
             if (!fromCreateSession) {
@@ -1489,9 +1982,15 @@
     // Step 1: Create Session
     // =====================================================================
 
-    async function createSession() {
+    async function createSessionAndOpen() {
+        await createSession(true);
+    }
+
+    async function createSession(andOpen) {
         const $btn = $('#btn-create-session');
+        const $floatBtns = $('#floating-actions-step2 .btn-floating');
         $btn.prop('disabled', true);
+        $floatBtns.prop('disabled', true);
         $btn.html('<span class="spinner-insign"></span> Sending...');
 
         const body = getEditorValue('create-session');
@@ -1532,6 +2031,8 @@
         }
 
         $btn.html('<span class="spinner-insign"></span> Sending...');
+        state.lastForuser = body.foruser || '';
+        saveAppState();
         const result = await state.apiClient.post('/configure/session', body);
 
         // Store last request for code generation (show placeholder, not raw base64)
@@ -1585,7 +2086,12 @@
             if (respBody.sessionid) {
                 setSessionId(respBody.sessionid, respBody.accessURL, true, respBody.accessURLProcessManagement);
 
-                // Auto-navigate to step 2 after 3s countdown
+                // "Send & Open" - immediately open inSign in new tab
+                if (andOpen && respBody.accessURL) {
+                    window.open(respBody.accessURL, '_blank');
+                }
+
+                // Auto-navigate to step 3 after 3s countdown
                 const $step2Btn = $('#btn-goto-step2');
                 if ($step2Btn.length && !$step2Btn.hasClass('d-none')) {
                     let countdown = 3;
@@ -1595,7 +2101,7 @@
                         if (countdown <= 0) {
                             clearInterval(timer);
                             $step2Btn.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace');
-                            goToStep(2);
+                            goToStep(3);
                         } else {
                             $step2Btn.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace (' + countdown + ')');
                         }
@@ -1607,6 +2113,7 @@
         }
 
         $btn.prop('disabled', false);
+        $floatBtns.prop('disabled', false);
         $btn.html('<i class="bi bi-send"></i> Send Request');
     }
 
@@ -1619,16 +2126,62 @@
         showResponseEditor('create-session', { error: message });
     }
 
-    function openInSign() {
-        if (state.accessURL) {
-            window.open(state.accessURL, '_blank');
+    /** Get a SSO JWT for the current foruser via /configure/createSSOForApiuser */
+    async function getSSOJwt() {
+        const foruser = state.lastForuser;
+        if (!foruser) return '';
+        // Endpoint returns text/plain - must set Accept header accordingly
+        const result = await state.apiClient.call('POST', '/configure/createSSOForApiuser', {
+            body: { id: foruser },
+            accept: 'text/plain'
+        });
+        if (result.ok && result.body) {
+            return typeof result.body === 'string' ? result.body : '';
         }
+        return '';
     }
 
-    function openSessionManager() {
-        if (state.accessURLProcessManagement) {
-            window.open(state.accessURLProcessManagement, '_blank');
-        }
+    function postToNewTab(url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.target = '_blank';
+        Object.keys(params).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
+    async function openInSign() {
+        if (!state.sessionId) return;
+        const baseUrl = state.apiClient.baseUrl || $('#cfg-base-url').val();
+        try {
+            const jwt = await getSSOJwt();
+            if (jwt) {
+                postToNewTab(baseUrl + '/index', { jwt: jwt, sessionid: state.sessionId });
+                return;
+            }
+        } catch (e) { /* fallback to stored accessURL */ }
+        if (state.accessURL) window.open(state.accessURL, '_blank');
+    }
+
+    async function openSessionManager() {
+        if (!state.sessionId) return;
+        const baseUrl = state.apiClient.baseUrl || $('#cfg-base-url').val();
+        try {
+            const jwt = await getSSOJwt();
+            if (jwt) {
+                postToNewTab(baseUrl + '/load', { jwt: jwt });
+                return;
+            }
+        } catch (e) { /* fallback to stored URL */ }
+        if (state.accessURLProcessManagement) window.open(state.accessURLProcessManagement, '_blank');
     }
 
     // =====================================================================
@@ -1758,7 +2311,7 @@
     }
 
     // =====================================================================
-    // External Signing — Smart Flow
+    // External Signing - Smart Flow
     // =====================================================================
 
     /** Discover document fields & roles, then pre-populate the extern body */
@@ -1768,41 +2321,39 @@
             return;
         }
 
-        const result = await state.apiClient.post('/get/documents/full?includeAnnotations=true', { sessionid: state.sessionId });
+        const result = await state.apiClient.post('/get/status', { sessionid: state.sessionId });
         if (!result.ok) {
             const $info = $('#extern-fields-info');
             if ($info.length) {
                 $info.css('display', '');
                 $info.css('background', 'rgba(220,53,69,0.08)');
                 $('#extern-fields-summary').html(
-                    '<span style="color:var(--insign-danger)">Failed to query documents: ' + result.status + ' ' + result.statusText + '</span>');
+                    '<span style="color:var(--insign-danger)">Failed to query status: ' + result.status + ' ' + result.statusText + '</span>');
             }
             return;
         }
 
-        // Parse fields and roles from response
-        const docs = result.body;
+        // Parse signature fields from /get/status response (signaturFieldsStatusList)
+        const body = result.body;
         const roles = new Set();
         const fields = [];
-        const docList = Array.isArray(docs) ? docs : (docs.documents || [docs]);
+        const sigFields = body.signaturFieldsStatusList || [];
 
-        for (const doc of docList) {
-            // Check signatures array, signatureFields, and annotations (type=signature_marker)
-            const sigs = doc.signatures || doc.signatureFields || [];
-            const annotations = (doc.annotations || []).filter(a => a.type === 'signature_marker');
-            const allSigs = sigs.length > 0 ? sigs : annotations;
-            for (const sig of allSigs) {
-                const role = sig.role || sig.fieldName || sig.name || sig.id || '';
-                const name = sig.displayname || sig.quickinfo || sig.fieldName || sig.name || role;
-                const required = sig.required !== false;
-                const signed = !!sig.signed;
-                const level = sig.signatureLevel || '';
-                if (role) roles.add(role);
-                fields.push({ role, name, required, signed, level });
-            }
+        for (const sig of sigFields) {
+            const role = sig.role || sig.quickInfoParsedRole || sig.fieldID || '';
+            const name = sig.displayname || sig.quickinfo || sig.fieldID || role;
+            const required = sig.mandatory !== false;
+            const signed = !!sig.signed;
+            if (role) roles.add(role);
+            fields.push({ role, name, required, signed });
         }
 
-        state.discoveredRoles = Array.from(roles);
+        // Only keep roles that have at least one unsigned field
+        const unsignedRoles = new Set();
+        for (const f of fields) {
+            if (!f.signed && f.role) unsignedRoles.add(f.role);
+        }
+        state.discoveredRoles = Array.from(unsignedRoles);
         state.discoveredFields = fields;
 
         // Show summary
@@ -1822,14 +2373,14 @@
             } else {
                 const signedCount = fields.filter(f => f.signed).length;
                 const reqCount = fields.filter(f => f.required).length;
+                const optCount = fields.length - reqCount;
                 const fieldBadges = fields.map(f => {
-                    const lvl = f.level ? ` <span style="opacity:0.7">(${f.level})</span>` : '';
                     const cls = f.signed ? 'bg-success' : (f.required ? 'bg-primary' : 'bg-secondary');
-                    return `<span class="badge ${cls} me-1">${f.name}${lvl}</span>`;
+                    return `<span class="badge ${cls} me-1">${f.name}</span>`;
                 }).join('');
-                $summary.html(
-                    `${fields.length} signature field(s) &bull; ${reqCount} required &bull; ${signedCount} signed<br>` +
-                    fieldBadges);
+                const parts = [`${fields.length} signature field(s)`, `${reqCount} required`, `${optCount} optional`];
+                if (signedCount > 0) parts.push(`${signedCount} signed`);
+                $summary.html(parts.join(' &bull; ') + '<br>' + fieldBadges);
             }
         }
 
@@ -1858,16 +2409,22 @@
         // Sync to JSON editor
         if (!state.editors['op-extern']) return;
         const body = getEditorValue('op-extern');
-        if (typeof body !== 'object' || !Array.isArray(body.externUsers)) return;
-        for (const user of body.externUsers) {
-            user[key] = value;
+        if (typeof body !== 'object') return;
+
+        if (key === 'inOrder') {
+            // inOrder is a top-level field, not per-user
+            body.inOrder = value;
+        } else if (Array.isArray(body.externUsers)) {
+            for (const user of body.externUsers) {
+                user[key] = value;
+            }
         }
         setEditorValue('op-extern', body);
     }
 
     function saveExternOptions() {
         const opts = {};
-        for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS']) {
+        for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS', 'inOrder']) {
             const val = getExternOption(key);
             if (val !== null) opts[key] = val;
         }
@@ -1878,7 +2435,7 @@
         try {
             const stored = JSON.parse(localStorage.getItem('insign-extern-options'));
             if (!stored) return;
-            for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS']) {
+            for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS', 'inOrder']) {
                 if (key in stored) {
                     const $group = $('#extern-opt-' + key);
                     $group.find('button').removeClass('active mixed');
@@ -1892,22 +2449,31 @@
     function syncExternOptionsFromJson() {
         if (!state.editors['op-extern']) return;
         const body = getEditorValue('op-extern');
-        if (typeof body !== 'object' || !Array.isArray(body.externUsers) || body.externUsers.length === 0) return;
+        if (typeof body !== 'object') return;
 
-        for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS']) {
-            const $group = $('#extern-opt-' + key);
-            if (!$group.length) continue;
+        // Per-user options
+        if (Array.isArray(body.externUsers) && body.externUsers.length > 0) {
+            for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS']) {
+                const $group = $('#extern-opt-' + key);
+                if (!$group.length) continue;
 
-            const values = body.externUsers.map(u => u[key]);
-            const allSame = values.every(v => v === values[0]);
+                const values = body.externUsers.map(u => u[key]);
+                const allSame = values.every(v => v === values[0]);
 
-            $group.find('button').removeClass('active mixed');
-            if (allSame) {
-                $group.find(`button[data-val="${values[0]}"]`).addClass('active');
-            } else {
-                // Mixed state — gray out all buttons
-                $group.find('button').addClass('mixed');
+                $group.find('button').removeClass('active mixed');
+                if (allSame) {
+                    $group.find(`button[data-val="${values[0]}"]`).addClass('active');
+                } else {
+                    $group.find('button').addClass('mixed');
+                }
             }
+        }
+
+        // Top-level inOrder option
+        const $inOrder = $('#extern-opt-inOrder');
+        if ($inOrder.length && body.inOrder !== undefined) {
+            $inOrder.find('button').removeClass('active mixed');
+            $inOrder.find(`button[data-val="${body.inOrder}"]`).addClass('active');
         }
     }
 
@@ -1928,38 +2494,46 @@
 
         const externUsers = [];
         const roleData = {
-            seller: { email: seller.email, name: seller.name },
-            buyer: { email: buyer.email, name: buyer.name },
-            broker: { email: broker.email, name: broker.name },
-            customer: { email: customer.email, name: customer.name },
-            agency: { email: agency.email, name: agency.name },
-            role_one: { email: seller.email, name: seller.name },
-            role_two: { email: buyer.email, name: buyer.name }
+            seller: { email: seller.email, name: seller.name, phone: seller.phone },
+            buyer: { email: buyer.email, name: buyer.name, phone: buyer.phone },
+            broker: { email: broker.email, name: broker.name, phone: broker.phone },
+            customer: { email: customer.email, name: customer.name, phone: customer.phone },
+            agency: { email: agency.email, name: agency.name, phone: agency.phone },
+            role_one: { email: seller.email, name: seller.name, phone: seller.phone },
+            role_two: { email: buyer.email, name: buyer.name, phone: buyer.phone }
         };
 
         for (const role of roles) {
             const data = roleData[role] || {};
-            externUsers.push({
-                recipient: data.email || `${role}@example.com`,
+            const user = {
+                recipient: data.email || `${role}@nowhere.invalid`,
                 realName: data.name || role,
                 roles: [role],
                 sendEmails,
                 sendSMS,
                 singleSignOnEnabled
-            });
+            };
+            if (data.phone) user.mobileNumber = data.phone.replace(/\s/g, '');
+            externUsers.push(user);
         }
 
         if (externUsers.length === 0) {
+            const mkUser = (data, fallbackEmail, role) => {
+                const u = { recipient: data.email || fallbackEmail, realName: data.name, roles: [role], sendEmails, sendSMS, singleSignOnEnabled };
+                if (data.phone) u.mobileNumber = data.phone.replace(/\s/g, '');
+                return u;
+            };
             externUsers.push(
-                { recipient: seller.email || 'seller@example.com', realName: seller.name, roles: ['seller'], sendEmails, sendSMS, singleSignOnEnabled },
-                { recipient: buyer.email || 'buyer@example.com', realName: buyer.name, roles: ['buyer'], sendEmails, sendSMS, singleSignOnEnabled }
+                mkUser(seller, 'seller@nowhere.invalid', 'seller'),
+                mkUser(buyer, 'buyer@nowhere.invalid', 'buyer')
             );
         }
 
+        const inOrder = getExternOption('inOrder') === true;
         const body = {
             sessionid: state.sessionId || '<session-id>',
             externUsers,
-            inOrder: false
+            inOrder
         };
 
         if (state.editors['op-extern']) {
@@ -1994,31 +2568,57 @@
         if ($linksDiv.length && result.ok && result.body) {
             const resp = result.body;
             const users = resp.externUsers || [];
+            // Merge request body data (name, phone, flags) with response (links)
+            let reqUsers = [];
+            try { reqUsers = (typeof body === 'string' ? JSON.parse(body) : body).externUsers || []; } catch (e) { /* ignore */ }
+
             if (users.length > 0 && users.some(u => u.externAccessLink)) {
                 $linksDiv.css('display', '');
                 $linksDiv.html('<div class="section-title">Signing Links</div>' +
-                    '<p class="text-muted-sm">Each recipient has a unique link. Use separate browser profiles or private/incognito windows to avoid cookie conflicts between signers.</p>' +
-                    users.map(u => {
+                    '<div class="alert alert-insign mb-3" style="background:rgba(1,101,188,0.06);border:1px solid rgba(1,101,188,0.15);border-radius:8px;padding:8px 12px">' +
+                    '<i class="bi bi-info-circle me-1" style="color:var(--insign-blue)"></i> ' +
+                    '<span class="text-muted-sm">Each recipient has a unique link. Use <strong>separate browser profiles</strong> or <strong>private/incognito windows</strong> to avoid cookie conflicts between signers.</span></div>' +
+                    users.map((u, idx) => {
                         const link = u.externAccessLink || '';
-                        const roles = (u.roles || []).join(', ');
-                        const name = u.recipient || u.realName || '';
+                        // Merge: response fields take priority, fall back to request body
+                        const req = reqUsers[idx] || {};
+                        const name = u.realName || req.realName || '';
+                        const email = u.recipient || req.recipient || '';
+                        const phone = u.mobileNumber || req.mobileNumber || '';
+                        const roles = u.roles || req.roles || [];
+                        const sendEmails = u.sendEmails != null ? u.sendEmails : req.sendEmails;
+                        const sendSMS = u.sendSMS != null ? u.sendSMS : req.sendSMS;
+                        const sso = u.singleSignOnEnabled != null ? u.singleSignOnEnabled : req.singleSignOnEnabled;
                         if (!link) return '';
+
+                        // Build info chips
+                        const chips = [];
+                        if (email) chips.push(`<i class="bi bi-envelope"></i> ${escapeHtml(email)}`);
+                        if (phone) chips.push(`<i class="bi bi-phone"></i> ${escapeHtml(phone)}`);
+                        if (sendEmails === true) chips.push('<i class="bi bi-envelope-check"></i> Email notify');
+                        if (sendSMS === true) chips.push('<i class="bi bi-chat-dots"></i> SMS notify');
+                        if (sso === true) chips.push('<i class="bi bi-shield-check"></i> SSO');
+                        if (sso === false) chips.push('<i class="bi bi-shield-x"></i> No SSO');
+
                         return `
-                            <div class="signing-link-card mb-2 p-2" style="background:rgba(1,101,188,0.04);border-radius:8px;border:1px solid rgba(1,101,188,0.12)">
+                            <div class="signing-link-card mb-2 p-3" style="background:rgba(1,101,188,0.04);border-radius:8px;border:1px solid rgba(1,101,188,0.12)">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <i class="bi bi-person-circle" style="color:var(--insign-blue);font-size:1.2rem"></i>
-                                    <strong>${escapeHtml(name)}</strong>
-                                    ${roles ? `<span class="badge bg-primary" style="font-size:0.7rem">${escapeHtml(roles)}</span>` : ''}
+                                    <i class="bi bi-person-circle" style="color:var(--insign-blue);font-size:1.4rem"></i>
+                                    <div>
+                                        <strong>${escapeHtml(name || email)}</strong>
+                                        ${roles.length ? roles.map(r => `<span class="badge bg-primary ms-1" style="font-size:0.65rem;vertical-align:middle">${escapeHtml(r)}</span>`).join('') : ''}
+                                    </div>
                                     <div class="ms-auto d-flex gap-1">
                                         <a href="${escapeHtml(link)}" target="_blank" rel="noopener" class="btn btn-insign btn-insign-sm btn-insign-cta">
                                             <i class="bi bi-box-arrow-up-right"></i> Open
                                         </a>
                                         <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="navigator.clipboard.writeText('${escapeHtml(link)}')">
-                                            <i class="bi bi-clipboard"></i>
+                                            <i class="bi bi-clipboard"></i> Copy
                                         </button>
                                     </div>
                                 </div>
-                                <div class="text-mono text-muted-sm mt-1" style="font-size:0.72rem;word-break:break-all">${escapeHtml(link)}</div>
+                                ${chips.length ? `<div class="d-flex flex-wrap gap-2 mt-2" style="font-size:0.75rem;color:var(--insign-dark)">${chips.map(c => `<span style="background:rgba(1,101,188,0.08);padding:2px 8px;border-radius:12px;white-space:nowrap">${c}</span>`).join('')}</div>` : ''}
+                                <div class="text-mono text-muted-sm mt-2" style="font-size:0.7rem;word-break:break-all;opacity:0.7">${escapeHtml(link)}</div>
                             </div>`;
                     }).join(''));
             } else {
@@ -2215,14 +2815,46 @@
             $tabsEl.append($li);
             first = false;
         }
+
+        // Docs / Additional toggles - regenerate snippet when toggled
+        $('#code-docs-toggle').on('change', () => updateCodeSnippets());
+        $('#code-samples-toggle').on('change', () => updateCodeSnippets());
+
+        // Copy to clipboard
+        $('#code-copy-btn').on('click', function () {
+            const code = getEditorValue('code-snippet');
+            if (!code) return;
+            navigator.clipboard.writeText(code).then(() => {
+                const $btn = $(this);
+                $btn.html('<i class="bi bi-check2"></i> Copied');
+                setTimeout(() => $btn.html('<i class="bi bi-clipboard"></i> Copy'), 1500);
+            });
+        });
     }
 
     function showCodeSnippet(langKey) {
         if (!window.CodeGenerator || !state.apiClient) return;
 
-        const req = state.lastRequest || { method: 'POST', path: '/configure/session', body: getDefaultCreateSessionBody() };
+        // Code snippets always show the create-session flow (templates are a multi-step
+        // walkthrough: create → status → download).  Use lastRequest body only if it was
+        // a /configure/session call; otherwise fall back to the current editor body.
+        let snippetBody;
+        if (state.lastRequest && state.lastRequest.path === '/configure/session') {
+            snippetBody = state.lastRequest.body;
+        } else {
+            try { snippetBody = getEditorValue('create-session'); } catch (e) { /* ignore */ }
+            snippetBody = snippetBody || getDefaultCreateSessionBody();
+        }
+        const req = { method: 'POST', path: '/configure/session', body: snippetBody };
 
         const context = state.apiClient.getCodeContext(req.method, req.path, req.body);
+
+        // Provide document info for <filedata> handling in code snippets
+        context.documentUrl = getDocumentGithubRawUrl();
+        context.documentFilename = getDocumentFilename();
+        context.includeDocs = $('#code-docs-toggle').is(':checked');
+        context.includeSamples = $('#code-samples-toggle').is(':checked');
+
         const code = window.CodeGenerator.generate(langKey, context);
         const lang = window.CodeGenerator.LANGUAGES[langKey];
 
@@ -2241,27 +2873,184 @@
     // Document selector
     // =====================================================================
 
+    // --- PDF Thumbnail lazy-loader (uses pdf.js already loaded by PdfViewer) ---
+    const _thumbCache = {};
+    async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 80) {
+        if (!canvas) return;
+        const cached = _thumbCache[pdfUrl];
+        if (cached) { _drawThumbFromCache(cached, canvas, maxHeight); return; }
+
+        try {
+            // Reuse pdf.js lib from PdfViewer if loaded, otherwise import
+            let pdfjsLib = state.pdfViewer?.lib;
+            if (!pdfjsLib) {
+                pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.mjs');
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.worker.min.mjs';
+            }
+            const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+            const page = await pdf.getPage(1);
+            const vp = page.getViewport({ scale: 1 });
+            const scale = maxHeight / vp.height;
+            const viewport = page.getViewport({ scale });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            _thumbCache[pdfUrl] = { w: viewport.width, h: viewport.height, data: canvas.toDataURL() };
+        } catch (e) {
+            // Show a placeholder icon on failure
+            canvas.width = 56; canvas.height = maxHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#e8e8e8'; ctx.fillRect(0, 0, 56, maxHeight);
+            ctx.fillStyle = '#bbb'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('PDF', 28, maxHeight / 2 + 7);
+        }
+    }
+    function _drawThumbFromCache(cached, canvas, maxHeight) {
+        const img = new Image();
+        img.onload = () => {
+            canvas.width = cached.w; canvas.height = cached.h;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+        };
+        img.src = cached.data;
+    }
+
+    function _formatFileSize(bytes) {
+        if (!bytes) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
     function buildDocumentSelector() {
         const $container = $('#doc-selector');
         if (!$container.length) return;
 
-        let html = '';
-        for (const [key, doc] of Object.entries(DOCUMENTS)) {
-            const isSelected = key === state.selectedDoc;
-            const icon = key === 'custom' ? '<i class="bi bi-folder2-open"></i> ' : '';
-            const badge = doc.local ? ' <span class="badge bg-info" style="font-size:0.6rem;vertical-align:middle;font-weight:400">local</span>' : '';
+        const brandKeys = ['acme','greenleaf','nova','blueprint','solis','sentinel','aegis','harbor','apex','prism','mosaic','nexus'];
+        const isBranded = (key) => brandKeys.includes(key);
+        const selectedKey = state.selectedDoc;
+        const selectedDoc = DOCUMENTS[selectedKey];
+
+        // --- Build the dropdown button showing current selection ---
+        let btnContent;
+        if (selectedKey === 'custom') {
+            btnContent = `<i class="bi bi-folder2-open"></i> <span>${DOCUMENTS.custom.label}</span>`;
+        } else if (selectedDoc) {
+            const logoHtml = selectedDoc.logo
+                ? `<img src="${selectedDoc.logo}" class="doc-dd-btn-logo" alt="">`
+                : `<i class="bi bi-file-earmark-pdf"></i>`;
+            btnContent = `${logoHtml} <span>${selectedDoc.label}</span>`;
+        }
+
+        let html = `
+            <div class="doc-dropdown" id="doc-dropdown">
+                <button class="doc-dd-btn" type="button" id="doc-dd-toggle">
+                    ${btnContent}
+                    <i class="bi bi-chevron-down doc-dd-chevron"></i>
+                </button>
+                <div class="doc-dd-menu" id="doc-dd-menu">`;
+
+        // --- Branded contracts ---
+        html += `<div class="doc-dd-group-label">Branded Contracts <span class="doc-dd-count">${brandKeys.length}</span></div>`;
+        for (const key of brandKeys) {
+            const doc = DOCUMENTS[key];
+            if (!doc) continue;
+            const sel = key === selectedKey ? ' doc-dd-item-selected' : '';
+            const sizeStr = _formatFileSize(doc.fileSize);
             html += `
-                <div class="doc-option${isSelected ? ' selected' : ''}" data-doc="${key}" onclick="window.app.selectDocument('${key}')">
-                    <div class="doc-title">${icon}${doc.label}${badge}</div>
-                    <div class="doc-desc">${doc.desc}</div>
+                <div class="doc-dd-item${sel}" data-doc="${key}" onclick="window.app.selectDocument('${key}')">
+                    <canvas class="doc-dd-thumb" data-pdf="${doc.local}" width="60" height="80"></canvas>
+                    <div class="doc-dd-info">
+                        <div class="doc-dd-title">
+                            ${doc.logo ? `<img src="${doc.logo}" class="doc-dd-logo" alt="">` : ''}
+                            ${doc.label}
+                        </div>
+                        <div class="doc-dd-meta">
+                            <span>${doc.pages} pages</span>
+                            <span class="doc-dd-sep"></span>
+                            <span>3 SIG-tags</span>
+                            ${sizeStr ? `<span class="doc-dd-sep"></span><span>${sizeStr}</span>` : ''}
+                        </div>
+                        <div class="doc-dd-roles">${doc.roles.map(r => `<span class="doc-dd-role">${r}</span>`).join('')}</div>
+                    </div>
                 </div>`;
         }
+
+        // --- Custom upload ---
+        const csel = 'custom' === selectedKey ? ' doc-dd-item-selected' : '';
+        html += `
+                <div class="doc-dd-divider"></div>
+                <div class="doc-dd-item${csel}" data-doc="custom" onclick="window.app.selectDocument('custom')">
+                    <div class="doc-dd-thumb doc-dd-thumb-icon"><i class="bi bi-folder2-open"></i></div>
+                    <div class="doc-dd-info">
+                        <div class="doc-dd-title">Your Own File</div>
+                        <div class="doc-dd-meta"><span>Upload a PDF from your disk</span></div>
+                    </div>
+                </div>`;
+
+        html += `</div></div>`;
         $container.html(html);
+
+        // --- Toggle dropdown ---
+        const $menu = $('#doc-dd-menu');
+        const $toggle = $('#doc-dd-toggle');
+        $toggle.on('click', (e) => {
+            e.stopPropagation();
+            const wasOpen = $menu.hasClass('open');
+            $menu.toggleClass('open');
+            $toggle.toggleClass('open');
+            if (!wasOpen) {
+                // Decide open direction: up or down based on available space
+                const btnRect = $toggle[0].getBoundingClientRect();
+                const spaceBelow = window.innerHeight - btnRect.bottom;
+                const spaceAbove = btnRect.top;
+                if (spaceAbove > spaceBelow) {
+                    $menu.addClass('open-up');
+                } else {
+                    $menu.removeClass('open-up');
+                }
+                _lazyLoadVisibleThumbs();
+            }
+        });
+        // Close on outside click
+        $(document).on('click.docdd', (e) => {
+            if (!$(e.target).closest('#doc-dropdown').length) {
+                $menu.removeClass('open open-up');
+                $toggle.removeClass('open');
+            }
+        });
+    }
+
+    /** Lazy-load PDF thumbnails for items currently visible in the dropdown */
+    function _lazyLoadVisibleThumbs() {
+        $('#doc-dd-menu canvas.doc-dd-thumb[data-pdf]').each(function() {
+            const canvas = this;
+            if (canvas.dataset.loaded) return;
+            canvas.dataset.loaded = '1';
+            // Use IntersectionObserver for true lazy load
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        renderPdfThumbnail(canvas.dataset.pdf, canvas, 80);
+                        observer.unobserve(canvas);
+                    }
+                });
+            }, { root: canvas.closest('.doc-dd-menu'), threshold: 0.1 });
+            observer.observe(canvas);
+        });
     }
 
     function selectDocument(type) {
         state.selectedDoc = type;
 
+        // Close dropdown and rebuild it to reflect new selection
+        $('#doc-dd-menu').removeClass('open open-up');
+        $('#doc-dd-toggle').removeClass('open');
+        buildDocumentSelector();
+
+        // Legacy support for old-style .doc-option elements
         $('.doc-option').each(function () {
             const $el = $(this);
             $el.toggleClass('selected', $el.data('doc') === type);
@@ -2272,32 +3061,66 @@
         if ($customGroup.length) $customGroup.css('display', type === 'custom' ? '' : 'none');
 
         // Update displayname input to match selected document
+        const selDoc = getSelectedDocument();
         const $dnInput = $('#cfg-displayname');
         if ($dnInput.length) {
-            const selDoc = getSelectedDocument();
             $dnInput.val(type === 'custom'
                 ? (state.customFileData ? state.customFileData.name : '')
                 : (selDoc.label || ''));
         }
 
-        // Update editor if exists
+        // Update editor first, then apply branding on top
         if (state.editors['create-session']) {
             setEditorValue('create-session', getDefaultCreateSessionBody());
             applyFeatureSettingsToEditor();
         }
+
+        // Switch branding to match document (must come after editor reset)
+        if (selDoc.brand) {
+            const brandIndex = LOGO_SETS.findIndex(s => s.prefix === selDoc.brand);
+            if (brandIndex >= 0) {
+                selectColorScheme(brandIndex);
+                selectLogoSet(brandIndex);
+            }
+        }
         saveAppState();
     }
+
+    function initFileDeliveryDropdown() {
+        var $menu = $('#fd-dd-menu');
+        var $toggle = $('#fd-dd-toggle');
+        if (!$toggle.length) return;
+        $toggle.on('click', function (e) {
+            e.stopPropagation();
+            $menu.toggleClass('open');
+            $toggle.toggleClass('open');
+        });
+        $(document).on('click.fddd', function (e) {
+            if (!$(e.target).closest('#fd-dropdown').length) {
+                $menu.removeClass('open');
+                $toggle.removeClass('open');
+            }
+        });
+    }
+
+    const FD_OPTIONS = {
+        base64: { label: 'Base64 embed', icon: 'bi-file-earmark-binary' },
+        upload: { label: 'Upload after create', icon: 'bi-cloud-arrow-up' },
+        url:    { label: 'URL reference', icon: 'bi-link-45deg' }
+    };
 
     function setFileDelivery(mode) {
         state.fileDelivery = mode;
 
-        const hints = {
-            base64: 'File is fetched in your browser and sent as base64 inside the JSON request.',
-            upload: 'Session is created first (no file), then the file is uploaded via /configure/uploaddocument.',
-            url: 'The inSign server fetches the file from the URL. Works only if the URL is publicly accessible.'
-        };
-        const $hintEl = $('#file-delivery-hint');
-        if ($hintEl.length) $hintEl.html('<i class="bi bi-info-circle"></i> ' + hints[mode]);
+        // Update dropdown UI
+        var opt = FD_OPTIONS[mode] || FD_OPTIONS.base64;
+        $('#fd-dd-label').text(opt.label);
+        $('#fd-dd-toggle .fd-dd-icon').attr('class', 'bi ' + opt.icon + ' fd-dd-icon');
+        $('#fd-dd-menu .fd-dd-item').each(function () {
+            $(this).toggleClass('fd-dd-item-selected', $(this).data('fd') === mode);
+        });
+        $('#fd-dd-menu').removeClass('open');
+        $('#fd-dd-toggle').removeClass('open');
 
         // Update editor
         if (state.editors['create-session']) {
@@ -2370,7 +3193,7 @@
         const $btn = $('#btn-dark-mode');
         if ($btn.length) $btn.html(dark ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon"></i>');
 
-        // Switch Monaco theme (global — applies to all editor instances)
+        // Switch Monaco theme (global - applies to all editor instances)
         if (state.monacoReady && window.monaco) {
             monaco.editor.setTheme(dark ? 'vs-dark' : 'vs');
         }
@@ -2393,9 +3216,57 @@
     // Webhook Provider Management
     // =====================================================================
 
+    function buildWebhookProviderDropdown() {
+        var $menu = $('#wh-dd-menu');
+        if (!$menu.length) return;
+        var html = '';
+        Object.keys(WEBHOOK_PROVIDERS).forEach(function (key) {
+            var p = WEBHOOK_PROVIDERS[key];
+            var sel = key === state.webhookProvider ? ' wh-dd-item-selected' : '';
+            var linkHtml = p.url ? ' <a class="wh-dd-item-link" href="' + p.url + '" target="_blank" onclick="event.stopPropagation()"><i class="bi bi-box-arrow-up-right"></i> ' + p.url.replace('https://', '') + '</a>' : '';
+            html += '<div class="wh-dd-item' + sel + '" data-wh="' + key + '" onclick="window.app.setWebhookProvider(\'' + key + '\')">'
+                + '<i class="bi ' + p.icon + ' wh-dd-item-icon"></i>'
+                + '<div class="wh-dd-item-body">'
+                + '<div class="wh-dd-item-title">' + p.label + ' <span class="wh-dd-tag">' + p.tag + '</span></div>'
+                + '<div class="wh-dd-item-desc">' + p.desc + linkHtml + '</div>'
+                + '</div></div>';
+        });
+        $menu.html(html);
+
+        // Update button
+        var cur = WEBHOOK_PROVIDERS[state.webhookProvider] || WEBHOOK_PROVIDERS.smee;
+        $('#wh-dd-label').text(cur.label);
+        $('#wh-dd-badge').text(cur.tag);
+        $('#wh-dd-toggle .wh-dd-icon').attr('class', 'bi ' + cur.icon + ' wh-dd-icon');
+
+        // Toggle
+        var $toggle = $('#wh-dd-toggle');
+        $toggle.off('click.whdd').on('click.whdd', function (e) {
+            e.stopPropagation();
+            $menu.toggleClass('open');
+            $toggle.toggleClass('open');
+        });
+        $(document).off('click.whdd').on('click.whdd', function (e) {
+            if (!$(e.target).closest('#wh-dropdown').length) {
+                $menu.removeClass('open');
+                $toggle.removeClass('open');
+            }
+        });
+    }
+
     function setWebhookProvider(provider) {
         state.webhookProvider = provider;
         const info = WEBHOOK_PROVIDERS[provider] || WEBHOOK_PROVIDERS['webhook.site'];
+
+        // Update dropdown button
+        $('#wh-dd-label').text(info.label);
+        $('#wh-dd-badge').text(info.tag);
+        $('#wh-dd-toggle .wh-dd-icon').attr('class', 'bi ' + info.icon + ' wh-dd-icon');
+        $('#wh-dd-menu .wh-dd-item').each(function () {
+            $(this).toggleClass('wh-dd-item-selected', $(this).data('wh') === provider);
+        });
+        $('#wh-dd-menu').removeClass('open');
+        $('#wh-dd-toggle').removeClass('open');
 
         // Update hint text
         const $hint = $('#webhook-provider-hint');
@@ -2426,7 +3297,7 @@
                 }
             }
         } else {
-            // Auto-managed providers — reinit with new provider
+            // Auto-managed providers - reinit with new provider
             reinitWebhook();
         }
 
@@ -2686,6 +3557,20 @@
     // Feature Search / Filter
     // =====================================================================
 
+    function expandAllGroups() {
+        $('#feature-toggles .feature-group .collapse').each(function () {
+            if (!this.classList.contains('show')) {
+                new bootstrap.Collapse(this, { toggle: true });
+            }
+        });
+    }
+
+    function collapseAllGroups() {
+        $('#feature-toggles .feature-group .collapse.show').each(function () {
+            new bootstrap.Collapse(this, { toggle: true });
+        });
+    }
+
     function filterFeatures(query) {
         const q = query.trim().toLowerCase();
         const clearBtn = document.getElementById('feature-search-clear');
@@ -2698,7 +3583,7 @@
         let totalCount = toggles.length;
 
         if (!q) {
-            // No query — show everything, restore collapsed state
+            // No query - show everything, restore collapsed state
             toggles.forEach(t => t.style.display = '');
             groups.forEach(g => {
                 g.style.display = '';
@@ -2745,18 +3630,18 @@
     // =====================================================================
 
     const COLOR_SCHEMES = [
-        { name: 'ACME Corp',       colors: { primary: '#0D47A1', accent: '#42A5F5', dark: '#1B2838', error: '#C62828' } },
-        { name: 'GreenLeaf',       colors: { primary: '#1B5E20', accent: '#66BB6A', dark: '#1B2F1B', error: '#C62828' } },
-        { name: 'NOVA Finance',    colors: { primary: '#B71C1C', accent: '#EF5350', dark: '#212121', error: '#B71C1C' } },
-        { name: 'BluePrint',       colors: { primary: '#37474F', accent: '#26A69A', dark: '#263238', error: '#C62828' } },
-        { name: 'SOLIS Tech',      colors: { primary: '#E65100', accent: '#1565C0', dark: '#1A1A2E', error: '#BF360C' } },
-        { name: 'Sentinel Ins.',   colors: { primary: '#1A237E', accent: '#FFD600', dark: '#0D1457', error: '#C62828' } },
-        { name: 'Aegis Life',      colors: { primary: '#00695C', accent: '#80CBC4', dark: '#004D40', error: '#D32F2F' } },
-        { name: 'Harbor Re',       colors: { primary: '#880E4F', accent: '#F48FB1', dark: '#6A0039', error: '#C62828' } },
-        { name: 'Apex Assurance',  colors: { primary: '#4A148C', accent: '#CE93D8', dark: '#311B92', error: '#C62828' } },
-        { name: 'Prism Digital',   colors: { primary: '#2979FF', accent: '#FF9100', dark: '#1A1A2E', error: '#FF1744' } },
-        { name: 'Mosaic Labs',     colors: { primary: '#1976D2', accent: '#F57C00', dark: '#212121', error: '#C62828' } },
-        { name: 'Nexus Group',     colors: { primary: '#1B3A5C', accent: '#C9963A', dark: '#0F2440', error: '#C75B4A' } },
+        { name: 'ACME Corp',       colors: { primary: '#0D47A1', accent: '#42A5F5', dark: '#1B2838', error: '#C62828', success: '#0A8765', surface: '#F0F3F6', text: '#3E3F42' } },
+        { name: 'GreenLeaf',       colors: { primary: '#1B5E20', accent: '#66BB6A', dark: '#1B2F1B', error: '#C62828', success: '#2E7D32', surface: '#F1F5F1', text: '#2E3830' } },
+        { name: 'NOVA Finance',    colors: { primary: '#B71C1C', accent: '#EF5350', dark: '#212121', error: '#B71C1C', success: '#0A8765', surface: '#F5F3F3', text: '#3E3F42' } },
+        { name: 'BluePrint',       colors: { primary: '#37474F', accent: '#26A69A', dark: '#263238', error: '#C62828', success: '#00897B', surface: '#ECEFF1', text: '#37474F' } },
+        { name: 'SOLIS Tech',      colors: { primary: '#E65100', accent: '#1565C0', dark: '#1A1A2E', error: '#BF360C', success: '#0A8765', surface: '#F3F1EF', text: '#3B3340' } },
+        { name: 'Sentinel Ins.',   colors: { primary: '#1A237E', accent: '#FFD600', dark: '#0D1457', error: '#C62828', success: '#0A8765', surface: '#EDEDF5', text: '#2C2C52' } },
+        { name: 'Aegis Life',      colors: { primary: '#00695C', accent: '#80CBC4', dark: '#004D40', error: '#D32F2F', success: '#00897B', surface: '#EDF5F3', text: '#2C4640' } },
+        { name: 'Harbor Re',       colors: { primary: '#880E4F', accent: '#F48FB1', dark: '#6A0039', error: '#C62828', success: '#0A8765', surface: '#F5EEF2', text: '#4A2040' } },
+        { name: 'Apex Assurance',  colors: { primary: '#4A148C', accent: '#CE93D8', dark: '#311B92', error: '#C62828', success: '#0A8765', surface: '#F0ECF5', text: '#382050' } },
+        { name: 'Prism Digital',   colors: { primary: '#2979FF', accent: '#FF9100', dark: '#1A1A2E', error: '#FF1744', success: '#00C853', surface: '#F0F2F8', text: '#333348' } },
+        { name: 'Mosaic Labs',     colors: { primary: '#1976D2', accent: '#F57C00', dark: '#212121', error: '#C62828', success: '#0A8765', surface: '#F0F3F6', text: '#3E3F42' } },
+        { name: 'Nexus Group',     colors: { primary: '#1B3A5C', accent: '#C9963A', dark: '#0F2440', error: '#C75B4A', success: '#0A8765', surface: '#F0F1F3', text: '#2E3A48' } },
     ];
 
     /** Derive lighter/darker variants from a hex color */
@@ -2778,74 +3663,174 @@
     function lighten(hex, amount) { const [h,s,l] = hexToHSL(hex); return hslToHex(h, s, Math.min(100, l + amount)); }
     function darken(hex, amount) { const [h,s,l] = hexToHSL(hex); return hslToHex(h, s, Math.max(0, l - amount)); }
     function transparentize(hex, alpha) { return hex + Math.round(alpha*255).toString(16).padStart(2,'0'); }
+    function desaturate(hex, amount) { const [h,s,l] = hexToHSL(hex); return hslToHex(h, Math.max(0, s - amount), l); }
+    function mixColors(hex1, hex2, ratio) {
+        const r1 = parseInt(hex1.slice(1,3),16), g1 = parseInt(hex1.slice(3,5),16), b1 = parseInt(hex1.slice(5,7),16);
+        const r2 = parseInt(hex2.slice(1,3),16), g2 = parseInt(hex2.slice(3,5),16), b2 = parseInt(hex2.slice(5,7),16);
+        const r = Math.round(r1 + (r2-r1)*ratio), g = Math.round(g1 + (g2-g1)*ratio), b = Math.round(b1 + (b2-b1)*ratio);
+        return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    }
 
-    /** Generate the full CSS override from base colors, following the farbpalette variable structure */
-    function generateBrandCSS(primary, accent, dark, error) {
-        const lightPrimary = lighten(primary, 15);
-        const lighterPrimary = lighten(primary, 25);
-        const lightestPrimary = lighten(primary, 40);
-        const ultraLightPrimary = lighten(primary, 48);
-        const darkPrimary = darken(primary, 10);
+    /** Auto-derive success, surface, text from 4 base colors */
+    function autoDerive(primary, dark) {
+        const surface = desaturate(lighten(dark, 78), 60);
+        const text = darken(desaturate(dark, 30), 5);
+        return { success: '#0A8765', surface, text };
+    }
 
-        const lightAccent = lighten(accent, 15);
-        const darkAccent = darken(accent, 10);
-
-        const lightDark = lighten(dark, 20);
-        const lighterDark = lighten(dark, 40);
-        const lightestDark = lighten(dark, 55);
-
-        const lightError = lighten(error, 15);
-        const lightestError = lighten(error, 40);
-
+    /** Generate CSS override using color-mix() — only base vars, the default farbpalette's var() cascade handles the rest */
+    function generateBrandCSS(primary, accent, dark, error, success, surface, text) {
         return `:root {
-  /* Base palette — derived from chosen colors */
+  /* ─── Primary / Blue Palette ─── */
   --insignBlue: ${primary};
-  --insignModernBlue: ${lightPrimary};
-  --insignMediumBlue: ${lightPrimary};
-  --insignLightBlue: ${lightPrimary};
-  --insignLightBlue2: ${lighterPrimary};
-  --insignLighterBlue: ${lighterPrimary};
-  --insignUltraLightBlue: ${ultraLightPrimary};
-  --insignLightestBlue: ${lightestPrimary};
-  --insignHighlightBlue: ${ultraLightPrimary};
-  --insignNavy: ${darkPrimary};
+  --800: color-mix(in srgb, var(--insignBlue), white 30%);
+  --insignNavy: color-mix(in srgb, var(--insignBlue), black 20%);
+  --insignModernBlue: color-mix(in srgb, var(--insignBlue), white 30%);
+  --insignMediumBlue: color-mix(in srgb, var(--insignBlue), white 25%);
+  --insignLightBlue2: color-mix(in srgb, var(--insignBlue), white 40%);
+  --insignLighterBlue: color-mix(in srgb, var(--insignBlue), white 50%);
+  --insignUltraLightBlue: color-mix(in srgb, var(--insignBlue), white 85%);
+  --insignLightestBlue: color-mix(in srgb, var(--insignBlue), white 75%);
+  --insignHighlightBlue: color-mix(in srgb, var(--insignBlue), white 80%);
+  --insignHigherLightBlue: color-mix(in srgb, var(--insignBlue), white 90%);
 
-  /* Accent colors */
+  /* ─── Accent Colors ─── */
   --insignOrange: ${accent};
-  --insignBlueInverted: ${lightAccent};
-  --insignLightOrange: ${lightAccent};
-  --insignYellow: ${lighten(accent, 20)};
-  --insignAlternativeYellow: ${accent};
+  --insignBlueInverted: color-mix(in srgb, var(--insignOrange), white 25%);
+  --insignLightOrange: color-mix(in srgb, var(--insignOrange), white 25%);
+  --insignYellow: color-mix(in srgb, var(--insignOrange), white 40%);
+  --insignAlternativeYellow: var(--insignOrange);
 
-  /* Dark tones */
+  /* ─── Grey Palette (surface-derived) ─── */
+  --insignLigtherGrey: ${surface};
+  --insignLightestGrey: color-mix(in srgb, var(--insignLigtherGrey), white 30%);
+  --insignLightestGrey2: color-mix(in srgb, var(--insignLigtherGrey), white 50%);
+  --insignLightGrey: color-mix(in srgb, var(--insignLigtherGrey), black 5%);
+  --insignGrey: color-mix(in srgb, var(--insignLigtherGrey), black 8%);
+  --insignGrey2: color-mix(in srgb, var(--insignLigtherGrey), white 15%);
+  --insignGrey3: color-mix(in srgb, var(--insignLigtherGrey), var(--insignBlue) 3%);
+  --insignGrey4: color-mix(in srgb, var(--insignLigtherGrey), black 18%);
+  --insignGrey5: color-mix(in srgb, var(--insignLigtherGrey), black 12%);
+  --insignMiddleGrey: color-mix(in srgb, var(--insignLigtherGrey), black 25%);
+  --insignMediumGrey: color-mix(in srgb, var(--insignLigtherGrey), black 40%);
+  --insignMediumGrey2: color-mix(in srgb, var(--insignLigtherGrey), black 55%);
+  --insignDarkGrey: color-mix(in srgb, var(--insignLigtherGrey), black 40%);
+  --insignDarkerGrey: color-mix(in srgb, var(--insignLigtherGrey), black 50%);
+  --insignDarkestGrey: color-mix(in srgb, var(--insignLigtherGrey), black 55%);
+
+  /* ─── Text / Dark Tones ─── */
   --insignDarkBlack: ${dark};
-  --insignBlack: ${lightDark};
-  --insignLightBlack: ${lighterDark};
-  --insignAlternativeBlack: ${lightDark};
+  --insignBlack: ${text};
+  --insignLightBlack: color-mix(in srgb, var(--insignBlack), white 25%);
+  --insignAlternativeBlack: var(--insignBlack);
+  --insignLightDarkBlack: color-mix(in srgb, var(--insignBlack), black 10%);
 
-  /* Error / Success */
+  /* ─── Error / Success ─── */
   --insignRed: ${error};
-  --insignLightRed: ${lightError};
-  --insignLightestRed: ${lightestError};
+  --insignLightRed: color-mix(in srgb, var(--insignRed), white 30%);
+  --insignLightestRed: color-mix(in srgb, var(--insignRed), white 75%);
+  --insignLighterRed: color-mix(in srgb, var(--insignRed), white 55%);
+  --insignGreen: color-mix(in srgb, ${success}, white 25%);
+  --insignLightGreen: color-mix(in srgb, ${success}, white 50%);
+  --insignMiddleGreen: ${success};
+  --insignDarkGreen: color-mix(in srgb, ${success}, black 15%);
 
-  /* General derived */
-  --insignMain: var(--insignBlue);
-  --insignLightMain: var(--insignLightBlue);
-  --insignButtonPrimaryBackground: var(--insignMain);
-  --insignButtonPrimaryBorder: var(--insignMain);
-  --insignButtonPrimaryHoverBackground: var(--insignLightMain);
-  --insignButtonPrimaryHoverBorder: var(--insignLightMain);
-  --insignLinkColor: var(--insignMain);
-  --insignDialogHeaderColor: var(--insignMain);
-  --insignNavBackground: ${dark};
-  --insignNavNextActionBackground: var(--insignMain);
-  --insignMailHeadingBorderColor: var(--insignMain);
-  --insignMailButtonPrimaryBackground: var(--insignMain);
-  --insignGalleryFocusColor: var(--insignBlue);
-  --insignQuickTipBackgroundColor: var(--insignBlue);
-  --insignErrorColor: var(--insignRed);
-  --insignWarnColor: ${accent};
 }`;
+    }
+
+    /** Render CSS with syntax highlighting, inline color swatches, and resolved var() references */
+    function _renderRichCSS(css) {
+        const el = document.getElementById('brand-css-rich');
+        if (!el) return;
+
+        const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+        // First pass: build variable → resolved-color lookup (follow var chains + color-mix)
+        const varMap = {};
+        for (const line of css.split('\n')) {
+            const dm = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*;?\s*$/);
+            if (dm) varMap[dm[1]] = dm[2];
+        }
+        // Resolve var() chains and color-mix() up to 5 levels deep
+        function resolveColor(val) {
+            let v = val, depth = 0;
+            while (v && depth++ < 5) {
+                const hex = v.match(/^#[0-9a-fA-F]{6,8}$/);
+                if (hex) return v;
+                const ref = v.match(/^var\((--[\w-]+)\)$/);
+                if (ref && varMap[ref[1]]) { v = varMap[ref[1]]; continue; }
+                // Try resolving color-mix() to approximate swatch
+                const cmMatch = v.match(/^color-mix\(in srgb,\s*(.+?),\s*(white|black|#[0-9a-fA-F]{6})\s+(\d+)%\)$/);
+                if (cmMatch) {
+                    const base = resolveColor(cmMatch[1].trim());
+                    if (base) {
+                        const target = cmMatch[2] === 'white' ? '#ffffff' : cmMatch[2] === 'black' ? '#000000' : cmMatch[2];
+                        const pct = parseInt(cmMatch[3]) / 100;
+                        const r1 = parseInt(base.slice(1,3),16), g1 = parseInt(base.slice(3,5),16), b1 = parseInt(base.slice(5,7),16);
+                        const r2 = parseInt(target.slice(1,3),16), g2 = parseInt(target.slice(3,5),16), b2 = parseInt(target.slice(5,7),16);
+                        const r = Math.round(r1 + (r2-r1)*pct), g = Math.round(g1 + (g2-g1)*pct), b = Math.round(b1 + (b2-b1)*pct);
+                        return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+                    }
+                }
+                break;
+            }
+            return null;
+        }
+
+        const lines = css.split('\n');
+        const htmlLines = lines.map(line => {
+            // Comment lines
+            if (line.trim().startsWith('/*')) {
+                return `<span class="css-comment">${esc(line)}</span>`;
+            }
+            // Selector lines (e.g. ":root {")
+            if (line.trim().startsWith(':') || line.trim() === '}') {
+                return `<span class="css-selector">${esc(line)}</span>`;
+            }
+            // Property: value lines
+            const m = line.match(/^(\s*)(--[\w-]+)(\s*:\s*)(.+?)(;?\s*)$/);
+            if (m) {
+                const [, indent, prop, colon, val, semi] = m;
+                let valHtml;
+                // Direct hex color
+                const hexMatch = val.match(/^(#[0-9a-fA-F]{6,8})$/);
+                if (hexMatch) {
+                    valHtml = `<span class="css-color-swatch" style="background:${hexMatch[1]}"></span><span class="css-prop-val">${esc(val)}</span>`;
+                }
+                // var() or color-mix() reference — resolve and show swatch if it's a color
+                else if (val.includes('var(') || val.includes('color-mix(')) {
+                    const resolved = resolveColor(val);
+                    const swatch = resolved ? `<span class="css-color-swatch" style="background:${resolved}"></span>` : '';
+                    valHtml = swatch + esc(val).replace(/var\((--[\w-]+)\)/g, m =>
+                        `<span class="css-var-ref">${m}</span>`
+                    );
+                }
+                else {
+                    // Could be a hex with alpha suffix (e.g. #0D47A17A) — try swatch
+                    const partialHex = val.match(/(#[0-9a-fA-F]{6,8})/);
+                    if (partialHex) {
+                        valHtml = `<span class="css-color-swatch" style="background:${partialHex[1]}"></span><span class="css-prop-val">${esc(val)}</span>`;
+                    } else {
+                        valHtml = `<span class="css-prop-val">${esc(val)}</span>`;
+                    }
+                }
+                return `${esc(indent)}<span class="css-prop-name">${esc(prop)}</span><span class="css-punct">${esc(colon)}</span>${valHtml}<span class="css-punct">${esc(semi)}</span>`;
+            }
+            return esc(line);
+        });
+        el.innerHTML = htmlLines.join('\n');
+
+        // Expand on click, collapse when focus leaves
+        if (!el._bound) {
+            el._bound = true;
+            el.addEventListener('click', () => el.classList.add('expanded'));
+            el.setAttribute('tabindex', '0');
+            el.addEventListener('blur', () => el.classList.remove('expanded'));
+            // Also collapse when clicking outside
+            document.addEventListener('mousedown', e => {
+                if (!el.contains(e.target)) el.classList.remove('expanded');
+            });
+        }
     }
 
     /** Build color scheme preset buttons */
@@ -2857,6 +3842,7 @@
                 <span class="color-scheme-dot" style="background:${scheme.colors.primary}"></span>
                 <span class="color-scheme-dot" style="background:${scheme.colors.accent}"></span>
                 <span class="color-scheme-dot" style="background:${scheme.colors.dark}"></span>
+                <span class="color-scheme-dot" style="background:${scheme.colors.surface};border:1px solid #ccc"></span>
                 <span style="font-size:0.7rem">${scheme.name}</span>
             </div>
         `).join('');
@@ -2865,14 +3851,17 @@
     function selectColorScheme(index) {
         const scheme = COLOR_SCHEMES[index];
         if (!scheme) return;
-        document.getElementById('brand-color-primary').value = scheme.colors.primary;
-        document.getElementById('brand-color-primary-hex').value = scheme.colors.primary;
-        document.getElementById('brand-color-accent').value = scheme.colors.accent;
-        document.getElementById('brand-color-accent-hex').value = scheme.colors.accent;
-        document.getElementById('brand-color-dark').value = scheme.colors.dark;
-        document.getElementById('brand-color-dark-hex').value = scheme.colors.dark;
-        document.getElementById('brand-color-error').value = scheme.colors.error;
-        document.getElementById('brand-color-error-hex').value = scheme.colors.error;
+        const ids = ['primary','accent','dark','error','success','surface','text'];
+        ids.forEach(id => {
+            const v = scheme.colors[id];
+            const el = document.getElementById('brand-color-' + id);
+            const hex = document.getElementById('brand-color-' + id + '-hex');
+            if (el) el.value = v;
+            if (hex) hex.value = v;
+            // Unlock advanced pickers when selecting a scheme
+            const lock = document.getElementById('brand-color-' + id + '-lock');
+            if (lock) lock.checked = false;
+        });
 
         // Highlight active
         document.querySelectorAll('.color-scheme-btn').forEach((btn, j) => btn.classList.toggle('active', j === index));
@@ -2886,16 +3875,19 @@
         const dark = document.getElementById('brand-color-dark').value;
         const error = document.getElementById('brand-color-error').value;
 
-        // Sync hex text fields
+        // Sync hex text fields for base 4
         document.getElementById('brand-color-primary-hex').value = primary;
         document.getElementById('brand-color-accent-hex').value = accent;
         document.getElementById('brand-color-dark-hex').value = dark;
         document.getElementById('brand-color-error-hex').value = error;
 
-        const css = generateBrandCSS(primary, accent, dark, error);
+        // Auto-derive advanced colors
+        const derived = autoDerive(primary, dark);
+
+        const css = generateBrandCSS(primary, accent, dark, error, derived.success, derived.surface, derived.text);
         const preview = document.getElementById('brand-css-preview');
         if (preview) preview.value = css;
-
+        _renderRichCSS(css);
         // Auto-apply to JSON body
         applyBrandingCSS();
         saveAppState();
@@ -2907,8 +3899,23 @@
         const body = getEditorValue('create-session');
         if (typeof body !== 'object') return;
 
-        // Collapse to single line — the API field expects no linebreaks
+        // Collapse to single line - the API field expects no linebreaks
         body.externalPropertiesURL = css.replace(/\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+        setEditorValue('create-session', body);
+    }
+
+    function applyBrandingLogos() {
+        if (!state.editors['create-session']) return;
+        var iconUrl = document.getElementById('brand-app-icon')?.value;
+        var mailUrl = document.getElementById('brand-mail-header-image')?.value;
+        var loginUrl = document.getElementById('brand-logo-extern')?.value;
+        if (!iconUrl && !mailUrl && !loginUrl) return;
+        var body = getEditorValue('create-session');
+        if (typeof body !== 'object') return;
+        if (!body.guiProperties) body.guiProperties = {};
+        if (iconUrl) body.guiProperties['message.start.logo.url.editor.desktop'] = iconUrl;
+        if (mailUrl) body.guiProperties['message.mt.header.image'] = mailUrl;
+        if (loginUrl) body.logoExtern = loginUrl;
         setEditorValue('create-session', body);
     }
 
@@ -2927,7 +3934,7 @@
 
     /** Convert an image URL to a base64 data URL via canvas (or fetch for SVG) */
     async function toBase64DataUrl(src) {
-        // Already a data URL — pass through
+        // Already a data URL - pass through
         if (src.startsWith('data:')) return src;
 
         // SVG: fetch text and encode directly
@@ -2982,9 +3989,9 @@
     function buildLogoSets() {
         const container = document.getElementById('logo-sets');
         if (!container) return;
-        // "Default" card first — removes all logos from JSON
+        // "Default" card first - removes all logos from JSON
         let html = `
-            <div class="logo-set-card active" onclick="window.app.resetLogos()" title="Remove all custom logos — use server defaults">
+            <div class="logo-set-card active" onclick="window.app.resetLogos()" title="Remove all custom logos - use server defaults">
                 <div class="logo-set-row" style="height:28px;align-items:center;justify-content:center">
                     <i class="bi bi-x-circle" style="font-size:1.2rem;color:var(--insign-text-muted)"></i>
                 </div>
@@ -3030,9 +4037,9 @@
         if (typeof body !== 'object') return;
         if (!body.guiProperties) body.guiProperties = {};
 
-        // App icon — via message ID for editor desktop logo
+        // App icon - via message ID for editor desktop logo
         body.guiProperties['message.start.logo.url.editor.desktop'] = iconUrl;
-        // Mail header — right-side logo
+        // Mail header - right-side logo
         body.guiProperties['message.mt.header.image'] = mailUrl;
         // Login logo
         body.logoExtern = loginUrl;
@@ -3076,7 +4083,7 @@
         }
     }
 
-    /** Remove all custom logos from JSON — revert to server defaults */
+    /** Remove all custom logos from JSON - revert to server defaults */
     function resetLogos() {
         // Highlight Default card (first one)
         document.querySelectorAll('.logo-set-card').forEach((c, j) => c.classList.toggle('active', j === 0));
@@ -3142,8 +4149,115 @@
         reader.readAsDataURL(file);
     }
 
+    // =====================================================================
+    // API Trace sidebar
+    // =====================================================================
+
+    /** Recalculate main column width based on which sidebars are visible */
+    function updateMainColumnWidth() {
+        const $main = $('#main-column');
+        const leftVisible = !$('#sidebar-column').hasClass('d-none');
+        const rightVisible = !$('#trace-column').hasClass('d-none');
+
+        // Remove all sizing classes, let col auto-expand
+        $main.removeClass('col-lg-6 col-lg-9 col-md-4 col-md-8');
+        if (leftVisible && rightVisible) {
+            $main.addClass('col-lg-6 col-md-4');
+        } else if (leftVisible || rightVisible) {
+            $main.addClass('col-lg-9 col-md-8');
+        }
+    }
+
+    /** Show the trace sidebar (first call) */
+    function showTraceColumn() {
+        const $col = $('#trace-column');
+        if ($col.hasClass('d-none')) {
+            $col.removeClass('d-none');
+            updateMainColumnWidth();
+        }
+    }
+
+    /** Render a single trace entry and prepend it to the list */
+    function renderTraceEntry(entry) {
+        showTraceColumn();
+
+        const $container = $('#trace-entries');
+        $('#trace-empty').remove();
+
+        const methodCls = 'trace-method-' + entry.method.toLowerCase();
+        const statusCls = entry.ok ? 'trace-status-ok' : 'trace-status-err';
+        const entryCls = entry.ok ? 'trace-ok' : 'trace-err';
+        const time = new Date(entry.timestamp).toLocaleTimeString();
+
+        // Format headers for display
+        const fmtHeaders = (hdrs) => {
+            if (!hdrs || !Object.keys(hdrs).length) return '<span style="opacity:0.5">none</span>';
+            return Object.entries(hdrs).map(([k, v]) => {
+                let display = v;
+                // Truncate long auth values
+                if (k.toLowerCase() === 'authorization' && display.length > 60) {
+                    display = display.substring(0, 40) + '...' + display.substring(display.length - 10);
+                }
+                return `<div><span class="th-name">${escapeHtml(k)}:</span> ${escapeHtml(display)}</div>`;
+            }).join('');
+        };
+
+        // Format body for display
+        const fmtBody = (body) => {
+            if (body === null || body === undefined) return '<span style="opacity:0.5">empty</span>';
+            if (typeof body === 'object') {
+                try { return escapeHtml(JSON.stringify(body, null, 2)); } catch { return escapeHtml(String(body)); }
+            }
+            return escapeHtml(String(body));
+        };
+
+        const html = `
+            <div class="trace-entry ${entryCls}" data-trace-id="${entry.id}">
+                <div class="trace-summary" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="trace-method ${methodCls}">${entry.method}</span>
+                    <span class="trace-path" title="${escapeHtml(entry.path)}">${escapeHtml(entry.path)}</span>
+                    <span class="trace-status ${statusCls}">${entry.status}</span>
+                    <span class="trace-duration">${entry.duration}ms</span>
+                </div>
+                <div class="trace-detail">
+                    <div class="trace-time">${time}</div>
+                    <div class="trace-url">${escapeHtml(entry.url)}</div>
+
+                    <div class="trace-section-label">Request Headers</div>
+                    <div class="trace-headers">${fmtHeaders(entry.requestHeaders)}</div>
+
+                    <div class="trace-section-label">Request Body</div>
+                    <div class="trace-body-preview">${fmtBody(entry.requestBody)}</div>
+
+                    <div class="trace-section-label">Response Headers</div>
+                    <div class="trace-headers">${fmtHeaders(entry.responseHeaders)}</div>
+
+                    <div class="trace-section-label">Response Body</div>
+                    <div class="trace-body-preview">${fmtBody(entry.responseBody)}</div>
+                </div>
+            </div>`;
+
+        $container.prepend(html);
+        $('#trace-count').text(state.apiClient ? state.apiClient.getTraceLog().length : '0');
+    }
+
+    /** Clear all trace entries */
+    function clearTrace() {
+        if (state.apiClient) state.apiClient.clearTraceLog();
+        $('#trace-entries').html('<div class="text-center text-muted-sm py-3" id="trace-empty"><i class="bi bi-hourglass-split"></i> No API calls yet</div>');
+        $('#trace-count').text('0');
+    }
+
+    /** Hook the apiClient trace listener (called after apiClient is created) */
+    function hookTrace() {
+        if (state.apiClient) {
+            state.apiClient.onTrace(renderTraceEntry);
+        }
+    }
+
     window.app = {
         createSession,
+        createSessionAndOpen,
         openInSign,
         openSessionManager,
         executeOperation,
@@ -3151,6 +4265,7 @@
         executeExtern,
         executeDownload,
         executeDocumentSingle,
+        toggleIncludeBiodata,
         uploadDocument,
         discoverFieldsAndRoles,
         setExternOption,
@@ -3174,6 +4289,10 @@
         togglePolling,
         toggleWebhookSection,
         togglePollingSection,
+        // Authentication
+        setAuthMode,
+        executeOAuth2Token,
+        clearOAuth2Token,
         // Branding
         selectColorScheme,
         updateBrandColor,
@@ -3182,7 +4301,11 @@
         selectLogoSet,
         resetLogos,
         updateBrandLogo,
-        uploadBrandLogo
+        uploadBrandLogo,
+        expandAllGroups,
+        collapseAllGroups,
+        // Trace
+        clearTrace
     };
 
     // =====================================================================

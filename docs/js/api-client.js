@@ -1,5 +1,5 @@
 /* ==========================================================================
-   inSign API Client — Browser-based fetch() wrapper with Basic Auth
+   inSign API Client - Browser-based fetch() wrapper with Basic/OAuth2 Auth
    ========================================================================== */
 
 window.InsignApiClient = class InsignApiClient {
@@ -10,12 +10,69 @@ window.InsignApiClient = class InsignApiClient {
         this.password = password;
         this.useCorsProxy = false;
         this.corsProxyUrl = 'https://corsproxy.io/?';
+        // Auth mode: 'basic' or 'oauth2'
+        this.authMode = 'basic';
+        this.oauth2Token = null;       // current Bearer token
+        this.oauth2ExpiresAt = null;   // Date.now() + expires_in*1000
+        // Trace log
+        this._traceLog = [];
+        this._traceListeners = [];
+    }
+
+    /** Register a listener called with (entry) on every traced request */
+    onTrace(fn) { this._traceListeners.push(fn); }
+
+    /** Push a trace entry and notify listeners */
+    _trace(entry) {
+        this._traceLog.push(entry);
+        this._traceListeners.forEach(fn => { try { fn(entry); } catch (_) {} });
+    }
+
+    /** Get all trace entries */
+    getTraceLog() { return this._traceLog; }
+
+    /** Clear trace log */
+    clearTraceLog() { this._traceLog = []; }
+
+    /**
+     * Set OAuth2 token from a successful /oauth2/token response
+     */
+    setOAuth2Token(tokenResult) {
+        this.oauth2Token = tokenResult.access_token;
+        this.oauth2ExpiresAt = Date.now() + (tokenResult.expires_in || 1800) * 1000;
+        this.authMode = 'oauth2';
+    }
+
+    /**
+     * Clear OAuth2 token (revert to basic auth)
+     */
+    clearOAuth2Token() {
+        this.oauth2Token = null;
+        this.oauth2ExpiresAt = null;
+    }
+
+    /**
+     * Check if OAuth2 token is valid and not expired
+     */
+    isOAuth2TokenValid() {
+        return this.oauth2Token && this.oauth2ExpiresAt && Date.now() < this.oauth2ExpiresAt;
+    }
+
+    /**
+     * Get remaining seconds on OAuth2 token (0 if expired/none)
+     */
+    getOAuth2TokenTTL() {
+        if (!this.oauth2ExpiresAt) return 0;
+        return Math.max(0, Math.round((this.oauth2ExpiresAt - Date.now()) / 1000));
     }
 
     /**
      * Get the Authorization header value
      */
     getAuthHeader() {
+        if (this.authMode === 'oauth2' && this.isOAuth2TokenValid()) {
+            return 'Bearer ' + this.oauth2Token;
+        }
         return 'Basic ' + btoa(this.username + ':' + this.password);
     }
 
@@ -83,7 +140,17 @@ window.InsignApiClient = class InsignApiClient {
             fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
         }
 
+        // Pre-call hook (e.g. auto-refresh OAuth2 token)
+        if (this._beforeCall) {
+            await this._beforeCall(method, path);
+        }
+
+        // Build request body snapshot for trace (avoid logging binary FormData)
+        const reqBodySnapshot = formData ? '[FormData]'
+            : (body !== null && method.toUpperCase() !== 'GET') ? body : null;
+
         const startTime = performance.now();
+        let result;
 
         try {
             const response = await fetch(url, fetchOptions);
@@ -109,7 +176,7 @@ window.InsignApiClient = class InsignApiClient {
                 }
             }
 
-            return {
+            result = {
                 ok: response.ok,
                 status: response.status,
                 statusText: response.statusText,
@@ -125,16 +192,16 @@ window.InsignApiClient = class InsignApiClient {
 
             // Detect CORS errors
             if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('Failed') || err.message.includes('NetworkError'))) {
-                return {
+                result = {
                     ok: false,
                     status: 0,
                     statusText: 'CORS / Network Error',
                     headers: {},
                     body: {
                         error: 'CORS_OR_NETWORK_ERROR',
-                        message: 'Could not reach the API server. This is most likely a CORS (Cross-Origin Resource Sharing) issue — your browser blocks requests from this page to the inSign server because the server has not allowed this origin.',
+                        message: 'Could not reach the API server. This is most likely a CORS (Cross-Origin Resource Sharing) issue - your browser blocks requests from this page to the inSign server because the server has not allowed this origin.',
                         fixes: [
-                            '1. Quick fix: Enable the "CORS proxy" toggle in the sidebar (routes requests through a proxy)',
+                            '1. Quick fix: Enable the "CORS proxy" toggle in the Connection settings (routes requests through a proxy)',
                             '2. Server fix: Set the inSign property cors.allowed-origins=* (or your specific origin) in the inSign server configuration',
                             '3. Browser fix: Install a CORS browser extension (e.g. "CORS Unblock" for Chrome/Firefox)',
                             '4. If running locally: serve this page via HTTP (npx serve docs) instead of file://'
@@ -145,19 +212,38 @@ window.InsignApiClient = class InsignApiClient {
                     duration,
                     blob: null
                 };
+            } else {
+                result = {
+                    ok: false,
+                    status: 0,
+                    statusText: 'Error',
+                    headers: {},
+                    body: { error: err.name, message: err.message },
+                    raw: err.toString(),
+                    duration,
+                    blob: null
+                };
             }
-
-            return {
-                ok: false,
-                status: 0,
-                statusText: 'Error',
-                headers: {},
-                body: { error: err.name, message: err.message },
-                raw: err.toString(),
-                duration,
-                blob: null
-            };
         }
+
+        // Record trace entry
+        this._trace({
+            id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+            timestamp: new Date().toISOString(),
+            method: method.toUpperCase(),
+            path,
+            url,
+            requestHeaders: { ...headers },
+            requestBody: reqBodySnapshot,
+            status: result.status,
+            statusText: result.statusText,
+            ok: result.ok,
+            responseHeaders: result.headers,
+            responseBody: result.body,
+            duration: result.duration
+        });
+
+        return result;
     }
 
     /**
@@ -194,8 +280,14 @@ window.InsignApiClient = class InsignApiClient {
      * Get a display-friendly representation of current headers
      */
     getHeadersDisplay(contentType = 'application/json') {
+        const authValue = this.getAuthHeader();
+        // Truncate long Bearer tokens for display
+        let displayAuth = authValue;
+        if (displayAuth.startsWith('Bearer ') && displayAuth.length > 60) {
+            displayAuth = 'Bearer ' + displayAuth.substring(7, 40) + '...' + displayAuth.substring(displayAuth.length - 10);
+        }
         return [
-            { name: 'Authorization', value: 'Basic ' + btoa(this.username + ':' + this.password) },
+            { name: 'Authorization', value: displayAuth },
             { name: 'Content-Type', value: contentType },
             { name: 'Accept', value: 'application/json' }
         ];

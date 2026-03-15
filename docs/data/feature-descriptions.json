@@ -67,6 +67,14 @@
           "path": "guiProperties",
           "desc": "Controls whether the navigation toolbar is displayed in the PDF editor. The navigation toolbar provides page-by-page navigation controls including previous/next page buttons and a page number indicator showing the current page relative to total pages. Default: false, Recommended: true. Enabling this property significantly improves the user experience for multi-page documents by giving users precise control over document navigation. Without it, users must scroll through the document manually. The toolbar integrates with the document viewer and updates in real-time as the user scrolls through pages.",
           "globalProperty": "navtoolbar.available"
+        },
+        {
+          "key": "guiVorgangsverwaltungenabled",
+          "label": "Session Manager",
+          "type": "bool",
+          "path": "guiProperties",
+          "desc": "Controls whether the Session Manager (Vorgangsverwaltung) is available in the editor. When enabled, users can access the session/process management view to see all their signing sessions, filter by status, and manage multiple transactions. Default: false. The Session Manager provides an overview of all sessions assigned to the current user, with options to open, delete, or continue sessions. Related properties include vorgangsverwaltung.delete.available, vorgangsverwaltung.action.available, and vorgangsverwaltung.pagesize for controlling specific features within the manager.",
+          "globalProperty": "gui.vorgangsverwaltungenabled"
         }
       ]
     },
@@ -377,7 +385,7 @@
           "label": "Allow AES sig fields",
           "type": "bool",
           "path": "guiProperties",
-          "desc": "Controls whether signature fields requiring handwriting (AES — Advanced Electronic Signature) can be created via the form editor. AES is the default signature level in inSign, where users draw their signature on the device screen or via a paired smartphone/tablet. When enabled, the form editor toolbar includes the option to place AES signature fields on the document. These fields require the signer to provide a handwritten signature input. Default: true. This is the most common signature type and should remain enabled unless the workflow explicitly requires only text-based (SES) or qualified (QES) signatures.",
+          "desc": "Controls whether signature fields requiring handwriting (AES - Advanced Electronic Signature) can be created via the form editor. AES is the default signature level in inSign, where users draw their signature on the device screen or via a paired smartphone/tablet. When enabled, the form editor toolbar includes the option to place AES signature fields on the document. These fields require the signer to provide a handwritten signature input. Default: true. This is the most common signature type and should remain enabled unless the workflow explicitly requires only text-based (SES) or qualified (QES) signatures.",
           "globalProperty": "addformfield.allowAes"
         },
         {
@@ -385,7 +393,7 @@
           "label": "Allow SES sig fields",
           "type": "bool",
           "path": "guiProperties",
-          "desc": "Controls whether signature fields requiring only text input (SES — Simple Electronic Signature) can be created via the form editor. SES fields allow a user to sign a document by simply entering their name as text, without handwriting input. This is the simplest signature level and is suitable for low-risk documents or internal acknowledgements. When enabled, the form editor shows the option to place SES signature fields. Default depends on server configuration. SES signatures do not carry the same legal weight as AES or QES signatures in most jurisdictions.",
+          "desc": "Controls whether signature fields requiring only text input (SES - Simple Electronic Signature) can be created via the form editor. SES fields allow a user to sign a document by simply entering their name as text, without handwriting input. This is the simplest signature level and is suitable for low-risk documents or internal acknowledgements. When enabled, the form editor shows the option to place SES signature fields. Default depends on server configuration. SES signatures do not carry the same legal weight as AES or QES signatures in most jurisdictions.",
           "globalProperty": "addformfield.allowSes"
         },
         {
@@ -487,7 +495,7 @@
           "label": "Quick-tips",
           "type": "bool",
           "path": "guiProperties",
-          "desc": "Controls whether Quick-Tips are displayed in the UI — small contextual help popups that appear at relevant interaction points to guide users. Default: false, Recommended: true. Quick-Tips provide inline assistance without requiring users to open a separate help section. Related properties include quicktips.tutorial.enabled, which controls a more comprehensive tutorial variant that walks new users through the entire interface, and quicktips.reset.days, which controls the automatic reset interval after which tips reappear. Quick-Tips are dismissed individually and their state is remembered per user session.",
+          "desc": "Controls whether Quick-Tips are displayed in the UI - small contextual help popups that appear at relevant interaction points to guide users. Default: false, Recommended: true. Quick-Tips provide inline assistance without requiring users to open a separate help section. Related properties include quicktips.tutorial.enabled, which controls a more comprehensive tutorial variant that walks new users through the entire interface, and quicktips.reset.days, which controls the automatic reset interval after which tips reappear. Quick-Tips are dismissed individually and their state is remembered per user session.",
           "globalProperty": "quicktips.enabled"
         },
         {
@@ -495,7 +503,7 @@
           "label": "Dual screen (experimental)",
           "type": "bool",
           "path": "guiProperties",
-          "desc": "Controls whether dualscreen mode is available in the editor interface. Default: false. WARNING: This property is unfinished and should NOT be used in production environments. When enabled, it activates an experimental dualscreen layout intended for setups where two displays are used simultaneously — for example, one screen for the consultant and another facing the customer. The feature is incomplete and may exhibit unexpected behavior, rendering issues, or missing functionality. Do not enable this in customer-facing deployments. It remains in the configuration schema for internal development and testing purposes only.",
+          "desc": "Controls whether dualscreen mode is available in the editor interface. Default: false. WARNING: This property is unfinished and should NOT be used in production environments. When enabled, it activates an experimental dualscreen layout intended for setups where two displays are used simultaneously - for example, one screen for the consultant and another facing the customer. The feature is incomplete and may exhibit unexpected behavior, rendering issues, or missing functionality. Do not enable this in customer-facing deployments. It remains in the configuration schema for internal development and testing purposes only.",
           "globalProperty": "dualscreen.gui.available"
         }
       ]
@@ -517,7 +525,7 @@
           "label": "Name input skippable",
           "type": "bool",
           "path": "root",
-          "desc": "Controls whether the signer can skip the name input dialog that appears after placing a signature. Default: false, Recommended: true. Only relevant when realName.input.required is enabled. When skippable is true, the name input dialog shows a 'Skip' button allowing the signer to proceed without entering their name. When false, the signer must provide a name before continuing. Setting both required and skippable to true creates a soft requirement — the system asks for the name but doesn't block the workflow if the user chooses not to provide it, balancing identity capture with user convenience.",
+          "desc": "Controls whether the signer can skip the name input dialog that appears after placing a signature. Default: false, Recommended: true. Only relevant when realName.input.required is enabled. When skippable is true, the name input dialog shows a 'Skip' button allowing the signer to proceed without entering their name. When false, the signer must provide a name before continuing. Setting both required and skippable to true creates a soft requirement - the system asks for the name but doesn't block the workflow if the user chooses not to provide it, balancing identity capture with user convenience.",
           "globalProperty": "realName.input.skippable"
         },
         {
@@ -573,7 +581,7 @@
           "label": "Personal data in signature",
           "type": "bool",
           "path": "root",
-          "desc": "Controls whether available personal data (name, email address, phone number) is included in the PDF 'Reason' field for AES (Advanced Electronic Signature) handwriting signatures. Default: true. When enabled, the signer's personal information is embedded directly into the signature metadata within the PDF, providing additional identity verification. For external multi-party signatures, the property extern.multi.showOtherSignaturefields is also relevant — if that property is false, personal data inclusion is suppressed for extern signatures regardless of this setting. This enhances signature traceability but may raise privacy concerns in certain jurisdictions.",
+          "desc": "Controls whether available personal data (name, email address, phone number) is included in the PDF 'Reason' field for AES (Advanced Electronic Signature) handwriting signatures. Default: true. When enabled, the signer's personal information is embedded directly into the signature metadata within the PDF, providing additional identity verification. For external multi-party signatures, the property extern.multi.showOtherSignaturefields is also relevant - if that property is false, personal data inclusion is suppressed for extern signatures regardless of this setting. This enhances signature traceability but may raise privacy concerns in certain jurisdictions.",
           "globalProperty": "pdf.signature.aes.includepersonaldata"
         },
         {
@@ -626,7 +634,7 @@
             "QES"
           ],
           "path": "root",
-          "desc": "Specifies the default signature level for documents in the session. Supported values: SES (Simple Electronic Signature — text input based), AES (Advanced Electronic Signature — handwriting/drawing based), AESSMS (Advanced Electronic Signature with SMS verification — text input with mobile number verification for added identity assurance), and QES (Qualified Electronic Signature — highest legal standing, requires identity verification through a trust service provider). This root-level session property determines the signature method presented to signers. Different signature levels have different legal implications and user experience flows. Can be overridden at the document or field level.",
+          "desc": "Specifies the default signature level for documents in the session. Supported values: SES (Simple Electronic Signature - text input based), AES (Advanced Electronic Signature - handwriting/drawing based), AESSMS (Advanced Electronic Signature with SMS verification - text input with mobile number verification for added identity assurance), and QES (Qualified Electronic Signature - highest legal standing, requires identity verification through a trust service provider). This root-level session property determines the signature method presented to signers. Different signature levels have different legal implications and user experience flows. Can be overridden at the document or field level.",
           "globalProperty": null
         }
       ]
@@ -640,7 +648,7 @@
           "label": "Extern email subject",
           "type": "text",
           "path": "root",
-          "desc": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} — Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability.",
+          "desc": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} - Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability.",
           "globalProperty": null
         },
         {
@@ -676,12 +684,122 @@
           "globalProperty": null
         },
         {
+          "key": "replyTo",
+          "label": "Reply-To email",
+          "type": "text",
+          "path": "root",
+          "desc": "The Reply-To email address for all outgoing emails from this signing session. When a recipient hits 'Reply' in their email client, this address is used instead of the sender address (senderEmail). This root-level session property is useful when the 'From' address is a no-reply system address but you want replies to reach a real person, such as the advisor or support team. If not specified, the Reply-To defaults to the sender address. Example: set senderEmail to 'noreply@company.com' and replyTo to 'advisor@company.com'.",
+          "globalProperty": null
+        },
+        {
+          "key": "alleEmailBetreff",
+          "label": "All-recipients email subject",
+          "type": "text",
+          "path": "root",
+          "desc": "The subject line for emails sent to all recipients (non-external). This root-level session property customizes the email subject when documents or notifications are sent to session participants who are not external signers (e.g., the session owner, CC recipients, or internal participants). Supports dynamic placeholders such as {name} for personalization. If not specified, the system uses a default translated subject. This is distinct from externEmailBetreff (for external signers) and applosKundeMailBetreff (for app-less customer invitations).",
+          "globalProperty": null
+        },
+        {
+          "key": "alleEmailInhalt",
+          "label": "All-recipients email body",
+          "type": "text",
+          "path": "root",
+          "desc": "The body text for emails sent to all recipients (non-external). This root-level session property customizes the email content for session participants who are not external signers. Supports dynamic placeholders such as {name} for personalization and HTML formatting. If not specified, the system uses a default translated email body. This property complements alleEmailBetreff and is distinct from externEmailInhalt (for external signers).",
+          "globalProperty": null
+        },
+        {
           "key": "burgerExit",
           "label": "Custom exit text",
           "type": "text",
           "path": "root",
           "desc": "Custom text for the exit/close button displayed in the burger menu and toolbar. This property allows overriding the default translated exit button label with custom text specific to the integration context. If left empty or not specified, the default localized message is shown based on the session's locale setting. Useful for providing context-specific button labels such as 'Return to Portal', 'Back to Dashboard', or 'Close and Return'. The custom text applies wherever the exit action label is displayed in the UI, including the burger menu dropdown and any toolbar exit button instances.",
           "globalProperty": "burger.exit"
+        }
+      ]
+    },
+    {
+      "title": "Pre-population / Recipient Data",
+      "icon": "bi-person-vcard",
+      "features": [
+        {
+          "key": "applosPerEmailEmpfaenger",
+          "label": "Owner email (app-less)",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Pre-populates the email address for the session owner's app-less email signing flow. When applosPerEmail is enabled, this signConfig property specifies the recipient email address to which the browser-based signing link is sent. If not set, the system uses the session owner's registered email address. Pre-populating this field streamlines the signing flow by skipping the email input step in the pairing dialog. Combined with guiAllowChangeSmsEmail=false, this locks the email to prevent the signer from modifying it.",
+          "globalProperty": "applos.perEmail.empfaenger"
+        },
+        {
+          "key": "applosPerSmsEmpfaenger",
+          "label": "Owner mobile (app-less SMS)",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Pre-populates the mobile phone number for the session owner's app-less SMS signing flow. When applosPerSms is enabled, this signConfig property specifies the phone number to which the browser-based signing link is sent via SMS. Format: international format recommended (e.g., +49170...). If not set, the system uses the session owner's registered mobile number. Pre-populating this field streamlines the signing flow by skipping the phone number input step. Combined with guiAllowChangeSmsEmail=false, this locks the number.",
+          "globalProperty": "applos.perSms.empfaenger"
+        },
+        {
+          "key": "applosKundePerEmailEmpfaenger",
+          "label": "Customer email (app-less)",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Pre-populates the email address for the external signer's (customer) app-less email signing flow. When applosKundePerEmail is enabled, this signConfig property specifies the customer's email address to which the browser-based signing link is sent. Pre-populating this field means the customer does not need to enter their email manually in the pairing dialog. Combined with guiAllowChangeSmsEmail=false, the email cannot be changed by the signer, ensuring the signing link goes to the verified address. This is especially important for identity-verified workflows.",
+          "globalProperty": "applos.kunde.perEmail.empfaenger"
+        },
+        {
+          "key": "applosKundePerSmsEmpfaenger",
+          "label": "Customer mobile (app-less SMS)",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Pre-populates the mobile phone number for the external signer's (customer) app-less SMS signing flow. When applosKundePerSms is enabled, this signConfig property specifies the customer's phone number to which the browser-based signing link is sent via SMS. Format: international format recommended (e.g., +49170...). Pre-populating ensures the SMS goes to the correct number without requiring manual input. Combined with guiAllowChangeSmsEmail=false, the phone number cannot be modified by the signer. Critical for AESSMS signature level workflows where the phone number serves as an identity factor.",
+          "globalProperty": "applos.kunde.perSms.empfaenger"
+        },
+        {
+          "key": "applosMailBetreff",
+          "label": "Owner app-less email subject",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Custom subject line for the app-less signing email sent to the session owner. This signConfig property allows overriding the default email subject when the owner receives a browser-based signing link via applosPerEmail. Supports dynamic placeholders. If not specified, the system uses a default translated subject based on the session locale.",
+          "globalProperty": "applos.mail.betreff"
+        },
+        {
+          "key": "applosMailText",
+          "label": "Owner app-less email body",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Custom body text for the app-less signing email sent to the session owner. This signConfig property allows overriding the default email content when the owner receives a browser-based signing link via applosPerEmail. Supports dynamic placeholders and HTML formatting. If not specified, the system uses a default translated body.",
+          "globalProperty": "applos.mail.text"
+        },
+        {
+          "key": "applosSmsText",
+          "label": "Owner app-less SMS text",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Custom SMS text for the app-less signing link sent to the session owner via applosPerSms. This signConfig property allows overriding the default SMS message. Keep it concise due to SMS character limits. The signing URL is automatically appended. If not specified, the system uses a default translated SMS text.",
+          "globalProperty": "applos.sms.text"
+        },
+        {
+          "key": "applosKundeSmsText",
+          "label": "Customer app-less SMS text",
+          "type": "text",
+          "path": "signConfig",
+          "desc": "Custom SMS text for the app-less signing link sent to the external signer (customer) via applosKundePerSms. This signConfig property allows overriding the default SMS message for customers. Keep it concise due to SMS character limits. The signing URL is automatically appended. If not specified, the system uses a default translated SMS text.",
+          "globalProperty": "applos.kunde.sms.text"
+        },
+        {
+          "key": "settingsNameValue",
+          "label": "Pre-fill signer name",
+          "type": "text",
+          "path": "guiProperties",
+          "desc": "Pre-populates the signer's name in the settings dialog. When set, the name field in the signing settings is pre-filled with this value, saving the signer from having to type their name manually. This is the name that appears on the visual signature in the PDF (depending on signature level and configuration). Combined with settingsNameAvailable=false, this locks the name so the signer cannot change it. Useful when the signer's identity is already known from the CRM or authentication system. The value should be the signer's full name as it should appear on the signature.",
+          "globalProperty": "settings.name.value"
+        },
+        {
+          "key": "settingsRealLocationValue",
+          "label": "Pre-fill signing location",
+          "type": "text",
+          "path": "guiProperties",
+          "desc": "Pre-populates the signing location in the settings dialog. When set, the location field is pre-filled with this value (e.g., city name like 'Munich' or 'Berlin'). The location appears on the visual signature timestamp if signTimestampEnabled is active. Combined with settingsRealLocationAvailable=false, this locks the location so it cannot be changed. Useful when the signing location is predetermined (e.g., branch office address). If not set and settingsRealLocationInputRequired is enabled, the signer must enter their location manually before signing.",
+          "globalProperty": "settings.realLocation.value"
         }
       ]
     },
@@ -738,7 +856,7 @@
       ]
     },
     {
-      "title": "Signing Devices — Session Owner",
+      "title": "Signing Devices - Session Owner",
       "icon": "bi-phone",
       "features": [
         {
@@ -808,7 +926,7 @@
       ]
     },
     {
-      "title": "Signing Devices — External Signer",
+      "title": "Signing Devices - External Signer",
       "icon": "bi-phone-vibrate",
       "features": [
         {
@@ -840,7 +958,7 @@
           "label": "App-less via QR code",
           "type": "bool",
           "path": "signConfig",
-          "desc": "Allows the external signer (customer) to sign without the inSign app by scanning a QR code. When enabled in signConfig, a QR code is displayed that the customer can scan with their smartphone camera to open a browser-based signing page. Available since version 3.32. This is ideal for in-person scenarios where the customer is physically present — they simply scan the code from the consultant's screen. No email, SMS, or app installation required. The QR code URL is time-limited and single-use.",
+          "desc": "Allows the external signer (customer) to sign without the inSign app by scanning a QR code. When enabled in signConfig, a QR code is displayed that the customer can scan with their smartphone camera to open a browser-based signing page. Available since version 3.32. This is ideal for in-person scenarios where the customer is physically present - they simply scan the code from the consultant's screen. No email, SMS, or app installation required. The QR code URL is time-limited and single-use.",
           "globalProperty": "applos.kunde.perQRCode"
         },
         {
@@ -1110,12 +1228,12 @@
     {
       "key": "quicktipsEnabled",
       "globalProperty": "quicktips.enabled",
-      "description": "Controls whether Quick-Tips are displayed in the UI — small contextual help popups that appear at relevant interaction points to guide users. Default: false, Recommended: true. Quick-Tips provide inline assistance without requiring users to open a separate help section. Related properties include quicktips.tutorial.enabled, which controls a more comprehensive tutorial variant that walks new users through the entire interface, and quicktips.reset.days, which controls the automatic reset interval after which tips reappear. Quick-Tips are dismissed individually and their state is remembered per user session."
+      "description": "Controls whether Quick-Tips are displayed in the UI - small contextual help popups that appear at relevant interaction points to guide users. Default: false, Recommended: true. Quick-Tips provide inline assistance without requiring users to open a separate help section. Related properties include quicktips.tutorial.enabled, which controls a more comprehensive tutorial variant that walks new users through the entire interface, and quicktips.reset.days, which controls the automatic reset interval after which tips reappear. Quick-Tips are dismissed individually and their state is remembered per user session."
     },
     {
       "key": "dualscreenGuiAvailable",
       "globalProperty": "dualscreen.gui.available",
-      "description": "Controls whether dualscreen mode is available in the editor interface. Default: false. WARNING: This property is unfinished and should NOT be used in production environments. When enabled, it activates an experimental dualscreen layout intended for setups where two displays are used simultaneously — for example, one screen for the consultant and another facing the customer. The feature is incomplete and may exhibit unexpected behavior, rendering issues, or missing functionality. Do not enable this in customer-facing deployments. It remains in the configuration schema for internal development and testing purposes only."
+      "description": "Controls whether dualscreen mode is available in the editor interface. Default: false. WARNING: This property is unfinished and should NOT be used in production environments. When enabled, it activates an experimental dualscreen layout intended for setups where two displays are used simultaneously - for example, one screen for the consultant and another facing the customer. The feature is incomplete and may exhibit unexpected behavior, rendering issues, or missing functionality. Do not enable this in customer-facing deployments. It remains in the configuration schema for internal development and testing purposes only."
     },
     {
       "key": "realNameInputRequired",
@@ -1125,7 +1243,7 @@
     {
       "key": "realNameInputSkippable",
       "globalProperty": "realName.input.skippable",
-      "description": "Controls whether the signer can skip the name input dialog that appears after placing a signature. Default: false, Recommended: true. Only relevant when realName.input.required is enabled. When skippable is true, the name input dialog shows a 'Skip' button allowing the signer to proceed without entering their name. When false, the signer must provide a name before continuing. Setting both required and skippable to true creates a soft requirement — the system asks for the name but doesn't block the workflow if the user chooses not to provide it, balancing identity capture with user convenience."
+      "description": "Controls whether the signer can skip the name input dialog that appears after placing a signature. Default: false, Recommended: true. Only relevant when realName.input.required is enabled. When skippable is true, the name input dialog shows a 'Skip' button allowing the signer to proceed without entering their name. When false, the signer must provide a name before continuing. Setting both required and skippable to true creates a soft requirement - the system asks for the name but doesn't block the workflow if the user chooses not to provide it, balancing identity capture with user convenience."
     },
     {
       "key": "realLocationInputRequired",
@@ -1160,7 +1278,7 @@
     {
       "key": "pdfSignatureIncludePersonalData",
       "globalProperty": "pdf.signature.aes.includepersonaldata",
-      "description": "Controls whether available personal data (name, email address, phone number) is included in the PDF 'Reason' field for AES (Advanced Electronic Signature) handwriting signatures. Default: true. When enabled, the signer's personal information is embedded directly into the signature metadata within the PDF, providing additional identity verification. For external multi-party signatures, the property extern.multi.showOtherSignaturefields is also relevant — if that property is false, personal data inclusion is suppressed for extern signatures regardless of this setting. This enhances signature traceability but may raise privacy concerns in certain jurisdictions."
+      "description": "Controls whether available personal data (name, email address, phone number) is included in the PDF 'Reason' field for AES (Advanced Electronic Signature) handwriting signatures. Default: true. When enabled, the signer's personal information is embedded directly into the signature metadata within the PDF, providing additional identity verification. For external multi-party signatures, the property extern.multi.showOtherSignaturefields is also relevant - if that property is false, personal data inclusion is suppressed for extern signatures regardless of this setting. This enhances signature traceability but may raise privacy concerns in certain jurisdictions."
     },
     {
       "key": "signTimestampEnabled",
@@ -1190,12 +1308,12 @@
     {
       "key": "signatureLevel",
       "globalProperty": null,
-      "description": "Specifies the default signature level for documents in the session. Supported values: SES (Simple Electronic Signature — text input based), AES (Advanced Electronic Signature — handwriting/drawing based), AESSMS (Advanced Electronic Signature with SMS verification — text input with mobile number verification for added identity assurance), and QES (Qualified Electronic Signature — highest legal standing, requires identity verification through a trust service provider). This root-level session property determines the signature method presented to signers. Different signature levels have different legal implications and user experience flows. Can be overridden at the document or field level."
+      "description": "Specifies the default signature level for documents in the session. Supported values: SES (Simple Electronic Signature - text input based), AES (Advanced Electronic Signature - handwriting/drawing based), AESSMS (Advanced Electronic Signature with SMS verification - text input with mobile number verification for added identity assurance), and QES (Qualified Electronic Signature - highest legal standing, requires identity verification through a trust service provider). This root-level session property determines the signature method presented to signers. Different signature levels have different legal implications and user experience flows. Can be overridden at the document or field level."
     },
     {
       "key": "externEmailBetreff",
       "globalProperty": null,
-      "description": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} — Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability."
+      "description": "The subject line of the email sent to external signers when they are invited to process a signing session. This root-level session property supports dynamic placeholders such as {name} for the signer's name, allowing personalized email subjects. The subject line appears in the recipient's email inbox and should clearly communicate the purpose of the email. Example: 'Signing request: {name} - Please review and sign your documents'. If not specified, the system uses a default translated subject based on the session locale. Keep subjects concise and descriptive for optimal email deliverability."
     },
     {
       "key": "externEmailInhalt",
@@ -1230,12 +1348,12 @@
     {
       "key": "addformfieldAllowAes",
       "globalProperty": "addformfield.allowAes",
-      "description": "Controls whether signature fields requiring handwriting (AES — Advanced Electronic Signature) can be created via the form editor. AES is the default signature level in inSign, where users draw their signature on the device screen or via a paired smartphone/tablet. When enabled, the form editor toolbar includes the option to place AES signature fields on the document. These fields require the signer to provide a handwritten signature input. Default: true. This is the most common signature type and should remain enabled unless the workflow explicitly requires only text-based (SES) or qualified (QES) signatures."
+      "description": "Controls whether signature fields requiring handwriting (AES - Advanced Electronic Signature) can be created via the form editor. AES is the default signature level in inSign, where users draw their signature on the device screen or via a paired smartphone/tablet. When enabled, the form editor toolbar includes the option to place AES signature fields on the document. These fields require the signer to provide a handwritten signature input. Default: true. This is the most common signature type and should remain enabled unless the workflow explicitly requires only text-based (SES) or qualified (QES) signatures."
     },
     {
       "key": "addformfieldAllowSes",
       "globalProperty": "addformfield.allowSes",
-      "description": "Controls whether signature fields requiring only text input (SES — Simple Electronic Signature) can be created via the form editor. SES fields allow a user to sign a document by simply entering their name as text, without handwriting input. This is the simplest signature level and is suitable for low-risk documents or internal acknowledgements. When enabled, the form editor shows the option to place SES signature fields. Default depends on server configuration. SES signatures do not carry the same legal weight as AES or QES signatures in most jurisdictions."
+      "description": "Controls whether signature fields requiring only text input (SES - Simple Electronic Signature) can be created via the form editor. SES fields allow a user to sign a document by simply entering their name as text, without handwriting input. This is the simplest signature level and is suitable for low-risk documents or internal acknowledgements. When enabled, the form editor shows the option to place SES signature fields. Default depends on server configuration. SES signatures do not carry the same legal weight as AES or QES signatures in most jurisdictions."
     },
     {
       "key": "addformfieldAllowAesSms",
@@ -1315,7 +1433,7 @@
     {
       "key": "applosKundePerQRCode",
       "globalProperty": "applos.kunde.perQRCode",
-      "description": "Allows the external signer (customer) to sign without the inSign app by scanning a QR code. When enabled in signConfig, a QR code is displayed that the customer can scan with their smartphone camera to open a browser-based signing page. Available since version 3.32. This is ideal for in-person scenarios where the customer is physically present — they simply scan the code from the consultant's screen. No email, SMS, or app installation required. The QR code URL is time-limited and single-use."
+      "description": "Allows the external signer (customer) to sign without the inSign app by scanning a QR code. When enabled in signConfig, a QR code is displayed that the customer can scan with their smartphone camera to open a browser-based signing page. Available since version 3.32. This is ideal for in-person scenarios where the customer is physically present - they simply scan the code from the consultant's screen. No email, SMS, or app installation required. The QR code URL is time-limited and single-use."
     },
     {
       "key": "upadSupportExtern",
@@ -1331,6 +1449,111 @@
       "key": "guiOnnextopentosign",
       "globalProperty": "gui.onnextopentosign",
       "description": "Controls whether clicking 'next signature' or following the external user guidance arrow immediately opens the pairing/signing dialog instead of just scrolling to the signature field. When enabled, navigation to the next signature field automatically triggers the signing popup, reducing the number of clicks needed in the signing workflow. This streamlines the user experience especially for documents with many signature fields. When disabled (default), the user must click on the signature field after navigating to it. Works for both session owner and external signer navigation."
+    },
+    {
+      "key": "settingsNameValue",
+      "globalProperty": "settings.name.value",
+      "description": "Pre-populates the signer's name in the settings dialog. When set, the name field in the signing settings is pre-filled with this value, saving the signer from having to type their name manually. This is the name that appears on the visual signature in the PDF. Combined with settingsNameAvailable=false, this locks the name so the signer cannot change it."
+    },
+    {
+      "key": "settingsRealLocationValue",
+      "globalProperty": "settings.realLocation.value",
+      "description": "Pre-populates the signing location in the settings dialog. When set, the location field is pre-filled with this value (e.g., city name). The location appears on the visual signature timestamp if signTimestampEnabled is active. Combined with settingsRealLocationAvailable=false, this locks the location."
+    },
+    {
+      "key": "foruser",
+      "globalProperty": null,
+      "description": "The username or identifier of the user (consultant/advisor) who owns this signing session. This root-level session property assigns the session to a specific inSign user account. The foruser value determines which user sees the session in their gallery/session list and has owner-level permissions. It must correspond to a valid user account on the inSign instance. If not specified, the session is created under the authenticated API user. This is essential for multi-user environments where sessions must be assigned to specific consultants."
+    },
+    {
+      "key": "callbackURL",
+      "globalProperty": null,
+      "description": "Client-side redirect URL that the user's browser navigates to when the signing session is closed or completed. This root-level session property enables seamless integration with the calling application by returning the user to a specific page after signing. The session ID is typically appended as a query parameter. Used in conjunction with exit.available and extern.exit.enabled to provide navigation back to the integrating application. If not set, the user remains on the inSign page after session completion."
+    },
+    {
+      "key": "userEmail",
+      "globalProperty": null,
+      "description": "The email address of the session owner (consultant/advisor). This root-level session property is used for email communications related to the session, such as notifications about external signer actions (signing completed, rejected, delegated). The email is also used as the default sender address if senderEmail is not explicitly configured. May be displayed in the session UI and included in email templates sent to external signers."
+    },
+    {
+      "key": "serverSidecallbackURL",
+      "globalProperty": null,
+      "description": "Server-side webhook URL that receives automated notifications about session status changes. Unlike callbackURL (which is a browser redirect), this URL is called server-to-server by the inSign backend when events occur such as session completion, external signer actions, or document finalization. The request includes the session ID and status information. This is the primary mechanism for backend integration, allowing the calling system to react to signing events programmatically without polling for status."
+    },
+    {
+      "key": "serversideCallbackMethod",
+      "globalProperty": null,
+      "description": "The HTTP method used when calling the serverSidecallbackURL webhook. Supported values: 'GET' or 'POST'. Default: 'GET'. When set to 'POST', the session status data is sent in the request body rather than as URL query parameters. POST is recommended for security (parameters not visible in server logs) and for transmitting larger payloads. The content type of POST requests is controlled by serversideCallbackContenttype."
+    },
+    {
+      "key": "serversideCallbackContenttype",
+      "globalProperty": null,
+      "description": "The Content-Type header used for POST requests to the serverSidecallbackURL webhook. Common values: 'application/x-www-form-urlencoded' (default) or 'application/json'. Only relevant when serversideCallbackMethod is set to 'POST'. This determines how the callback payload is encoded in the request body. Use 'application/json' if your webhook endpoint expects JSON-formatted data."
+    },
+    {
+      "key": "embedBiometricData",
+      "globalProperty": null,
+      "description": "Controls whether biometric signature data (pen pressure, stroke velocity, timing) is embedded into the signed PDF document. Default: false. When enabled, handwritten signature biometric data is stored within the PDF for forensic analysis purposes. This data can be used by handwriting experts to verify the authenticity of a signature. The biometric data is encrypted within the PDF and requires specialized tools to extract. Enabling this strengthens the evidentiary value of AES signatures but increases the PDF file size."
+    },
+    {
+      "key": "makeFieldsMandatory",
+      "globalProperty": null,
+      "description": "When enabled, all form fields (text inputs, checkboxes) in the document become mandatory and must be filled in before the signing process can be completed. Default: false. This is a root-level session property that enforces complete form filling across all documents in the session. Unlike allSignaturesRequired which targets signature fields, this property targets non-signature form fields. Useful for contracts and applications where every field must be completed for legal or compliance reasons."
+    },
+    {
+      "key": "writeAuditReport",
+      "globalProperty": null,
+      "description": "Controls whether an audit report (protocol/log) is generated for the signing session. Default: false, Recommended: true. When enabled, the system creates a detailed audit trail document recording all actions taken during the signing session, including timestamps, IP addresses, signature placements, and user interactions. The audit report is added as an additional document to the session and can be downloaded alongside the signed documents. This provides legal evidence of the signing process and is recommended for compliance-sensitive workflows."
+    },
+    {
+      "key": "externEnabled",
+      "globalProperty": null,
+      "description": "Pre-enables external signing mode for this session at creation time. Default: false. When set to true, the session is immediately configured for external signing without the consultant needing to manually activate it in the UI. This is a root-level session property distinct from the guiProperties extern.available (which controls UI visibility of the external action). Use this when the session is intended exclusively for external signers and should skip the consultant interaction step entirely."
+    },
+    {
+      "key": "externCompleteOnFinish",
+      "globalProperty": null,
+      "description": "Controls whether the signing process is automatically completed when the external signer finishes signing all required fields. Default: false. When enabled, the session transitions to a completed state immediately after the external signer places their last required signature, without requiring the consultant to manually finalize the process. This enables fully automated external signing workflows where no consultant intervention is needed after the initial session setup."
+    },
+    {
+      "key": "externSendDocsOnFinish",
+      "globalProperty": null,
+      "description": "Controls whether signed documents are automatically sent to the external signer via email upon session completion. Default: false. When enabled, the system automatically emails the finalized signed documents to the external signer after the process is completed. This ensures the external signer receives a copy of the signed documents without requiring manual intervention. Works in conjunction with externCompleteOnFinish for fully automated end-to-end external signing workflows."
+    },
+    {
+      "key": "id",
+      "globalProperty": null,
+      "description": "Unique identifier for a document within the signing session. This document-level property is set when adding a document to the session configuration. The ID is used to reference this specific document in API calls for status checks, downloads, and configuration. It must be unique within the session. Common conventions include sequential IDs (doc1, doc2) or descriptive identifiers matching the document purpose."
+    },
+    {
+      "key": "fileURL",
+      "globalProperty": null,
+      "description": "The URL from which the inSign server downloads the PDF document to include in the signing session. This document-level property specifies a publicly accessible or server-reachable URL pointing to the PDF file. The server fetches the document at session creation time. Alternative: use the 'file' property to provide the document content directly as a base64-encoded string or input stream. The URL must be accessible from the inSign server (not the client browser)."
+    },
+    {
+      "key": "file",
+      "globalProperty": null,
+      "description": "The document content provided directly as base64-encoded data or an input stream, instead of fetching from a URL. This document-level property is an alternative to fileURL for cases where the document is not available via a public URL. When using the REST API, provide the PDF content as a base64-encoded string. When using the Java API, an InputStream can be passed directly. Use this when documents are stored in a private system, generated dynamically, or when URL-based access is not feasible."
+    },
+    {
+      "key": "scanSigTags",
+      "globalProperty": null,
+      "description": "Controls whether the system scans the PDF document for signature tag placeholders and automatically creates signature fields at their positions. Default: false. When enabled, the server parses the PDF content looking for predefined text markers (signature tags) and replaces them with interactive signature fields. This allows document templates to define signature positions using simple text placeholders rather than requiring programmatic field placement via the API. Commonly used with PDF templates generated from word processors or document management systems."
+    },
+    {
+      "key": "mustbesigned",
+      "globalProperty": null,
+      "description": "Controls whether this document must be signed before the session can be completed. Default: false. This document-level property makes signing mandatory for the specific document. If any document with mustbesigned=true has unsigned required signature fields, the finish/complete action is blocked. Use this to enforce signing on critical documents (contracts, agreements) while allowing other documents in the session (information sheets, terms) to remain unsigned."
+    },
+    {
+      "key": "mustberead",
+      "globalProperty": null,
+      "description": "Controls whether this document must be read and acknowledged before the session can proceed. Default: false. When enabled, the user must scroll through or view the entire document and confirm reading via a checkbox or acknowledgment button. The confirmation text is specified via mustbereadText. This is used for mandatory-read documents like terms and conditions, privacy policies, or risk disclosures where legal compliance requires proof of document review before signing."
+    },
+    {
+      "key": "mustbereadText",
+      "globalProperty": null,
+      "description": "The confirmation text displayed to the user when mustberead is enabled on a document. This text appears as the label of the checkbox or acknowledgment button that the user must click to confirm they have read the document. Example: 'I have read and accept the terms and conditions'. The text should clearly state what the user is acknowledging. Supports localization - provide text in the appropriate language matching the session locale."
     }
   ]
 }

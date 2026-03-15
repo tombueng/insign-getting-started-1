@@ -1,101 +1,79 @@
 <?php
 
-$baseUrl  = '{{BASE_URL}}';
-$username = '{{USERNAME}}';
-$password = '{{PASSWORD}}';
+$base = '{{BASE_URL}}';
+$auth = '{{USERNAME}}:{{PASSWORD}}';
 
 {{#if HAS_BODY}}
-// Build request body as associative array
 $payload = {{BODY_BUILD}};
+{{SAMPLES}}
 
-$body = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-
+{{FILE_COMMENT}}
 {{/if}}
-$ch = curl_init();
-
+// 1) {{METHOD}} {{PATH}}
+$ch = curl_init($base . '{{PATH}}');
 curl_setopt_array($ch, [
-    CURLOPT_URL            => $baseUrl . '{{PATH}}',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_CUSTOMREQUEST  => '{{METHOD}}',
-    CURLOPT_USERPWD        => $username . ':' . $password,
-    CURLOPT_HTTPHEADER     => [
+    CURLOPT_USERPWD        => $auth,
 {{#if HAS_BODY}}
-        'Content-Type: {{CONTENT_TYPE}}',
-{{/if}}
-    ],
-{{#if HAS_BODY}}
-    CURLOPT_POSTFIELDS    => $body,
+    CURLOPT_HTTPHEADER     => ['Content-Type: {{CONTENT_TYPE}}'],
+    CURLOPT_POSTFIELDS     => json_encode($payload),
 {{/if}}
 ]);
-
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error    = curl_error($ch);
-curl_close($ch);
+unset($ch);
 
-if ($error) {
-    echo "cURL Error: " . $error . "\n";
+echo "HTTP $httpCode\n";
+echo "$response\n";
+if ($httpCode !== 200) {
+    fwrite(STDERR, "FAILED: expected HTTP 200, got $httpCode\n");
     exit(1);
 }
 
-echo "HTTP Status: " . $httpCode . "\n";
+$data = json_decode($response, true);
 
-$decoded = json_decode($response, true);
-if (json_last_error() === JSON_ERROR_NONE) {
-    print_r($decoded);
-} else {
-    echo "Response: " . $response . "\n";
-}
-
-$sessionId = $decoded['sessionid'] ?? null;
-if ($sessionId) {
-    getStatus($baseUrl, $username, $password, $sessionId);
-    downloadDocument($baseUrl, $username, $password, $sessionId);
-}
-
-/**
- * Check session status — prints completion flag and signature counts
- */
-function getStatus($baseUrl, $username, $password, $sessionId) {
-    $ch = curl_init($baseUrl . '/get/status');
-    curl_setopt_array($ch, [
+// 2) Get status
+$sid = $data['sessionid'] ?? null;
+if ($sid) {
+    $ch2 = curl_init($base . '/get/status?sessionid=' . urlencode($sid));
+    curl_setopt_array($ch2, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST  => 'POST',
-        CURLOPT_USERPWD        => $username . ':' . $password,
+        CURLOPT_POST           => true,
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS     => json_encode(['sessionid' => $sessionId]),
+        CURLOPT_USERPWD        => $auth,
     ]);
-    $response = curl_exec($ch);
-    curl_close($ch);
+    $statusResp = curl_exec($ch2);
+    $statusCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+    unset($ch2);
 
-    $status = json_decode($response, true);
-    echo "\n=== Session Status ===\n";
-    echo "Successfully completed: " . ($status['successfullycompleted'] ? 'true' : 'false') . "\n";
-    echo "Signatures done: " . ($status['numberofsignaturesdone'] ?? 0) . "\n";
-    echo "Signatures missing: " . ($status['numberofsignaturesmissing'] ?? 0) . "\n";
-}
+    echo "\n=== Status (HTTP $statusCode) ===\n";
+    echo "$statusResp\n";
+    if ($statusCode !== 200) {
+        fwrite(STDERR, "FAILED: get/status returned HTTP $statusCode\n");
+        exit(1);
+    }
+    $status = json_decode($statusResp, true);
 
-/**
- * Download signed document(s) and save to disk
- */
-function downloadDocument($baseUrl, $username, $password, $sessionId) {
-    $ch = curl_init($baseUrl . '/get/documents/download');
-    curl_setopt_array($ch, [
+    // 3) Download document (first doc)
+    $docId = $status['documentData'][0]['docid'] ?? '0';
+    $ch3 = curl_init($base . '/get/document?sessionid=' . urlencode($sid) . '&docid=' . urlencode($docId));
+    curl_setopt_array($ch3, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST  => 'POST',
-        CURLOPT_USERPWD        => $username . ':' . $password,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: */*'],
-        CURLOPT_POSTFIELDS     => json_encode(['sessionid' => $sessionId]),
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_USERPWD        => $auth,
     ]);
-    $data = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    $doc = curl_exec($ch3);
+    $docCode = curl_getinfo($ch3, CURLINFO_HTTP_CODE);
+    unset($ch3);
 
-    if ($httpCode === 200) {
-        $filename = 'signed-document.pdf';
-        file_put_contents($filename, $data);
-        echo "\nDocument saved to: " . $filename . " (" . strlen($data) . " bytes)\n";
+    echo "\n=== Download (HTTP $docCode) ===\n";
+    if ($docCode === 200) {
+        file_put_contents('document.pdf', $doc);
+        echo "Saved document.pdf (" . strlen($doc) . " bytes)\n";
     } else {
-        echo "Download failed: HTTP " . $httpCode . "\n";
+        fwrite(STDERR, "Download failed: $doc\n");
+        exit(1);
     }
 }
