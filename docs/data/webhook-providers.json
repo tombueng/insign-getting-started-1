@@ -1,4 +1,24 @@
 {
+    "smee": {
+        "label": "smee.io",
+        "icon": "bi-broadcast",
+        "tag": "SSE",
+        "favicon": "https://www.google.com/s2/favicons?domain=smee.io&sz=32",
+        "desc": "GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events. No CORS issues.",
+        "hint": "Real-time via SSE. POST callbacks only.",
+        "url": "https://smee.io",
+        "postOnly": true
+    },
+    "ntfy": {
+        "label": "ntfy.sh",
+        "icon": "bi-bell",
+        "tag": "SSE",
+        "favicon": "https://www.google.com/s2/favicons?domain=ntfy.sh&sz=32",
+        "desc": "Open-source notification service repurposed as a webhook relay. Real-time SSE, no CORS issues. Large JSON bodies may be truncated.",
+        "hint": "SSE real-time. Large payloads may be truncated.",
+        "url": "https://ntfy.sh",
+        "postOnly": false
+    },
     "webhook.site": {
         "label": "webhook.site",
         "icon": "bi-inbox",
@@ -8,16 +28,6 @@
         "hint": "Polling every 4s. GET & POST supported.",
         "url": "https://webhook.site",
         "postOnly": false
-    },
-    "smee": {
-        "label": "smee.io",
-        "icon": "bi-broadcast",
-        "tag": "SSE",
-        "favicon": "https://www.google.com/s2/favicons?domain=smee.io&sz=32",
-        "desc": "GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events.",
-        "hint": "Real-time via SSE. POST callbacks only.",
-        "url": "https://smee.io",
-        "postOnly": true
     },
     "postbin": {
         "label": "postb.in",
@@ -29,15 +39,29 @@
         "url": "https://www.toptal.com/developers/postbin",
         "postOnly": false
     },
-    "ntfy": {
-        "label": "ntfy.sh",
-        "icon": "bi-bell",
+    "denodeploy": {
+        "label": "Deno Deploy",
+        "icon": "bi-lightning-charge",
         "tag": "SSE",
-        "favicon": "https://www.google.com/s2/favicons?domain=ntfy.sh&sz=32",
-        "desc": "Open-source notification service repurposed as a webhook relay. Real-time SSE, but large JSON bodies may be truncated.",
-        "hint": "SSE real-time. Large payloads may be truncated.",
-        "url": "https://ntfy.sh",
-        "postOnly": false
+        "favicon": "https://www.google.com/s2/favicons?domain=deno.com&sz=32",
+        "desc": "Self-hosted relay on Deno Deploy (free). Deploy the script to a Playground or via CLI. Real-time SSE with Deno KV persistence and 4-minute stream sessions.",
+        "hint": "SSE real-time. Deploy deno-deploy-proxy-worker.ts to your Deno Deploy account.",
+        "url": "https://dash.deno.com",
+        "scriptUrl": "data/deno-deploy-proxy-worker.ts",
+        "postOnly": false,
+        "needsCustomUrl": true
+    },
+    "valtown": {
+        "label": "Val.town",
+        "icon": "bi-cloud-arrow-up",
+        "tag": "SSE",
+        "favicon": "https://www.google.com/s2/favicons?domain=val.town&sz=32",
+        "desc": "Self-hosted relay on Val.town (free). Deploy the valtown-proxy-worker script and paste your Val URL here. Real-time SSE streaming with SQLite persistence.",
+        "hint": "SSE real-time. Deploy valtown-proxy-worker.ts to your Val.town account.",
+        "url": "https://val.town",
+        "scriptUrl": "data/valtown-proxy-worker.ts",
+        "postOnly": false,
+        "needsCustomUrl": true
     },
     "custom": {
         "label": "Custom URL",

@@ -32,8 +32,16 @@ window.WebhookViewer = class WebhookViewer {
         // Provider-specific
         this._wsToken = null;         // webhook.site token UUID
         this._postbinId = null;       // postb.in bin ID
-        this._provider = 'webhook.site';
+        this._provider = 'smee';
         this._corsProxyUrl = null;    // CORS proxy URL (set by app.js)
+        this._valtownUrl = null;      // Val.town base URL (set by app.js)
+        this._vtChannelId = null;     // Val.town channel ID
+        this._vtBaseUrl = null;       // Val.town resolved base URL
+        this._vtRestoredChannelId = null; // restore after page reload
+        this._denoDeployUrl = null;   // Deno Deploy base URL (set by app.js)
+        this._ddChannelId = null;     // Deno Deploy channel ID
+        this._ddBaseUrl = null;       // Deno Deploy resolved base URL
+        this._ddRestoredChannelId = null; // restore after page reload
     }
 
     /** Set the CORS proxy URL for routing requests through a proxy */
@@ -63,6 +71,8 @@ window.WebhookViewer = class WebhookViewer {
             'postbin':         () => this._createPostbin(),
             'ntfy':            () => this._createNtfy(),
             'cfworker':        () => this._createCfWorker(),
+            'valtown':         () => this._createValtown(),
+            'denodeploy':      () => this._createDenoDeploy(),
         }[this._provider];
         if (fn) return fn();
         // custom - no auto-create
@@ -79,6 +89,8 @@ window.WebhookViewer = class WebhookViewer {
             'postbin':         () => this._pollPostbin(),
             'ntfy':            () => this._sseNtfy(),
             'cfworker':        () => this._pollCfWorker(),
+            'valtown':         () => this._sseValtown(),
+            'denodeploy':      () => this._sseDenoDeploy(),
         }[this._provider];
         if (fn) fn();
     }
@@ -99,6 +111,10 @@ window.WebhookViewer = class WebhookViewer {
         this.channelUrl = null;
         this._wsToken = null;
         this._postbinId = null;
+        this._vtChannelId = null;
+        this._vtBaseUrl = null;
+        this._ddChannelId = null;
+        this._ddBaseUrl = null;
         this._seenIds.clear();
         this.requests = [];
     }
@@ -465,6 +481,234 @@ window.WebhookViewer = class WebhookViewer {
     setCfWorkerUrl(url) { this._cfWorkerUrl = url; }
 
     /* ==================================================================
+       7. VAL.TOWN - self-deployed relay (SSE + poll fallback)
+       User deploys valtown-proxy-worker.ts to their Val.town account.
+       Same channel API as CF Worker - drop-in replacement with SSE.
+       POST /channel/new -> {id, url, pollUrl}
+       POST /channel/{id} <- inSign callbacks
+       GET  /channel/{id}/stream -> SSE real-time stream
+       GET  /channel/{id}/requests -> poll fallback
+       ================================================================== */
+
+    /** Set the Val.town base URL (called from app.js config) */
+    setValtownUrl(url) { this._valtownUrl = url; }
+
+    /** Restore a previously saved Val.town channel ID (call before createEndpoint) */
+    setValtownChannelId(channelId) { this._vtRestoredChannelId = channelId; }
+
+    async _createValtown() {
+        const baseUrl = (this._valtownUrl || '').replace(/\/+$/, '');
+        if (!baseUrl) {
+            this.renderError('Enter your Val.town HTTP Val URL first (deploy valtown-proxy-worker.ts).');
+            return null;
+        }
+
+        // Reuse existing channel if we have one (e.g. after page reload)
+        if (this._vtRestoredChannelId) {
+            this._vtChannelId = this._vtRestoredChannelId;
+            this._vtBaseUrl = baseUrl;
+            this.channelUrl = baseUrl + '/channel/' + this._vtChannelId;
+            this._vtRestoredChannelId = null;
+            console.log('[webhook] reusing existing Val.town channel:', this._vtChannelId);
+            this._seenIds.clear();
+            this._finishCreate();
+            return this.channelUrl;
+        }
+
+        try {
+            const resp = await fetch(baseUrl + '/channel/new', { method: 'POST' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            this._vtChannelId = data.id;
+            this._vtBaseUrl = baseUrl;
+            this.channelUrl = data.url;
+            console.log('[webhook] created new Val.town channel:', this._vtChannelId);
+            this._seenIds.clear();
+            this._finishCreate();
+            return this.channelUrl;
+        } catch (err) {
+            console.warn('[webhook] Val.town failed:', err.message);
+            this.renderError('Val.town unavailable: ' + err.message);
+            return null;
+        }
+    }
+
+    _sseValtown() {
+        this.stopPolling();
+        if (!this._vtChannelId || !this._vtBaseUrl) return;
+        const streamUrl = this._vtBaseUrl + '/channel/' + this._vtChannelId + '/stream';
+        this._eventSource = new EventSource(streamUrl);
+        this._eventSource.addEventListener('webhook', (event) => {
+            try {
+                const item = JSON.parse(event.data);
+                if (this._seenIds.has(item.id)) return;
+                this._seenIds.add(item.id);
+                this._addRequest({
+                    id: item.id,
+                    method: (item.method || 'POST').toUpperCase(),
+                    content_type: item.content_type || '',
+                    body: this._tryParseJson(item.body),
+                    timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+                    headers: item.headers || {}
+                });
+                this.renderRequests();
+            } catch (err) { console.warn('[webhook] Val.town SSE parse error:', err.message); }
+        });
+        this._eventSource.addEventListener('timeout', () => {
+            // Server gracefully closed after ~25s, EventSource auto-reconnects
+            console.log('[webhook] Val.town SSE timeout, auto-reconnecting...');
+        });
+        this._eventSource.onerror = () => {};
+    }
+
+    _pollValtown() {
+        this.stopPolling();
+        if (!this._vtChannelId || !this._vtBaseUrl) return;
+        const poll = async () => {
+            try {
+                const resp = await fetch(
+                    this._vtBaseUrl + '/channel/' + this._vtChannelId + '/requests',
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                if (!resp.ok) return;
+                const json = await resp.json();
+                const items = json.data || [];
+                let hasNew = false;
+                for (const item of items) {
+                    if (this._seenIds.has(item.id)) continue;
+                    this._seenIds.add(item.id);
+                    hasNew = true;
+                    this._addRequest({
+                        id: item.id,
+                        method: (item.method || 'POST').toUpperCase(),
+                        content_type: item.content_type || '',
+                        body: this._tryParseJson(item.body),
+                        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+                        headers: item.headers || {}
+                    });
+                }
+                if (hasNew) this.renderRequests();
+            } catch (err) { console.warn('[webhook] Val.town poll error:', err.message); }
+        };
+        poll();
+        this._pollTimer = setInterval(poll, this._pollInterval);
+    }
+
+    /* ==================================================================
+       8. DENO DEPLOY - self-deployed relay (SSE + poll fallback)
+       User deploys deno-deploy-proxy-worker.ts to Deno Deploy.
+       Same channel API as Val.town/CF Worker - drop-in replacement.
+       SSE streams stay open ~4 min (vs Val.town's 25s).
+       POST /channel/new -> {id, url, pollUrl}
+       POST /channel/{id} <- inSign callbacks
+       GET  /channel/{id}/stream -> SSE real-time stream
+       GET  /channel/{id}/requests -> poll fallback
+       ================================================================== */
+
+    /** Set the Deno Deploy base URL (called from app.js config) */
+    setDenoDeployUrl(url) { this._denoDeployUrl = url; }
+
+    /** Restore a previously saved Deno Deploy channel ID (call before createEndpoint) */
+    setDenoDeployChannelId(channelId) { this._ddRestoredChannelId = channelId; }
+
+    async _createDenoDeploy() {
+        const baseUrl = (this._denoDeployUrl || '').replace(/\/+$/, '');
+        if (!baseUrl) {
+            this.renderError('Enter your Deno Deploy project URL first (deploy deno-deploy-proxy-worker.ts).');
+            return null;
+        }
+
+        // Reuse existing channel if we have one (e.g. after page reload)
+        if (this._ddRestoredChannelId) {
+            this._ddChannelId = this._ddRestoredChannelId;
+            this._ddBaseUrl = baseUrl;
+            this.channelUrl = baseUrl + '/channel/' + this._ddChannelId;
+            this._ddRestoredChannelId = null;
+            console.log('[webhook] reusing existing Deno Deploy channel:', this._ddChannelId);
+            this._seenIds.clear();
+            this._finishCreate();
+            return this.channelUrl;
+        }
+
+        try {
+            const resp = await fetch(baseUrl + '/channel/new', { method: 'POST' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            this._ddChannelId = data.id;
+            this._ddBaseUrl = baseUrl;
+            this.channelUrl = data.url;
+            console.log('[webhook] created new Deno Deploy channel:', this._ddChannelId);
+            this._seenIds.clear();
+            this._finishCreate();
+            return this.channelUrl;
+        } catch (err) {
+            console.warn('[webhook] Deno Deploy failed:', err.message);
+            this.renderError('Deno Deploy unavailable: ' + err.message);
+            return null;
+        }
+    }
+
+    _sseDenoDeploy() {
+        this.stopPolling();
+        if (!this._ddChannelId || !this._ddBaseUrl) return;
+        const streamUrl = this._ddBaseUrl + '/channel/' + this._ddChannelId + '/stream';
+        this._eventSource = new EventSource(streamUrl);
+        this._eventSource.addEventListener('webhook', (event) => {
+            try {
+                const item = JSON.parse(event.data);
+                if (this._seenIds.has(item.id)) return;
+                this._seenIds.add(item.id);
+                this._addRequest({
+                    id: item.id,
+                    method: (item.method || 'POST').toUpperCase(),
+                    content_type: item.content_type || '',
+                    body: this._tryParseJson(item.body),
+                    timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+                    headers: item.headers || {}
+                });
+                this.renderRequests();
+            } catch (err) { console.warn('[webhook] Deno Deploy SSE parse error:', err.message); }
+        });
+        this._eventSource.addEventListener('timeout', () => {
+            console.log('[webhook] Deno Deploy SSE timeout, auto-reconnecting...');
+        });
+        this._eventSource.onerror = () => {};
+    }
+
+    _pollDenoDeploy() {
+        this.stopPolling();
+        if (!this._ddChannelId || !this._ddBaseUrl) return;
+        const poll = async () => {
+            try {
+                const resp = await fetch(
+                    this._ddBaseUrl + '/channel/' + this._ddChannelId + '/requests',
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                if (!resp.ok) return;
+                const json = await resp.json();
+                const items = json.data || [];
+                let hasNew = false;
+                for (const item of items) {
+                    if (this._seenIds.has(item.id)) continue;
+                    this._seenIds.add(item.id);
+                    hasNew = true;
+                    this._addRequest({
+                        id: item.id,
+                        method: (item.method || 'POST').toUpperCase(),
+                        content_type: item.content_type || '',
+                        body: this._tryParseJson(item.body),
+                        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+                        headers: item.headers || {}
+                    });
+                }
+                if (hasNew) this.renderRequests();
+            } catch (err) { console.warn('[webhook] Deno Deploy poll error:', err.message); }
+        };
+        poll();
+        this._pollTimer = setInterval(poll, this._pollInterval);
+    }
+
+    /* ==================================================================
        Shared helpers
        ================================================================== */
 
@@ -511,6 +755,8 @@ window.WebhookViewer = class WebhookViewer {
             'postbin':        { name: 'postb.in',          mode: 'poll',  cls: 'bg-info' },
             'ntfy':           { name: 'ntfy.sh',           mode: 'SSE',   cls: 'bg-success' },
             'cfworker':       { name: 'CF Worker',         mode: 'poll',  cls: 'bg-info' },
+            'valtown':        { name: 'Val.town',          mode: 'SSE',   cls: 'bg-success' },
+            'denodeploy':     { name: 'Deno Deploy',       mode: 'SSE',   cls: 'bg-success' },
             'custom':         { name: 'custom',            mode: '',      cls: 'bg-secondary' },
         };
         const info = LABELS[this._provider] || LABELS.custom;
@@ -521,7 +767,7 @@ window.WebhookViewer = class WebhookViewer {
         $urlSection.html(`
             <div class="webhook-url-display">
                 <i class="bi bi-broadcast text-muted"></i>
-                <input type="text" readonly value="${this.escapeHtml(this.channelUrl || '')}" id="webhook-url-input">
+                <input type="text" readonly value="${this.escapeHtml(this.channelUrl || '')}" id="webhook-url-input" name="webhook-url">
                 <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.webhookViewer.copyUrl()" title="Copy URL">
                     <i class="bi bi-clipboard"></i>
                 </button>

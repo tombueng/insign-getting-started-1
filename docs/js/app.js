@@ -74,6 +74,11 @@
     let DOCUMENTS = {};
 
     function getSelectedDocument() {
+        if (state.selectedDoc && state.selectedDoc.startsWith('upload:')) {
+            // Return a virtual doc entry for uploaded files
+            const name = state.customFileData ? state.customFileData.name : 'upload.pdf';
+            return { label: name, local: null, pages: '?', roles: [], fileSize: 0 };
+        }
         return DOCUMENTS[state.selectedDoc] || DOCUMENTS.acme;
     }
 
@@ -110,6 +115,7 @@
 
     function getDocumentFilename() {
         if (state.selectedDoc === 'custom' && state.customFileData) return state.customFileData.name;
+        if (state.selectedDoc && state.selectedDoc.startsWith('upload:') && state.customFileData) return state.customFileData.name;
         const doc = getSelectedDocument();
         const path = doc.local || '';
         return path.split('/').pop() || 'document.pdf';
@@ -133,7 +139,7 @@
 
     /** Load the selected document as base64 (demo, repo, or custom) */
     async function loadDocumentData() {
-        if (state.selectedDoc === 'custom') {
+        if (state.selectedDoc === 'custom' || (state.selectedDoc && state.selectedDoc.startsWith('upload:'))) {
             if (!state.customFileData) throw new Error('No custom file selected');
             return { base64: state.customFileData.base64, blob: state.customFileData.blob };
         }
@@ -144,7 +150,7 @@
     async function previewDocument() {
         if (!state.pdfViewer) return;
         const doc = getSelectedDocument();
-        if (state.selectedDoc === 'custom' && state.customFileData) {
+        if ((state.selectedDoc === 'custom' || (state.selectedDoc && state.selectedDoc.startsWith('upload:'))) && state.customFileData) {
             state.pdfViewer.show(state.customFileData.blob, { title: state.customFileData.name, fileSize: state.customFileData.blob.size });
         } else {
             const url = getDocumentRelativeUrl();
@@ -656,8 +662,8 @@
             }
         }
 
-        // Restore selected document
-        if (saved.selectedDoc) {
+        // Restore selected document (migrate old 'custom' to 'acme')
+        if (saved.selectedDoc && saved.selectedDoc !== 'custom') {
             state.selectedDoc = saved.selectedDoc;
         }
 
@@ -762,7 +768,7 @@
                     const curVal = savedVal !== undefined ? savedVal : '';
                     html += `
                         <div class="feature-toggle" data-search="${searchText}">
-                            <input type="text" class="form-control form-control-sm feature-input" id="ft-${f.key}"
+                            <input type="text" class="form-control form-control-sm feature-input" id="ft-${f.key}" name="ft-${f.key}"
                                    value="${curVal ? curVal.replace(/"/g, '&quot;') : ''}"
                                    placeholder="Default"
                                    onchange="window.app.updateFeature('${f.key}', this.value || 'default', '${f.path}')"
@@ -955,8 +961,8 @@
         const $input = $('#cfg-displayname');
         if ($input.length && $input.val().trim()) return $input.val().trim();
         const selDoc = getSelectedDocument();
-        if (state.selectedDoc === 'custom') return state.customFileData ? state.customFileData.name : 'Your Document';
-        return selDoc.label || 'Signing Session';
+        if (state.selectedDoc === 'custom' || (state.selectedDoc && state.selectedDoc.startsWith('upload:'))) return state.customFileData ? state.customFileData.name : 'Your Document';
+        return _docLabel(state.selectedDoc, selDoc) || 'Signing Session';
     }
 
     /** Read owner fields from sidebar inputs */
@@ -974,9 +980,9 @@
 
         const doc = {
             id: 'contract-1',
-            displayname: state.selectedDoc === 'custom'
+            displayname: (state.selectedDoc === 'custom' || (state.selectedDoc && state.selectedDoc.startsWith('upload:')))
                 ? (state.customFileData ? state.customFileData.name : 'Your Document')
-                : (selDoc.label || 'Test Document'),
+                : (_docLabel(state.selectedDoc, selDoc) || 'Test Document'),
             scanSigTags: selDoc.scanSigTags,
             allowFormEditing: true
         };
@@ -1162,6 +1168,7 @@
         // Build document selector, feature toggles, and branding presets
         buildDocumentSelector();
         initFileDeliveryDropdown();
+        initDragDrop();
         buildWebhookProviderDropdown();
         buildFeatureToggles();
         buildColorSchemePresets();
@@ -3135,7 +3142,7 @@
         if (!$tabsEl.length) return;
 
         const languages = window.CodeGenerator.LANGUAGES;
-        let first = true;
+        const defaultLang = 'java_insign';
 
         for (const [key, lang] of Object.entries(languages)) {
             const $li = $('<li>');
@@ -3143,7 +3150,7 @@
             $li.attr('role', 'presentation');
 
             const $btn = $('<button>');
-            $btn.addClass('nav-link' + (first ? ' active' : ''));
+            $btn.addClass('nav-link' + (key === defaultLang ? ' active' : ''));
             $btn.text(lang.label);
             $btn.data('lang', key);
             $btn.on('click', () => {
@@ -3156,8 +3163,10 @@
 
             $li.append($btn);
             $tabsEl.append($li);
-            first = false;
         }
+
+        // Show initial snippet for the default tab
+        showCodeSnippet(defaultLang);
 
         // Docs / Additional toggles - regenerate snippet when toggled
         $('#code-docs-toggle').on('change', () => updateCodeSnippets());
@@ -3218,10 +3227,11 @@
 
     // --- PDF Thumbnail lazy-loader (uses pdf.js already loaded by PdfViewer) ---
     const _thumbCache = {};
-    async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 80) {
+    async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 106) {
         if (!canvas) return;
+        const dpr = window.devicePixelRatio || 1;
         const cached = _thumbCache[pdfUrl];
-        if (cached) { _drawThumbFromCache(cached, canvas, maxHeight); return; }
+        if (cached) { _drawThumbFromCache(cached, canvas, dpr); return; }
 
         try {
             // Reuse pdf.js lib from PdfViewer if loaded, otherwise import
@@ -3234,27 +3244,39 @@
             const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
             const page = await pdf.getPage(1);
             const vp = page.getViewport({ scale: 1 });
-            const scale = maxHeight / vp.height;
+            // Render at dpr * CSS size for sharp HiDPI thumbnails
+            const scale = (maxHeight * dpr) / vp.height;
             const viewport = page.getViewport({ scale });
 
             canvas.width = viewport.width;
             canvas.height = viewport.height;
+            canvas.style.width = (viewport.width / dpr) + 'px';
+            canvas.style.height = (viewport.height / dpr) + 'px';
             const ctx = canvas.getContext('2d');
             await page.render({ canvasContext: ctx, viewport }).promise;
-            _thumbCache[pdfUrl] = { w: viewport.width, h: viewport.height, data: canvas.toDataURL() };
+            _thumbCache[pdfUrl] = {
+                w: viewport.width, h: viewport.height,
+                cssW: viewport.width / dpr, cssH: viewport.height / dpr,
+                data: canvas.toDataURL()
+            };
         } catch (e) {
             // Show a placeholder icon on failure
-            canvas.width = 56; canvas.height = maxHeight;
+            const cssW = 56, cssH = maxHeight;
+            canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+            canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#e8e8e8'; ctx.fillRect(0, 0, 56, maxHeight);
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = '#e8e8e8'; ctx.fillRect(0, 0, cssW, cssH);
             ctx.fillStyle = '#bbb'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('PDF', 28, maxHeight / 2 + 7);
+            ctx.fillText('PDF', cssW / 2, cssH / 2 + 7);
         }
     }
-    function _drawThumbFromCache(cached, canvas, maxHeight) {
+    function _drawThumbFromCache(cached, canvas, dpr) {
         const img = new Image();
         img.onload = () => {
             canvas.width = cached.w; canvas.height = cached.h;
+            canvas.style.width = (cached.cssW || cached.w / dpr) + 'px';
+            canvas.style.height = (cached.cssH || cached.h / dpr) + 'px';
             canvas.getContext('2d').drawImage(img, 0, 0);
         };
         img.src = cached.data;
@@ -3267,24 +3289,139 @@
         return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
+    // --- Doc customization persistence (renames, deletions, uploaded files) ---
+    const DOC_CUSTOM_KEY = 'insign-explorer-doc-custom';
+
+    function _loadDocCustom() {
+        try {
+            return JSON.parse(localStorage.getItem(DOC_CUSTOM_KEY)) || {};
+        } catch { return {}; }
+    }
+    function _saveDocCustom(c) {
+        try { localStorage.setItem(DOC_CUSTOM_KEY, JSON.stringify(c)); } catch { /* ignore */ }
+    }
+
+    /** Get effective label for a doc key (respects renames) */
+    function _docLabel(key, doc) {
+        const c = _loadDocCustom();
+        if (c.renames && c.renames[key]) return c.renames[key];
+        return doc ? doc.label : key;
+    }
+
+    /** Check if a predefined doc was hidden */
+    function _docHidden(key) {
+        const c = _loadDocCustom();
+        return c.hidden && c.hidden[key];
+    }
+
+    /** Get uploaded files list from localStorage */
+    function _getUploadedFiles() {
+        const c = _loadDocCustom();
+        return c.uploads || [];
+    }
+
+    function _saveUploadedFile(record) {
+        const c = _loadDocCustom();
+        if (!c.uploads) c.uploads = [];
+        c.uploads.push(record);
+        _saveDocCustom(c);
+    }
+
+    function _removeUploadedFile(id) {
+        const c = _loadDocCustom();
+        c.uploads = (c.uploads || []).filter(f => f.id !== id);
+        if (c.renames) delete c.renames['upload:' + id];
+        _saveDocCustom(c);
+    }
+
+    function renameDocItem(key, newName) {
+        const c = _loadDocCustom();
+        if (!c.renames) c.renames = {};
+        c.renames[key] = newName;
+        _saveDocCustom(c);
+        buildDocumentSelector();
+    }
+
+    function deleteDocItem(key) {
+        if (key.startsWith('upload:')) {
+            const id = key.substring(7);
+            _removeUploadedFile(id);
+            // Also remove from IndexedDB
+            deleteStoredFile(id).catch(() => {});
+            if (state.selectedDoc === key) {
+                state.selectedDoc = 'acme';
+                state.customFileData = null;
+            }
+        } else {
+            // Hide predefined doc
+            const c = _loadDocCustom();
+            if (!c.hidden) c.hidden = {};
+            c.hidden[key] = true;
+            _saveDocCustom(c);
+            if (state.selectedDoc === key) {
+                state.selectedDoc = 'acme';
+            }
+        }
+        buildDocumentSelector();
+        saveAppState();
+    }
+
+    function restoreDocItem(key) {
+        const c = _loadDocCustom();
+        if (c.hidden) delete c.hidden[key];
+        if (c.renames) delete c.renames[key];
+        _saveDocCustom(c);
+        buildDocumentSelector();
+    }
+
+    function startRenameDocItem(key, currentName) {
+        // Close menu clicks shouldn't close while editing
+        const $item = $(`.doc-dd-item[data-doc="${key}"]`);
+        if (!$item.length) return;
+        const $title = $item.find('.doc-dd-title');
+        const logoHtml = $title.find('img').length ? $title.find('img')[0].outerHTML + ' ' : '';
+
+        $title.html(logoHtml + `<input type="text" class="doc-dd-rename-input" value="${currentName.replace(/"/g, '&quot;')}" data-key="${key}"
+            onclick="event.stopPropagation()"
+            onkeydown="if(event.key==='Enter'){window.app.renameDocItem('${key}',this.value);event.stopPropagation();}else if(event.key==='Escape'){window.app.buildDocumentSelector();event.stopPropagation();}"
+            onblur="window.app.renameDocItem('${key}',this.value)">`);
+        const input = $title.find('input')[0];
+        if (input) { input.focus(); input.select(); }
+    }
+
+    function _docActions(key, label) {
+        return `<span class="doc-dd-actions">
+            <span class="doc-dd-action" title="Rename" onclick="event.stopPropagation();window.app.startRenameDocItem('${key}','${label.replace(/'/g, "\\'")}')"><i class="bi bi-pencil"></i></span>
+            <span class="doc-dd-action doc-dd-action-danger" title="Delete" onclick="event.stopPropagation();window.app.deleteDocItem('${key}')"><i class="bi bi-trash3"></i></span>
+        </span>`;
+    }
+
     function buildDocumentSelector() {
         const $container = $('#doc-selector');
         if (!$container.length) return;
 
         const brandKeys = ['acme','greenleaf','nova','blueprint','solis','sentinel','aegis','harbor','apex','prism','mosaic','nexus'];
-        const isBranded = (key) => brandKeys.includes(key);
         const selectedKey = state.selectedDoc;
-        const selectedDoc = DOCUMENTS[selectedKey];
+        const uploads = _getUploadedFiles();
 
-        // --- Build the dropdown button showing current selection ---
+        // --- Resolve display label for selected item ---
         let btnContent;
-        if (selectedKey === 'custom') {
-            btnContent = `<i class="bi bi-folder2-open"></i> <span>${DOCUMENTS.custom.label}</span>`;
-        } else if (selectedDoc) {
-            const logoHtml = selectedDoc.logo
-                ? `<img src="${selectedDoc.logo}" class="doc-dd-btn-logo" alt="">`
-                : `<i class="bi bi-file-earmark-pdf"></i>`;
-            btnContent = `${logoHtml} <span>${selectedDoc.label}</span>`;
+        if (selectedKey && selectedKey.startsWith('upload:')) {
+            const upId = selectedKey.substring(7);
+            const up = uploads.find(u => u.id === upId);
+            const label = _docLabel(selectedKey, null) || (up ? up.name : 'Uploaded File');
+            btnContent = `<img src="favicon.svg" class="doc-dd-btn-logo" alt=""> <span>${label}</span>`;
+        } else {
+            const selectedDoc = DOCUMENTS[selectedKey];
+            if (selectedDoc) {
+                const label = _docLabel(selectedKey, selectedDoc);
+                const logoHtml = selectedDoc.logo
+                    ? `<img src="${selectedDoc.logo}" class="doc-dd-btn-logo" alt="">`
+                    : `<i class="bi bi-file-earmark-pdf"></i>`;
+                btnContent = `${logoHtml} <span>${label}</span>`;
+            } else {
+                btnContent = `<i class="bi bi-file-earmark-pdf"></i> <span>Select document</span>`;
+            }
         }
 
         let html = `
@@ -3296,19 +3433,22 @@
                 <div class="doc-dd-menu" id="doc-dd-menu">`;
 
         // --- Branded contracts ---
-        html += `<div class="doc-dd-group-label">Branded Contracts <span class="doc-dd-count">${brandKeys.length}</span></div>`;
+        const visibleBrand = brandKeys.filter(k => !_docHidden(k));
+        html += `<div class="doc-dd-group-label">Branded Contracts <span class="doc-dd-count">${visibleBrand.length}</span></div>`;
         for (const key of brandKeys) {
+            if (_docHidden(key)) continue;
             const doc = DOCUMENTS[key];
             if (!doc) continue;
+            const label = _docLabel(key, doc);
             const sel = key === selectedKey ? ' doc-dd-item-selected' : '';
             const sizeStr = _formatFileSize(doc.fileSize);
             html += `
                 <div class="doc-dd-item${sel}" data-doc="${key}" onclick="window.app.selectDocument('${key}')">
-                    <canvas class="doc-dd-thumb" data-pdf="${doc.local}" width="60" height="80"></canvas>
+                    <canvas class="doc-dd-thumb" data-pdf="${doc.local}" width="80" height="106"></canvas>
                     <div class="doc-dd-info">
                         <div class="doc-dd-title">
                             ${doc.logo ? `<img src="${doc.logo}" class="doc-dd-logo" alt="">` : ''}
-                            ${doc.label}
+                            <span class="doc-dd-label">${label}</span>
                         </div>
                         <div class="doc-dd-meta">
                             <span>${doc.pages} pages</span>
@@ -3318,20 +3458,61 @@
                         </div>
                         <div class="doc-dd-roles">${doc.roles.map(r => `<span class="doc-dd-role">${r}</span>`).join('')}</div>
                     </div>
+                    ${_docActions(key, label)}
                 </div>`;
         }
 
-        // --- Custom upload ---
-        const csel = 'custom' === selectedKey ? ' doc-dd-item-selected' : '';
+        // --- Uploaded files ---
+        if (uploads.length > 0) {
+            html += `<div class="doc-dd-divider"></div>`;
+            html += `<div class="doc-dd-group-label"><i class="bi bi-cloud-arrow-up me-1"></i>Your Uploads <span class="doc-dd-count">${uploads.length}</span></div>`;
+            for (const up of uploads) {
+                const upKey = 'upload:' + up.id;
+                const label = _docLabel(upKey, null) || up.name.replace(/\.pdf$/i, '');
+                const sel = upKey === selectedKey ? ' doc-dd-item-selected' : '';
+                const sizeStr = up.size ? _formatFileSize(up.size) : '';
+                html += `
+                    <div class="doc-dd-item${sel}" data-doc="${upKey}" onclick="window.app.selectDocument('${upKey}')">
+                        <canvas class="doc-dd-thumb" data-upload-id="${up.id}" width="80" height="106"></canvas>
+                        <div class="doc-dd-info">
+                            <div class="doc-dd-title"><img src="favicon.svg" class="doc-dd-logo" alt=""><span class="doc-dd-label">${label}</span></div>
+                            <div class="doc-dd-meta">
+                                ${sizeStr ? `<span>${sizeStr}</span>` : ''}
+                                <span class="doc-dd-sep"></span>
+                                <span>${new Date(up.storedAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        ${_docActions(upKey, label)}
+                    </div>`;
+            }
+        }
+
+        // --- Drag-drop hint ---
         html += `
                 <div class="doc-dd-divider"></div>
-                <div class="doc-dd-item${csel}" data-doc="custom" onclick="window.app.selectDocument('custom')">
-                    <div class="doc-dd-thumb doc-dd-thumb-icon"><i class="bi bi-folder2-open"></i></div>
-                    <div class="doc-dd-info">
-                        <div class="doc-dd-title">Your Own File</div>
-                        <div class="doc-dd-meta"><span>Upload a PDF from your disk</span></div>
-                    </div>
+                <div class="doc-dd-hint">
+                    <i class="bi bi-cloud-arrow-up"></i> Drag &amp; drop a PDF anywhere to add your own
                 </div>`;
+
+        // --- Restore hidden items (if any) ---
+        const c = _loadDocCustom();
+        const hiddenKeys = c.hidden ? Object.keys(c.hidden).filter(k => c.hidden[k]) : [];
+        if (hiddenKeys.length > 0) {
+            html += `<div class="doc-dd-divider"></div>`;
+            html += `<div class="doc-dd-group-label">Hidden <span class="doc-dd-count">${hiddenKeys.length}</span></div>`;
+            for (const key of hiddenKeys) {
+                const doc = DOCUMENTS[key];
+                if (!doc) continue;
+                html += `
+                    <div class="doc-dd-item doc-dd-item-hidden" onclick="event.stopPropagation();window.app.restoreDocItem('${key}')">
+                        <div class="doc-dd-thumb doc-dd-thumb-icon" style="opacity:0.4"><i class="bi bi-eye-slash"></i></div>
+                        <div class="doc-dd-info">
+                            <div class="doc-dd-title" style="opacity:0.5">${doc.label}</div>
+                            <div class="doc-dd-meta"><span>Click to restore</span></div>
+                        </div>
+                    </div>`;
+            }
+        }
 
         html += `</div></div>`;
         $container.html(html);
@@ -3345,7 +3526,6 @@
             $menu.toggleClass('open');
             $toggle.toggleClass('open');
             if (!wasOpen) {
-                // Decide open direction: up or down based on available space
                 const btnRect = $toggle[0].getBoundingClientRect();
                 const spaceBelow = window.innerHeight - btnRect.bottom;
                 const spaceAbove = btnRect.top;
@@ -3357,8 +3537,9 @@
                 _lazyLoadVisibleThumbs();
             }
         });
-        // Close on outside click
-        $(document).on('click.docdd', (e) => {
+        // Close on outside click (but not while renaming)
+        $(document).off('click.docdd').on('click.docdd', (e) => {
+            if ($('.doc-dd-rename-input:focus').length) return;
             if (!$(e.target).closest('#doc-dropdown').length) {
                 $menu.removeClass('open open-up');
                 $toggle.removeClass('open');
@@ -3368,48 +3549,97 @@
 
     /** Lazy-load PDF thumbnails for items currently visible in the dropdown */
     function _lazyLoadVisibleThumbs() {
+        const menu = document.getElementById('doc-dd-menu');
+        if (!menu) return;
+
+        // Predefined docs (loaded by URL)
         $('#doc-dd-menu canvas.doc-dd-thumb[data-pdf]').each(function() {
             const canvas = this;
             if (canvas.dataset.loaded) return;
             canvas.dataset.loaded = '1';
-            // Use IntersectionObserver for true lazy load
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        renderPdfThumbnail(canvas.dataset.pdf, canvas, 80);
+                        renderPdfThumbnail(canvas.dataset.pdf, canvas, 106);
                         observer.unobserve(canvas);
                     }
                 });
-            }, { root: canvas.closest('.doc-dd-menu'), threshold: 0.1 });
+            }, { root: menu, threshold: 0.1 });
+            observer.observe(canvas);
+        });
+
+        // Uploaded files (loaded from IndexedDB)
+        $('#doc-dd-menu canvas.doc-dd-thumb[data-upload-id]').each(function() {
+            const canvas = this;
+            if (canvas.dataset.loaded) return;
+            canvas.dataset.loaded = '1';
+            const uploadId = canvas.dataset.uploadId;
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        observer.unobserve(canvas);
+                        _renderUploadThumb(uploadId, canvas);
+                    }
+                });
+            }, { root: menu, threshold: 0.1 });
             observer.observe(canvas);
         });
     }
 
-    function selectDocument(type) {
+    /** Render a thumbnail for an uploaded file from IndexedDB */
+    async function _renderUploadThumb(uploadId, canvas) {
+        try {
+            const record = await loadStoredFile(uploadId);
+            if (!record || !record.base64) return;
+            const byteStr = atob(record.base64);
+            const bytes = new Uint8Array(byteStr.length);
+            for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            await renderPdfThumbnail(url, canvas, 106);
+            URL.revokeObjectURL(url);
+        } catch {
+            // Fallback icon
+            const ctx = canvas.getContext('2d');
+            canvas.width = 56; canvas.height = 106;
+            ctx.fillStyle = '#e8e8e8'; ctx.fillRect(0, 0, 56, 106);
+            ctx.fillStyle = '#bbb'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('PDF', 28, 60);
+        }
+    }
+
+    async function selectDocument(type) {
         state.selectedDoc = type;
+
+        // If selecting an uploaded file, load it from IndexedDB
+        if (type.startsWith('upload:')) {
+            const id = type.substring(7);
+            try {
+                const record = await loadStoredFile(id);
+                if (record) {
+                    const byteStr = atob(record.base64);
+                    const bytes = new Uint8Array(byteStr.length);
+                    for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    state.customFileData = { name: record.name, base64: record.base64, blob: blob };
+                }
+            } catch { /* fallback: customFileData may already be set */ }
+        }
 
         // Close dropdown and rebuild it to reflect new selection
         $('#doc-dd-menu').removeClass('open open-up');
         $('#doc-dd-toggle').removeClass('open');
         buildDocumentSelector();
 
-        // Legacy support for old-style .doc-option elements
-        $('.doc-option').each(function () {
-            const $el = $(this);
-            $el.toggleClass('selected', $el.data('doc') === type);
-        });
-
-        // Show/hide custom file input
-        const $customGroup = $('#custom-file-group');
-        if ($customGroup.length) $customGroup.css('display', type === 'custom' ? '' : 'none');
-
         // Update displayname input to match selected document
-        const selDoc = getSelectedDocument();
         const $dnInput = $('#cfg-displayname');
         if ($dnInput.length) {
-            $dnInput.val(type === 'custom'
-                ? (state.customFileData ? state.customFileData.name : '')
-                : (selDoc.label || ''));
+            if (type.startsWith('upload:')) {
+                $dnInput.val(state.customFileData ? state.customFileData.name : '');
+            } else {
+                const selDoc = getSelectedDocument();
+                $dnInput.val(_docLabel(type, selDoc));
+            }
         }
 
         // Update editor first, then apply branding on top
@@ -3419,6 +3649,7 @@
         }
 
         // Switch branding to match document (must come after editor reset)
+        const selDoc = getSelectedDocument();
         if (selDoc.brand && $('#brand-sync-doc').is(':checked')) {
             const brandIndex = LOGO_SETS.findIndex(s => s.prefix === selDoc.brand);
             if (brandIndex >= 0) {
@@ -3472,31 +3703,163 @@
         saveAppState();
     }
 
-    function onCustomFileSelected(input) {
-        const file = input.files[0];
-        const $infoEl = $('#custom-file-info');
-        if (!file) {
-            state.customFileData = null;
-            if ($infoEl.length) $infoEl.text('');
-            return;
-        }
+    // =====================================================================
+    // IndexedDB File Storage
+    // =====================================================================
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            state.customFileData = {
-                name: file.name,
-                base64: base64,
-                blob: file
+    const FILE_DB_NAME = 'insign-explorer-files';
+    const FILE_DB_VERSION = 1;
+    const FILE_STORE = 'files';
+
+    function _openFileDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(FILE_DB_NAME, FILE_DB_VERSION);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(FILE_STORE)) {
+                    db.createObjectStore(FILE_STORE, { keyPath: 'id' });
+                }
             };
-            if ($infoEl.length) $infoEl.text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
 
-            // Update editor
-            if (state.editors['create-session']) {
-                setEditorValue('create-session', getDefaultCreateSessionBody());
-            }
+    async function storeFile(file, base64) {
+        const db = await _openFileDB();
+        const id = crypto.randomUUID();
+        const record = {
+            id: id,
+            name: file.name,
+            size: file.size,
+            base64: base64,
+            storedAt: new Date().toISOString()
         };
-        reader.readAsDataURL(file);
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readwrite');
+            tx.objectStore(FILE_STORE).put(record);
+            tx.oncomplete = () => { db.close(); resolve(record); };
+            tx.onerror = () => { db.close(); reject(tx.error); };
+        });
+    }
+
+    async function getStoredFiles() {
+        const db = await _openFileDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readonly');
+            const req = tx.objectStore(FILE_STORE).getAll();
+            req.onsuccess = () => { db.close(); resolve(req.result || []); };
+            req.onerror = () => { db.close(); reject(req.error); };
+        });
+    }
+
+    async function deleteStoredFile(id) {
+        const db = await _openFileDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readwrite');
+            tx.objectStore(FILE_STORE).delete(id);
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { db.close(); reject(tx.error); };
+        });
+    }
+
+    async function loadStoredFile(id) {
+        const db = await _openFileDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readonly');
+            const req = tx.objectStore(FILE_STORE).get(id);
+            req.onsuccess = () => { db.close(); resolve(req.result); };
+            req.onerror = () => { db.close(); reject(req.error); };
+        });
+    }
+
+    /** Ingest a File object: read, store in IndexedDB + localStorage list, select it */
+    async function ingestFile(file, opts) {
+        opts = opts || {};
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64 = reader.result.split(',')[1];
+
+                // Store binary in IndexedDB
+                let record;
+                try { record = await storeFile(file, base64); } catch { /* fallback */ }
+
+                const id = record ? record.id : crypto.randomUUID();
+
+                // Store metadata in localStorage uploads list
+                _saveUploadedFile({
+                    id: id,
+                    name: file.name,
+                    size: file.size,
+                    storedAt: new Date().toISOString()
+                });
+
+                // Set default label (filename without .pdf)
+                const defaultLabel = file.name.replace(/\.pdf$/i, '');
+                const c = _loadDocCustom();
+                if (!c.renames) c.renames = {};
+                c.renames['upload:' + id] = defaultLabel;
+                _saveDocCustom(c);
+
+                state.customFileData = { name: file.name, base64: base64, blob: file };
+
+                // Select it
+                selectDocument('upload:' + id);
+
+                if (opts.toast !== false) {
+                    showToast('Added <strong>' + file.name + '</strong> to your documents', 'success');
+                }
+                resolve();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+
+    // =====================================================================
+    // Global Drag-and-Drop
+    // =====================================================================
+
+    function initDragDrop() {
+        const overlay = document.getElementById('drop-overlay');
+        if (!overlay) return;
+        let dragCounter = 0;
+
+        document.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            if (dragCounter === 1) overlay.classList.add('active');
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                overlay.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            overlay.classList.remove('active');
+
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                showToast('Only PDF files are supported', 'warning');
+                return;
+            }
+
+            ingestFile(file);
+        });
     }
 
     // =====================================================================
@@ -3619,17 +3982,18 @@
         var iconHtml = p.favicon
             ? '<img src="' + p.favicon + '" width="16" height="16" alt="" style="image-rendering:auto">'
             : '<i class="bi ' + p.icon + '"></i>';
-        var isSelfHosted = (key === 'custom' || key === 'cfworker');
+        var isSelfHosted = (key === 'custom' || key === 'cfworker' || key === 'valtown' || key === 'denodeploy');
         var secBadge = isSelfHosted
             ? '<span class="wh-dd-sec wh-dd-sec-safe"><i class="bi bi-shield-check"></i> your control</span>'
             : '<span class="wh-dd-sec wh-dd-sec-pub"><i class="bi bi-globe2"></i> public 3rd party</span>';
         var linkHtml = p.url ? '<a class="wh-dd-item-link" href="' + p.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><i class="bi bi-box-arrow-up-right"></i> ' + p.url.replace('https://', '') + '</a>' : '';
+        var scriptHtml = p.scriptUrl ? '<a class="wh-dd-item-link" href="' + p.scriptUrl + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" download><i class="bi bi-download"></i> Get script</a>' : '';
         return '<div class="wh-dd-item-icon-wrap">' + iconHtml + '</div>'
             + '<div class="wh-dd-item-body">'
             + '<div class="wh-dd-item-title">' + p.label + ' <span class="wh-dd-tag wh-dd-tag-' + p.tag.toLowerCase() + '">' + p.tag + '</span>'
             + ' <span class="wh-probe-dot" data-wh-probe="' + key + '"></span></div>'
             + '<div class="wh-dd-item-desc">' + p.desc + '</div>'
-            + '<div class="wh-dd-item-footer">' + secBadge + linkHtml + '</div>'
+            + '<div class="wh-dd-item-footer">' + secBadge + linkHtml + scriptHtml + '</div>'
             + '</div>'
             + (extra || '');
     }
@@ -3730,14 +4094,14 @@
         const $customGroup = $('#webhook-custom-url-group');
         if ($customGroup.length) $customGroup.css('display', info.needsCustomUrl ? '' : 'none');
 
-        if (info.needsCustomUrl) {
+        if (info.needsCustomUrl && provider !== 'valtown' && provider !== 'cfworker' && provider !== 'denodeploy') {
             // Custom provider: update state and session JSON with user-entered URL
             if (state.webhookViewer) state.webhookViewer.stopPolling();
             const customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
             state.webhookUrl = customUrl || null;
             updateSessionJsonWebhookUrl(customUrl || null);
         } else {
-            // Auto-managed providers - reinit with new provider
+            // Auto-managed providers (including valtown/cfworker which need channel creation)
             reinitWebhook();
         }
 
@@ -3750,6 +4114,11 @@
         if (customUrl) {
             var key = state.webhookProvider;
             probeWebhookProvider(key, customUrl);
+        }
+        // For relay providers (valtown, cfworker), reinit to create channel at new URL
+        if (state.webhookProvider === 'valtown' || state.webhookProvider === 'denodeploy' || state.webhookProvider === 'cfworker') {
+            if (customUrl) reinitWebhook();
+            return;
         }
         // Update state and session JSON
         if (customUrl) {
@@ -3768,6 +4137,17 @@
         state.webhookViewer.setProvider(state.webhookProvider);
         var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
+
+        // Pass custom URL to relay providers that need a base URL
+        var customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
+        if (state.webhookProvider === 'valtown' && customUrl) {
+            state.webhookViewer.setValtownUrl(customUrl);
+        } else if (state.webhookProvider === 'denodeploy' && customUrl) {
+            state.webhookViewer.setDenoDeployUrl(customUrl);
+        } else if (state.webhookProvider === 'cfworker' && customUrl) {
+            state.webhookViewer.setCfWorkerUrl(customUrl);
+        }
+
         window.webhookViewer = state.webhookViewer;
         state.webhookViewer.onUrlCreated = handleWebhookReady;
         state.webhookViewer.onError = handleWebhookError;
@@ -3787,11 +4167,29 @@
     let _pollCountdownStart = null;
     let _pollCountdownRAF = null;
     let _lastPollBody = null; // parsed object for deep diff
+    let _pollIntervalMs = 15000;
+
+    function getPollingIntervalMs() {
+        return _pollIntervalMs;
+    }
+
+    function onPollingIntervalChange(val) {
+        _pollIntervalMs = parseInt(val, 10) * 1000;
+        const label = document.getElementById('polling-interval-label');
+        if (label) label.textContent = val + 's';
+        // Restart polling with new interval if currently running
+        if (_pollInterval) {
+            clearInterval(_pollInterval);
+            _pollInterval = setInterval(pollNow, _pollIntervalMs);
+            _pollCountdownStart = Date.now();
+            startCountdownAnimation();
+        }
+    }
 
     function startStatusPolling() {
         stopStatusPolling();
         pollNow();
-        _pollInterval = setInterval(pollNow, 15000);
+        _pollInterval = setInterval(pollNow, _pollIntervalMs);
         startCountdownAnimation();
         updatePollingToggleButton(true);
     }
@@ -3822,19 +4220,42 @@
 
     function startCountdownAnimation() {
         _pollCountdownStart = Date.now();
-        const $bar = $('#polling-countdown-bar');
-        if (!$bar.length) return;
+        const slider = document.getElementById('polling-interval-slider');
+        if (!slider) return;
 
         function animate() {
             const elapsed = Date.now() - _pollCountdownStart;
-            const pct = Math.max(0, 100 - (elapsed / 15000) * 100);
-            $bar.css('transition', 'none');
-            $bar.css('width', pct + '%');
-            if (pct > 0 && _pollInterval) {
+            const thumbPct = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+            const fillPct = Math.min(thumbPct, (elapsed / _pollIntervalMs) * thumbPct);
+            slider.style.setProperty('--poll-progress', fillPct + '%');
+            if (elapsed < _pollIntervalMs && _pollInterval) {
                 _pollCountdownRAF = requestAnimationFrame(animate);
             }
         }
         animate();
+    }
+
+    const POLLING_ENDPOINT_DESCRIPTIONS = {
+        '/get/status': 'Returns full document details, signature fields, roles and their signing status.',
+        '/get/checkstatus': 'Quick check returning only the current signing state without document details.',
+        '/get/externInfos': 'Returns per-user progress, link status and details for external signing sessions.',
+        '/get/audit': 'Returns the audit trail with timestamped events - who signed, opened links, etc.',
+    };
+
+    function onPollingEndpointChange() {
+        // Update description text
+        const endpoint = (document.getElementById('polling-endpoint-select') || {}).value || '/get/status';
+        const $desc = document.getElementById('polling-endpoint-desc');
+        if ($desc) $desc.textContent = POLLING_ENDPOINT_DESCRIPTIONS[endpoint] || '';
+
+        // Reset diff tracking when endpoint changes
+        _lastPollBody = null;
+        const $changes = $('#polling-changes');
+        if ($changes.length) {
+            $changes.html('<div class="text-center text-muted-sm py-3"><i class="bi bi-hourglass-split"></i> Waiting for status changes...</div>');
+        }
+        // If polling is active, poll immediately with the new endpoint
+        if (_pollInterval) pollNow();
     }
 
     async function pollNow() {
@@ -3848,7 +4269,8 @@
         startCountdownAnimation();
 
         try {
-            const result = await state.apiClient.post('/get/status', { sessionid: state.sessionId });
+            const endpoint = (document.getElementById('polling-endpoint-select') || {}).value || '/get/status';
+            const result = await state.apiClient.post(endpoint, { sessionid: state.sessionId });
             if (!result.ok) {
                 if ($statusText.length) $statusText.text(`Error ${result.status}: ${result.statusText}`);
                 return;
@@ -3924,7 +4346,7 @@
 
     function formatDiffValue(val) {
         if (val === undefined) return '(absent)';
-        if (typeof val === 'object') return JSON.stringify(val);
+        if (typeof val === 'object') return JSON.stringify(val, null, 2);
         return String(val);
     }
 
@@ -3975,7 +4397,7 @@
                 valueHtml = `<span style="color:#ff9999;text-decoration:line-through">${escapeHtml(formatDiffValue(d.oldVal))}</span>`;
             }
 
-            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};word-break:break-all;font-family:monospace">` +
+            return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};word-break:break-word;white-space:pre-wrap;font-family:monospace">` +
                 `<span style="display:inline-block;min-width:14px;text-align:center;font-weight:700;color:${textColor}">${label}</span> ` +
                 `<span style="color:#79b8ff">${escapeHtml(d.path)}</span> ` +
                 valueHtml +
@@ -4768,7 +5190,11 @@
         goToStep,
         selectDocument,
         setFileDelivery,
-        onCustomFileSelected,
+        deleteDocItem,
+        restoreDocItem,
+        renameDocItem,
+        startRenameDocItem,
+        buildDocumentSelector,
         applyManualSessionId,
         applyNavbarSessionId,
         resetRequestBody,
@@ -4776,6 +5202,8 @@
         setWebhookProvider,
         onWebhookCustomUrlChange,
         pollNow,
+        onPollingEndpointChange,
+        onPollingIntervalChange,
         togglePolling,
         toggleWebhookSection,
         togglePollingSection,
