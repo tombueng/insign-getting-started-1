@@ -617,7 +617,7 @@ code {
     background: var(--insign-input-bg);
     border: 1.5px solid var(--insign-input-border);
     border-radius: var(--insign-radius-input);
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 500;
     color: var(--insign-text);
 }
@@ -672,7 +672,7 @@ code {
 }
 [data-theme="dark"] .doc-dd-thumb { background: #2a2d31; }
 .doc-dd-thumb-icon {
-    font-size: 1.3rem;
+    font-size: 2.2rem;
     color: var(--insign-gray);
 }
 
@@ -1050,23 +1050,24 @@ code {
 .wh-dd-item + .wh-dd-item { border-top: 1px solid var(--insign-border); }
 .wh-dd-item-icon-wrap {
     background: rgba(1,101,188,0.08); color: var(--insign-blue);
-    font-size: 0.9rem;
+    font-size: 1.53rem;
 }
-.wh-dd-item-title { font-size: 0.76rem; font-weight: 600; }
+.wh-dd-item-icon-wrap img { width: 27px; height: 27px; }
+.wh-dd-item-title { font-size: 0.92rem; font-weight: 600; }
 .wh-dd-tag {
-    font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
 }
 .wh-dd-tag-sse { background: rgba(10,135,101,0.12); color: var(--insign-success); }
 .wh-dd-tag-poll { background: rgba(1,101,188,0.1); color: var(--insign-blue); }
 .wh-dd-tag-self-host { background: rgba(108,117,125,0.12); color: var(--insign-gray); }
 .wh-dd-tag-custom { background: rgba(108,117,125,0.08); color: var(--insign-gray); }
-.wh-dd-item-desc { font-size: 0.68rem; color: var(--insign-gray); }
+.wh-dd-item-desc { font-size: 0.82rem; color: var(--insign-gray); }
 .wh-dd-item-link {
-    font-size: 0.64rem; color: var(--insign-blue);
+    font-size: 0.77rem; color: var(--insign-blue);
 }
 .wh-dd-item-link:hover { text-decoration: underline; }
 .wh-dd-sec {
-    font-size: 0.6rem; font-weight: 600;
+    font-size: 0.73rem; font-weight: 600;
 }
 .wh-dd-sec-pub { background: rgba(230,126,34,0.1); color: var(--insign-orange); }
 .wh-dd-sec-safe { background: rgba(10,135,101,0.1); color: var(--insign-success); }
@@ -1124,6 +1125,113 @@ code {
     color: var(--insign-gray);
     font-weight: 500;
     border-bottom: 1px solid var(--insign-border);
+}
+/* === Doc dropdown item actions (edit/delete) ============================ */
+
+.doc-dd-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.doc-dd-item:hover .doc-dd-actions {
+    opacity: 1;
+}
+.doc-dd-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    color: var(--insign-gray);
+    transition: background 0.12s, color 0.12s;
+}
+.doc-dd-action:hover {
+    background: rgba(1, 101, 188, 0.1);
+    color: var(--insign-blue);
+}
+.doc-dd-action-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--insign-danger);
+}
+.doc-dd-rename-input {
+    border: 1px solid var(--insign-blue);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--insign-text);
+    background: var(--insign-input-bg);
+    outline: none;
+    width: 100%;
+    min-width: 0;
+}
+.doc-dd-item-add:hover {
+    background: rgba(1, 101, 188, 0.05);
+}
+.doc-dd-item-add .doc-dd-thumb-icon {
+    color: var(--insign-blue);
+}
+.doc-dd-item-hidden {
+    opacity: 0.6;
+}
+.doc-dd-item-hidden:hover {
+    opacity: 1;
+}
+.doc-dd-hint {
+    padding: 8px 14px;
+    font-size: 0.72rem;
+    color: var(--insign-gray);
+    text-align: center;
+    font-style: italic;
+}
+.doc-dd-hint i {
+    color: var(--insign-blue);
+}
+
+/* === Drag-and-drop overlay ============================================== */
+
+.drop-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(1, 101, 188, 0.12);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.drop-overlay.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.drop-overlay-content {
+    text-align: center;
+    padding: 48px 64px;
+    border: 3px dashed var(--insign-blue);
+    border-radius: 20px;
+    background: var(--insign-card-bg);
+    box-shadow: var(--insign-shadow-lg);
+}
+.drop-overlay-icon {
+    font-size: 4rem;
+    color: var(--insign-blue);
+    display: block;
+    margin-bottom: 12px;
+}
+.drop-overlay-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--insign-text);
+    margin-bottom: 6px;
+}
+.drop-overlay-sub {
+    font-size: 0.85rem;
+    color: var(--insign-text-muted);
 }
 
 /* === Responsive ========================================================= */
@@ -1494,4 +1602,78 @@ code {
 .trace-time {
     font-size: 0.6rem;
     color: var(--insign-gray);
+}
+
+/* === Polling interval slider ============================================ */
+
+.polling-slider {
+    --poll-progress: 0%;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(
+        to right,
+        var(--insign-blue) 0%,
+        var(--insign-blue) var(--poll-progress),
+        var(--insign-border) var(--poll-progress),
+        var(--insign-border) 100%
+    );
+    outline: none;
+    cursor: pointer;
+}
+
+.polling-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--insign-blue);
+    border: 2px solid #fff;
+    cursor: pointer;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.polling-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--insign-blue);
+    border: 2px solid #fff;
+    cursor: pointer;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.polling-slider::-webkit-slider-thumb:hover {
+    background: var(--insign-blue-hover);
+    transform: scale(1.15);
+}
+
+.polling-slider::-moz-range-thumb:hover {
+    background: var(--insign-blue-hover);
+    transform: scale(1.15);
+}
+
+[data-theme="dark"] .polling-slider::-webkit-slider-thumb {
+    border-color: var(--insign-card-bg);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .polling-slider::-moz-range-thumb {
+    border-color: var(--insign-card-bg);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+}
+
+.polling-interval-badge {
+    font-size: 0.62rem;
+    min-width: 26px;
+    text-align: center;
+    padding: 1px 5px;
+    background: var(--insign-blue);
+    color: #fff;
+    border-radius: 8px;
+    line-height: 1.4;
 }

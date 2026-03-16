@@ -25,10 +25,11 @@
 The **API Explorer** is a browser-based tool that lets you interact with the inSign sandbox API directly — no backend or installation required.
 
 **Features:**
-- Create signing sessions with pre-built test documents
+- Create signing sessions with 12 pre-built branded test contracts or drag-and-drop your own PDF
 - Execute API operations (status, download, external signing, and more)
 - Full JSON editor with autocomplete and field descriptions
-- Live webhook viewer for server-side callbacks
+- Live webhook viewer with multiple relay providers (smee.io, ntfy.sh, webhook.site, Val.town, Deno Deploy)
+- Configurable status polling with endpoint selector and adjustable interval
 - Auto-generated code snippets in Java, PHP, C#, and Node.js
 
 **Open the demo:** [getinsign.github.io/insign-getting-started](https://tombueng.github.io/insign-getting-started-1/)
@@ -66,7 +67,7 @@ Authentication is via HTTP Basic Auth (`Authorization: Basic <base64>`).
 
 ## Test Documents
 
-Two sample PDF contracts are included for demos:
+12 branded test contracts are included, each with unique company branding, logos, and color schemes. You can also drag and drop your own PDF directly into the Explorer.
 
 | Document | Description |
 |----------|-------------|
@@ -74,6 +75,8 @@ Two sample PDF contracts are included for demos:
 | `contract-sigfields.pdf` | Uses standard **AcroForm** PDF signature fields |
 
 Both contain a fictive car sale contract between two parties (seller and buyer) with signature fields assigned to roles `seller` and `buyer`.
+
+Uploaded documents are persisted in the browser (IndexedDB) and can be renamed or removed from the document selector.
 
 ---
 
@@ -149,7 +152,7 @@ Import the pre-built Postman collection for quick API testing:
 │   ├── index.html                  # Main application
 │   ├── css/style.css               # inSign-branded styles
 │   ├── js/                         # Application modules
-│   └── data/                       # Test PDFs and demo data
+│   └── data/                       # Test PDFs, demo data, and relay worker scripts
 ├── src/test/java/                  # Java API demos
 ├── DEV/                            # Postman collections, logos, assets
 ├── pom.xml                         # Maven configuration
