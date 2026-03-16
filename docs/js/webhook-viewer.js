@@ -32,6 +32,18 @@ window.WebhookViewer = class WebhookViewer {
         this._wsToken = null;         // webhook.site token UUID
         this._postbinId = null;       // postb.in bin ID
         this._provider = 'webhook.site';
+        this._corsProxyUrl = null;    // CORS proxy URL (set by app.js)
+    }
+
+    /** Set the CORS proxy URL for routing requests through a proxy */
+    setCorsProxy(proxyUrl) { this._corsProxyUrl = proxyUrl; }
+
+    /** Fetch through CORS proxy if configured, otherwise direct */
+    _fetch(url, opts) {
+        if (this._corsProxyUrl) {
+            url = this._corsProxyUrl + encodeURIComponent(url);
+        }
+        return fetch(url, opts);
     }
 
     /* ------------------------------------------------------------------
@@ -97,7 +109,7 @@ window.WebhookViewer = class WebhookViewer {
 
     async _createWebhookSite() {
         try {
-            const resp = await fetch('https://webhook.site/token', {
+            const resp = await this._fetch('https://webhook.site/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ cors: true, default_status: 200, default_content: 'ok', default_content_type: 'text/plain' })
@@ -121,7 +133,7 @@ window.WebhookViewer = class WebhookViewer {
         if (!this._wsToken) return;
         const poll = async () => {
             try {
-                const resp = await fetch(
+                const resp = await this._fetch(
                     'https://webhook.site/token/' + this._wsToken + '/requests?sorting=newest&per_page=50',
                     { headers: { 'Accept': 'application/json' } }
                 );
@@ -197,7 +209,7 @@ window.WebhookViewer = class WebhookViewer {
 
     async _createPostbin() {
         try {
-            const resp = await fetch('https://www.postb.in/api/bin', { method: 'POST' });
+            const resp = await this._fetch('https://www.postb.in/api/bin', { method: 'POST' });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             const data = await resp.json();
             this._postbinId = data.binId;
@@ -217,7 +229,7 @@ window.WebhookViewer = class WebhookViewer {
         const poll = async () => {
             try {
                 // Shift returns one request at a time (FIFO), 404 when empty
-                const resp = await fetch('https://www.postb.in/api/bin/' + this._postbinId + '/req/shift');
+                const resp = await this._fetch('https://www.postb.in/api/bin/' + this._postbinId + '/req/shift');
                 if (resp.status === 404) return; // no requests waiting
                 if (!resp.ok) return;
                 const item = await resp.json();
