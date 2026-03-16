@@ -611,27 +611,13 @@ code {
     color: var(--insign-dark);
 }
 
-/* === Document Selector (Dropdown) ======================================= */
+/* === Document Selector (inline list inside collapsible section) ========== */
 
-.doc-dd-btn {
-    background: var(--insign-input-bg);
-    border: 1.5px solid var(--insign-input-border);
-    border-radius: var(--insign-radius-input);
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--insign-text);
+.doc-header-thumb {
+    border: 1px solid var(--insign-border);
+    background: #f8f8f8;
 }
-.doc-dd-btn:hover { border-color: var(--insign-blue); }
-.doc-dd-btn.open { border-color: var(--insign-blue); box-shadow: 0 0 0 2px rgba(1,101,188,0.15); }
-.doc-dd-chevron { color: var(--insign-gray); font-size: 0.7rem; }
-
-/* Dropdown menu */
-.doc-dd-menu {
-    background: var(--insign-card-bg);
-    border: 1.5px solid var(--insign-border);
-    border-radius: var(--insign-radius-input);
-    box-shadow: var(--insign-shadow-lg);
-}
+[data-theme="dark"] .doc-header-thumb { background: #2a2d31; }
 
 /* Group labels */
 .doc-dd-group-label {
@@ -1291,6 +1277,11 @@ code {
 
 .feature-configurator-chevron {
     font-size: 0.8rem;
+    color: var(--insign-blue);
+}
+
+.feature-changed-badge {
+    background: rgba(1, 101, 188, 0.12);
     color: var(--insign-blue);
 }
 

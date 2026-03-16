@@ -30,7 +30,7 @@ The **API Explorer** is a browser-based tool that lets you interact with the inS
 - Full JSON editor with autocomplete and field descriptions
 - Live webhook viewer with multiple relay providers (smee.io, ntfy.sh, webhook.site, Val.town, Deno Deploy)
 - Configurable status polling with endpoint selector and adjustable interval
-- Auto-generated code snippets in Java, PHP, C#, and Node.js
+- Auto-generated code snippets with inline documentation in Java, PHP, C#, and Node.js
 
 **Open the demo:** [getinsign.github.io/insign-getting-started](https://tombueng.github.io/insign-getting-started-1/)
 

@@ -334,48 +334,69 @@ code {
 
 /* === Document Selector (Dropdown) ======================================= */
 
-.doc-selector {
+/* Document selector header with thumbnail */
+.doc-header {
     display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
+    align-items: flex-start;
+    gap: 14px;
 }
-
-/* Dropdown container */
-.doc-dropdown {
+.doc-header-thumb-wrap {
     position: relative;
-    width: 100%;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 5px;
+    overflow: hidden;
 }
-
-/* Dropdown trigger button */
-.doc-dd-btn {
+.doc-header-thumb {
+    width: 60px;
+    height: 80px;
+    border-radius: 5px;
+    object-fit: contain;
+}
+.doc-header-thumb-overlay {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 14px;
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    text-align: left;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+    border-radius: 5px;
 }
-.doc-dd-btn-logo { width: 32px; height: 32px; border-radius: 5px; object-fit: contain; flex-shrink: 0; }
-.doc-dd-btn > i.bi { font-size: 1.4rem; }
-.doc-dd-chevron { margin-left: auto; transition: transform 0.2s; }
-.doc-dd-btn.open .doc-dd-chevron { transform: rotate(180deg); }
+.doc-header-thumb-wrap:hover .doc-header-thumb-overlay {
+    opacity: 1;
+}
+.doc-header-info {
+    flex: 1;
+    min-width: 0;
+}
+/* Skeleton shimmer for thumbnails and icons */
+@keyframes skeleton-shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+}
+.skeleton-pulse {
+    background: linear-gradient(90deg, #e8e8e8 25%, #f0f0f0 50%, #e8e8e8 75%);
+    background-size: 400px 100%;
+    animation: skeleton-shimmer 1.5s infinite ease-in-out;
+}
+[data-theme="dark"] .skeleton-pulse {
+    background: linear-gradient(90deg, #2a2d31 25%, #353840 50%, #2a2d31 75%);
+    background-size: 400px 100%;
+}
 
-/* Dropdown menu */
-.doc-dd-menu {
-    display: none;
-    position: absolute;
-    z-index: 1050;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    max-height: 420px;
-    overflow-y: auto;
+/* Inline document list (inside collapsible section) */
+.doc-selector-list {
     padding: 4px 0;
 }
-.doc-dd-menu.open { display: block; }
-.doc-dd-menu.open-up { top: auto; bottom: calc(100% + 4px); }
+/* Scroll only when more than 10 items */
+.doc-selector-list.doc-list-scrollable {
+    max-height: calc(10 * 120px);
+    overflow-y: auto;
+}
 
 /* Group labels */
 .doc-dd-group-label {
@@ -1030,8 +1051,6 @@ code {
 }
 
 @media (max-width: 575.98px) {
-    .doc-dd-menu { max-height: 350px; }
-
     .navbar-insign .navbar-brand img {
         height: 26px;
     }
@@ -1048,6 +1067,57 @@ code {
 }
 
 /* === Feature Configurator ============================================= */
+
+/* Feature changed count badge */
+.feature-changed-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Branding header layout (text wraps, summary on right) */
+.branding-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.branding-header-text {
+    flex: 1;
+    min-width: 0;
+}
+.branding-header-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-right: 20px;
+}
+.branding-header-dots {
+    display: flex;
+    gap: 3px;
+}
+.branding-header-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+.branding-header-logo {
+    width: 48px;
+    height: 28px;
+    border-radius: 4px;
+    object-fit: contain;
+}
 
 .feature-configurator-box {
     overflow: hidden;
