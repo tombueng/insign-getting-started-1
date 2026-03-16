@@ -67,6 +67,10 @@
                     <i class="bi bi-box-arrow-up-right"></i>
                 </button>
             </div>
+            <a href="DOCUMENTATION.md" target="_blank"
+               class="btn btn-insign btn-insign-sm btn-insign-outline" title="Documentation">
+                <i class="bi bi-file-earmark-text"></i> Docs
+            </a>
             <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" target="_blank"
                class="btn btn-insign btn-insign-sm btn-insign-outline">
                 <i class="bi bi-book"></i> Swagger
@@ -150,11 +154,6 @@
                         </div>
 
                         <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                            <label class="toggle-pill d-none" for="cfg-cors-proxy" id="cors-proxy-toggle-wrap">
-                                <input type="checkbox" id="cfg-cors-proxy">
-                                <span class="toggle-pill-switch"></span>
-                                <span class="toggle-pill-label">CORS proxy</span>
-                            </label>
                             <label class="toggle-pill toggle-pill-warn" for="cfg-webhooks">
                                 <input type="checkbox" id="cfg-webhooks" checked>
                                 <span class="toggle-pill-switch"></span>
@@ -182,11 +181,6 @@
                         <div class="text-muted-sm d-none" id="cors-proxy-security-warning" style="color:var(--insign-blue);margin-top:8px"><i class="bi bi-shuffle me-1"></i><strong>CORS proxy active</strong> - requests are routed through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.76rem">Learn more</a></div>
                         <div class="text-mono text-muted-sm d-none mt-1" id="trust-target-url" style="font-size:0.72rem"></div>
 
-                        <div class="cors-hint-banner d-none" id="cors-hint-banner">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            <span>Your inSign server may block browser requests (CORS). Enable the <strong>CORS proxy</strong> above, or configure CORS on your server.
-                            <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a></span>
-                        </div>
                         <div class="mb-2" id="webhook-provider-group">
                             <label class="form-label">
                                 Webhook Relay
@@ -201,6 +195,18 @@
                                        placeholder="https://your-endpoint.example.com/webhook"
                                        onchange="window.app.onWebhookCustomUrlChange()">
                             </div>
+                        </div>
+                        <div class="cors-hint-banner d-none" id="cors-hint-banner">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>Your inSign server may block browser requests (CORS). Enable the <strong>CORS proxy</strong> below, or configure CORS on your server.
+                            <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a></span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap d-none" id="cors-proxy-toggle-wrap">
+                            <label class="toggle-pill" for="cfg-cors-proxy">
+                                <input type="checkbox" id="cfg-cors-proxy">
+                                <span class="toggle-pill-switch"></span>
+                                <span class="toggle-pill-label">CORS proxy</span>
+                            </label>
                         </div>
                         <div class="mb-2" id="cors-proxy-url-group" style="display:none">
                             <label class="form-label">Local CORS Proxy</label>
