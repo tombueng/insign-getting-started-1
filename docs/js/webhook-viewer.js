@@ -18,7 +18,8 @@ window.WebhookViewer = class WebhookViewer {
         this.$container = $(containerEl);
         this.channelUrl = null;       // the URL inSign posts callbacks to
         this.requests = [];
-        this.onUrlCreated = null;     // callback(url)
+        this.onUrlCreated = null;     // callback(url)  - endpoint ready
+        this.onError = null;          // callback(message) - endpoint creation failed
         this.onRequestReceived = null; // callback(request)
 
         // Shared state
@@ -123,7 +124,7 @@ window.WebhookViewer = class WebhookViewer {
             return this.channelUrl;
         } catch (err) {
             console.warn('[webhook] webhook.site failed:', err.message);
-            this.renderError('webhook.site unavailable: ' + err.message);
+            this.renderError('webhook.site unavailable: ' + err.message, err.message && err.message.includes('Failed to fetch'));
             return null;
         }
     }
@@ -603,16 +604,21 @@ window.WebhookViewer = class WebhookViewer {
         });
     }
 
-    renderError(message) {
+    renderError(message, suggestCorsProxy) {
         const $urlSection = this.$container.find('.webhook-url-section');
         if ($urlSection.length > 0) {
+            const corsHint = suggestCorsProxy
+                ? '<br><a href="#" onclick="document.getElementById(\'step-1-panel\').scrollIntoView({behavior:\'smooth\'});document.getElementById(\'cors-proxy-toggle-wrap\').classList.add(\'highlight-flash\');setTimeout(function(){document.getElementById(\'cors-proxy-toggle-wrap\').classList.remove(\'highlight-flash\')},2000);return false;">Enable the CORS proxy</a> on the Connection Settings page to fix this.'
+                : '';
             $urlSection.html(`
                 <div class="alert alert-warning alert-insign" role="alert">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <div><strong>Webhook service unavailable</strong><br>${message}</div>
+                    <div><strong>Webhook service unavailable</strong><br>${message}${corsHint}</div>
                 </div>
             `);
         }
+        // Notify app of the failure
+        if (this.onError) this.onError(message);
         // Notify app that CORS proxy may be needed (Failed to fetch = CORS block)
         if (message && message.includes('Failed to fetch') && this.onCorsNeeded) {
             this.onCorsNeeded();

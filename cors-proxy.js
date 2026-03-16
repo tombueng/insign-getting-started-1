@@ -65,15 +65,26 @@ http.createServer((clientReq, clientRes) => {
             headers: fwdHeaders
         }, (proxyRes) => {
             console.log('  Response: %d %s', proxyRes.statusCode, proxyRes.statusMessage);
-            const resHeaders = { ...proxyRes.headers, ...CORS_HEADERS };
+            const resHeaders = { ...proxyRes.headers, ...CORS_HEADERS, 'X-Proxy-Status': 'ok' };
             clientRes.writeHead(proxyRes.statusCode, resHeaders);
             proxyRes.pipe(clientRes);
         });
 
         proxyReq.on('error', (err) => {
-            console.log('  Error: %s', err.message);
-            clientRes.writeHead(502, { 'Content-Type': 'text/plain', ...CORS_HEADERS });
-            clientRes.end('Proxy error: ' + err.message);
+            console.log('  Error: %s (code: %s)', err.message, err.code || 'none');
+            var detail = err.message;
+            // Map common error codes to human-readable messages
+            if (err.code === 'ECONNREFUSED') detail = 'Connection refused - target server is not running or not listening on that port';
+            else if (err.code === 'ENOTFOUND') detail = 'DNS lookup failed - hostname "' + parsed.hostname + '" does not resolve';
+            else if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') detail = 'Connection timed out - target server did not respond';
+            else if (err.code === 'ECONNRESET') detail = 'Connection reset by target server';
+            else if (err.code === 'EHOSTUNREACH') detail = 'Host unreachable - no route to "' + parsed.hostname + '"';
+            else if (err.code === 'CERT_HAS_EXPIRED') detail = 'Target server SSL certificate has expired';
+            else if (err.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || err.code === 'SELF_SIGNED_CERT_IN_CHAIN') detail = 'Target server uses a self-signed SSL certificate';
+            else if (err.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') detail = 'Target server SSL certificate cannot be verified';
+            else if (err.code && err.code.startsWith('ERR_TLS')) detail = 'TLS/SSL error connecting to target: ' + err.message;
+            clientRes.writeHead(502, { 'Content-Type': 'text/plain', ...CORS_HEADERS, 'X-Proxy-Status': 'error' });
+            clientRes.end(detail);
         });
 
         proxyReq.end(bodyBuf);
