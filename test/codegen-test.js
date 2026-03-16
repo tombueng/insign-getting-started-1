@@ -137,37 +137,17 @@ Object.keys(CodeGenerator.LANGUAGES).forEach(langKey => {
 
 console.log('\n--- Java compilation checks ---');
 
-// Find jackson-databind jar on the Maven classpath
+// Find GSON jar on the Maven classpath
 function findJars() {
   const m2 = path.join(process.env.HOME || process.env.USERPROFILE, '.m2', 'repository');
   const jars = [];
-  // jackson-databind
+  // gson
   try {
-    const jacksonDir = path.join(m2, 'com', 'fasterxml', 'jackson', 'core', 'jackson-databind');
-    const versions = fs.readdirSync(jacksonDir).filter(v => !v.startsWith('.'));
+    const gsonDir = path.join(m2, 'com', 'google', 'code', 'gson', 'gson');
+    const versions = fs.readdirSync(gsonDir).filter(v => !v.startsWith('.'));
     if (versions.length > 0) {
       const ver = versions.sort().pop();
-      const jar = path.join(jacksonDir, ver, `jackson-databind-${ver}.jar`);
-      if (fs.existsSync(jar)) jars.push(jar);
-    }
-  } catch {}
-  // jackson-core
-  try {
-    const coreDir = path.join(m2, 'com', 'fasterxml', 'jackson', 'core', 'jackson-core');
-    const versions = fs.readdirSync(coreDir).filter(v => !v.startsWith('.'));
-    if (versions.length > 0) {
-      const ver = versions.sort().pop();
-      const jar = path.join(coreDir, ver, `jackson-core-${ver}.jar`);
-      if (fs.existsSync(jar)) jars.push(jar);
-    }
-  } catch {}
-  // jackson-annotations
-  try {
-    const annDir = path.join(m2, 'com', 'fasterxml', 'jackson', 'core', 'jackson-annotations');
-    const versions = fs.readdirSync(annDir).filter(v => !v.startsWith('.'));
-    if (versions.length > 0) {
-      const ver = versions.sort().pop();
-      const jar = path.join(annDir, ver, `jackson-annotations-${ver}.jar`);
+      const jar = path.join(gsonDir, ver, `gson-${ver}.jar`);
       if (fs.existsSync(jar)) jars.push(jar);
     }
   } catch {}
@@ -176,7 +156,7 @@ function findJars() {
 
 const classpath = findJars().join(':');
 
-// java_pure uses only JDK + Jackson — can be compiled
+// java_pure uses only JDK + GSON - can be compiled
 if (generated.java_pure) {
   // Extract class name and copy to correctly named file
   const classMatch = generated.java_pure.code.match(/public class (\w+)/);

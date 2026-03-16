@@ -817,7 +817,7 @@ code {
 
 /* === Security hint panels ================================================= */
 .security-hint {
-    font-size: 0.72rem;
+    font-size: 0.82rem;
     color: var(--insign-text);
 }
 .security-hint-info {
@@ -831,12 +831,12 @@ code {
 .security-hint-info .security-hint-icon { color: var(--insign-orange); }
 .security-hint-danger .security-hint-icon { color: var(--insign-danger); }
 .security-hint-list {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     color: var(--insign-gray);
 }
 .security-hint-list li strong { color: var(--insign-text); }
 .security-hint-rec {
-    font-size: 0.68rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: var(--insign-success);
 }

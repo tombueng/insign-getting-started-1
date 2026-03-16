@@ -2,7 +2,7 @@
  * Code Generator Module - Template-based
  *
  * Loads language templates from /codegen-templates/ and renders them with context
- * variables. Complex body-building (Jackson ObjectNode, PHP arrays, Python
+ * variables. Complex body-building (GSON JsonObject, Jackson ObjectNode, PHP arrays, Python
  * dicts) is generated programmatically and injected as {{BODY_BUILD}}.
  */
 (function () {
@@ -11,7 +11,7 @@
   var LANGUAGES = {
     curl:        { label: 'cURL',            monacoLanguage: 'shell',      template: 'curl.sh' },
     java_spring: { label: 'Java (Spring)',   monacoLanguage: 'java',       template: 'java-spring.java' },
-    java_pure:   { label: 'Java (Jackson)',  monacoLanguage: 'java',       template: 'java-jackson.java' },
+    java_pure:   { label: 'Java (GSON)',     monacoLanguage: 'java',       template: 'java-gson.java' },
     java_insign: { label: 'Java (inSign API)', monacoLanguage: 'java',     template: 'java-insign.java' },
     python:      { label: 'Python',          monacoLanguage: 'python',     template: 'python.py' },
     php:         { label: 'PHP',             monacoLanguage: 'php',        template: 'php.php' },
@@ -190,7 +190,7 @@
   // Body builders - generate language-specific code to construct the JSON body
   // ---------------------------------------------------------------------------
 
-  /** Jackson ObjectNode builder for Java */
+  /** Jackson ObjectNode builder for Java (Spring) */
   function jacksonBuildNode(obj, varName, indent, docs, langKey) {
     var pad = new Array(indent + 1).join(' ');
     var lines = [];
@@ -201,7 +201,7 @@
       if (val === null || val === undefined) return;
 
       if (docs) {
-        var dc = getDocComment(key, langKey || 'java_pure');
+        var dc = getDocComment(key, langKey || 'java_spring');
         if (dc) lines.push(pad + dc);
       }
 
@@ -220,7 +220,7 @@
             Object.keys(item).forEach(function (ik) {
               var iv = item[ik];
               if (iv === null || iv === undefined) return;
-              if (docs) { var dc2 = getDocComment(ik, langKey || 'java_pure'); if (dc2) lines.push(pad + dc2); }
+              if (docs) { var dc2 = getDocComment(ik, langKey || 'java_spring'); if (dc2) lines.push(pad + dc2); }
               if (typeof iv === 'string') {
                 lines.push(pad + itemVar + '.put("' + escapeJava(ik) + '", "' + escapeJava(iv) + '");');
               } else if (typeof iv === 'boolean' || typeof iv === 'number') {
@@ -247,10 +247,81 @@
         Object.keys(val).forEach(function (sk) {
           var sv = val[sk];
           if (sv === null || sv === undefined) return;
-          if (docs) { var dc3 = getDocComment(sk, langKey || 'java_pure'); if (dc3) lines.push(pad + dc3); }
+          if (docs) { var dc3 = getDocComment(sk, langKey || 'java_spring'); if (dc3) lines.push(pad + dc3); }
           if (typeof sv === 'string') lines.push(pad + subVar + '.put("' + escapeJava(sk) + '", "' + escapeJava(sv) + '");');
           else if (typeof sv === 'boolean' || typeof sv === 'number') lines.push(pad + subVar + '.put("' + escapeJava(sk) + '", ' + sv + ');');
         });
+      }
+    });
+
+    return lines.join('\n');
+  }
+
+  /** GSON JsonObject builder for Java */
+  function gsonBuildNode(obj, varName, indent, docs, langKey) {
+    var pad = new Array(indent + 1).join(' ');
+    var lines = [];
+    lines.push(pad + 'JsonObject ' + varName + ' = new JsonObject();');
+
+    Object.keys(obj).forEach(function (key) {
+      var val = obj[key];
+      if (val === null || val === undefined) return;
+
+      if (docs) {
+        var dc = getDocComment(key, langKey || 'java_pure');
+        if (dc) lines.push(pad + dc);
+      }
+
+      if (typeof val === 'string') {
+        lines.push(pad + varName + '.addProperty("' + escapeJava(key) + '", "' + escapeJava(val) + '");');
+      } else if (typeof val === 'boolean' || typeof val === 'number') {
+        lines.push(pad + varName + '.addProperty("' + escapeJava(key) + '", ' + val + ');');
+      } else if (Array.isArray(val)) {
+        var arrVar = key + 'Array';
+        lines.push('');
+        lines.push(pad + 'JsonArray ' + arrVar + ' = new JsonArray();');
+        val.forEach(function (item, i) {
+          if (typeof item === 'object' && item !== null) {
+            var itemVar = key + 'Item' + i;
+            lines.push(pad + 'JsonObject ' + itemVar + ' = new JsonObject();');
+            Object.keys(item).forEach(function (ik) {
+              var iv = item[ik];
+              if (iv === null || iv === undefined) return;
+              if (docs) { var dc2 = getDocComment(ik, langKey || 'java_pure'); if (dc2) lines.push(pad + dc2); }
+              if (typeof iv === 'string') {
+                lines.push(pad + itemVar + '.addProperty("' + escapeJava(ik) + '", "' + escapeJava(iv) + '");');
+              } else if (typeof iv === 'boolean' || typeof iv === 'number') {
+                lines.push(pad + itemVar + '.addProperty("' + escapeJava(ik) + '", ' + iv + ');');
+              } else if (Array.isArray(iv)) {
+                var innerArr = ik + 'Arr';
+                lines.push(pad + 'JsonArray ' + innerArr + ' = new JsonArray();');
+                iv.forEach(function (sv) {
+                  if (typeof sv === 'string') lines.push(pad + innerArr + '.add("' + escapeJava(sv) + '");');
+                  else lines.push(pad + innerArr + '.add(' + JSON.stringify(sv) + ');');
+                });
+                lines.push(pad + itemVar + '.add("' + escapeJava(ik) + '", ' + innerArr + ');');
+              }
+            });
+            lines.push(pad + arrVar + '.add(' + itemVar + ');');
+          } else if (typeof item === 'string') {
+            lines.push(pad + arrVar + '.add("' + escapeJava(item) + '");');
+          } else {
+            lines.push(pad + arrVar + '.add(' + JSON.stringify(item) + ');');
+          }
+        });
+        lines.push(pad + varName + '.add("' + escapeJava(key) + '", ' + arrVar + ');');
+      } else if (typeof val === 'object') {
+        var subVar = key + 'Node';
+        lines.push('');
+        lines.push(pad + 'JsonObject ' + subVar + ' = new JsonObject();');
+        Object.keys(val).forEach(function (sk) {
+          var sv = val[sk];
+          if (sv === null || sv === undefined) return;
+          if (docs) { var dc3 = getDocComment(sk, langKey || 'java_pure'); if (dc3) lines.push(pad + dc3); }
+          if (typeof sv === 'string') lines.push(pad + subVar + '.addProperty("' + escapeJava(sk) + '", "' + escapeJava(sv) + '");');
+          else if (typeof sv === 'boolean' || typeof sv === 'number') lines.push(pad + subVar + '.addProperty("' + escapeJava(sk) + '", ' + sv + ');');
+        });
+        lines.push(pad + varName + '.add("' + escapeJava(key) + '", ' + subVar + ');');
       }
     });
 
@@ -719,7 +790,7 @@
     if (hasBody) {
       switch (langKey) {
         case 'java_pure':
-          vars.BODY_BUILD = jacksonBuildNode(bodyForBuild, 'body', 8, includeDocs, langKey);
+          vars.BODY_BUILD = gsonBuildNode(bodyForBuild, 'body', 8, includeDocs, langKey);
           break;
         case 'java_spring':
           vars.BODY_BUILD = jacksonBuildNode(bodyForBuild, 'body', 8, includeDocs, langKey);
@@ -753,7 +824,7 @@
       var isSession = ctx.path && ctx.path.replace(/\/+$/, '') === '/configure/session';
       if (!isSession) {
         vars.INSIGN_CONFIG = '        // The inSign Java API is primarily designed for session configuration.\n' +
-                             '        // For ' + ctx.path + ', use "Java (Spring)" or "Java (Jackson)" tabs.';
+                             '        // For ' + ctx.path + ', use "Java (Spring)" or "Java (GSON)" tabs.';
       } else {
         vars.INSIGN_CONFIG = buildInsignConfig(bodyForBuild || {}, includeDocs, langKey);
       }

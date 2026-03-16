@@ -105,6 +105,10 @@
                         <h5 class="ms-0 mb-0" style="font-size:0.9rem">Connection Settings</h5>
                     </div>
                     <div class="card-body">
+                        <div class="mb-2 d-none" id="saved-profiles-group">
+                            <label class="form-label" style="font-size:0.78rem">Saved connections</label>
+                            <div id="saved-profiles-list"></div>
+                        </div>
                         <div class="mb-2">
                             <label class="form-label" for="cfg-base-url">API Base URL <span class="d-none" id="cors-direct-version" style="font-size:0.68rem;font-weight:400;color:var(--insign-success)"></span></label>
                             <input type="text" class="form-control" id="cfg-base-url" name="api-base-url"
@@ -122,19 +126,30 @@
                                        autocomplete="current-password" value="pwd.insign.sandbox.4561">
                             </div>
                         </div>
-                        <div class="mb-2">
-                            <button type="button" class="btn-sandbox" id="btn-use-sandbox">
-                                <i class="bi bi-cloud-check"></i>
-                                <span>Use public sandbox</span>
-                                <code>sandbox.test.getinsign.show</code>
+
+                        <!-- Save connection button -->
+                        <div class="mt-2 mb-2">
+                            <button type="button" class="btn btn-insign btn-insign-primary btn-insign-sm" id="btn-save-connection" style="padding:5px 18px">
+                                <i class="bi bi-save"></i> Save connection in browser
                             </button>
                         </div>
+
+                        <!-- Security warning: Save in browser -->
+                        <div class="security-hint security-hint-info d-none" id="save-credentials-warning">
+                            <div class="security-hint-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                            <div>
+                                <strong>localStorage is not secure storage.</strong>
+                                Your credentials are sent only to the inSign server above - this app runs entirely in your browser. However, saved data is stored in <code>localStorage</code> unencrypted.
+                                <ul class="security-hint-list">
+                                    <li>Any browser extension or XSS vulnerability could read the stored credentials</li>
+                                    <li>Data persists even after closing the browser - anyone with access to this device can retrieve it</li>
+                                    <li>Delete saved entries anytime via the <strong>&times;</strong> button in the "Saved connections" dropdown above</li>
+                                </ul>
+                                <span class="security-hint-rec"><i class="bi bi-shield-check"></i> Only save on trusted devices for non-production credentials.</span>
+                            </div>
+                        </div>
+
                         <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                            <label class="toggle-pill" for="cfg-save-credentials">
-                                <input type="checkbox" id="cfg-save-credentials">
-                                <span class="toggle-pill-switch"></span>
-                                <span class="toggle-pill-label">Save in browser</span>
-                            </label>
                             <label class="toggle-pill d-none" for="cfg-cors-proxy" id="cors-proxy-toggle-wrap">
                                 <input type="checkbox" id="cfg-cors-proxy">
                                 <span class="toggle-pill-switch"></span>
@@ -145,21 +160,6 @@
                                 <span class="toggle-pill-switch"></span>
                                 <span class="toggle-pill-label"><i class="bi bi-broadcast" style="font-size:0.7rem"></i> Webhook relay</span>
                             </label>
-                        </div>
-
-                        <!-- Security warning: Save in browser -->
-                        <div class="security-hint security-hint-info d-none" id="save-credentials-warning">
-                            <div class="security-hint-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
-                            <div>
-                                <strong>localStorage is not secure storage.</strong>
-                                Your API base URL, username, and password will be saved in the browser's <code>localStorage</code> - unencrypted, accessible to any JavaScript running on this page.
-                                <ul class="security-hint-list">
-                                    <li>Any browser extension or XSS vulnerability could read the stored credentials</li>
-                                    <li>Data persists even after closing the browser - anyone with access to this device can retrieve it</li>
-                                    <li>localStorage is never cleared automatically - you must manually uncheck this to remove stored data</li>
-                                </ul>
-                                <span class="security-hint-rec"><i class="bi bi-shield-check"></i> Only enable on trusted devices for non-production credentials.</span>
-                            </div>
                         </div>
 
                         <!-- Security warning: Webhook relay -->
@@ -178,6 +178,9 @@
                                 <div class="security-hint-rec mt-1"><i class="bi bi-shield-check"></i> Acceptable for sandbox/demo use. For production data, use a self-hosted webhook endpoint or the CF Worker option.</div>
                             </div>
                         </div>
+
+                        <div class="text-muted-sm d-none" id="cors-proxy-security-warning" style="color:var(--insign-blue);margin-top:8px"><i class="bi bi-shuffle me-1"></i><strong>CORS proxy active</strong> - requests are routed through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.76rem">Learn more</a></div>
+                        <div class="text-mono text-muted-sm d-none mt-1" id="trust-target-url" style="font-size:0.72rem"></div>
 
                         <div class="cors-hint-banner d-none" id="cors-hint-banner">
                             <i class="bi bi-exclamation-triangle"></i>
@@ -350,16 +353,7 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="trust-hint mt-2">
-                            <i class="bi bi-shield-lock" style="color:var(--insign-success);font-size:1.1rem"></i>
-                            <div>
-                                <strong>Your credentials are safe</strong>
-                                <div class="text-muted-sm">Sent only to the inSign server above. This app runs entirely in your browser. Optional features like webhook visualization, real email testing, or custom file uploads may use external services (e.g. smee.io).</div>
-                                <div class="text-muted-sm" id="cors-proxy-security-warning" style="display:none;color:var(--insign-blue)"><i class="bi bi-shuffle me-1"></i><strong>CORS proxy active</strong> - requests are routed through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.76rem">Learn more</a></div>
-                                <div class="text-mono text-muted-sm mt-1" id="trust-target-url" style="font-size:0.72rem"></div>
-                            </div>
-                        </div>
+                        </div><!-- end cors-proxy-url-group -->
                     </div>
                 </div>
 

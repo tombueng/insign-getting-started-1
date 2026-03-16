@@ -613,6 +613,10 @@ window.WebhookViewer = class WebhookViewer {
                 </div>
             `);
         }
+        // Notify app that CORS proxy may be needed (Failed to fetch = CORS block)
+        if (message && message.includes('Failed to fetch') && this.onCorsNeeded) {
+            this.onCorsNeeded();
+        }
     }
 
     copyUrl() {

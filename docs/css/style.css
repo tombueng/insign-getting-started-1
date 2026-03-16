@@ -487,6 +487,87 @@ code {
     margin-left: 4px;
 }
 
+/* === Saved connection profiles ============================================ */
+.saved-profiles-dropdown {
+    position: relative;
+}
+.saved-profiles-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--insign-border);
+    border-radius: 6px;
+    background: var(--insign-input-bg, transparent);
+    color: var(--insign-text);
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-align: left;
+}
+.saved-profiles-toggle:hover {
+    border-color: var(--insign-orange);
+}
+.saved-profiles-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin-top: 2px;
+    border: 1px solid var(--insign-border);
+    border-radius: 6px;
+    background: var(--insign-card-bg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    max-height: 240px;
+    overflow-y: auto;
+}
+.saved-profiles-menu.open {
+    display: block;
+}
+.saved-profile-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.saved-profile-entry:hover {
+    background: rgba(255,255,255,0.06);
+}
+.saved-profile-entry.active {
+    background: rgba(230, 126, 34, 0.12);
+}
+.saved-profile-entry .profile-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem;
+}
+.saved-profile-entry .profile-user {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    margin-left: 4px;
+}
+.saved-profile-entry .profile-delete {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: var(--insign-gray);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.9rem;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
+}
+.saved-profile-entry .profile-delete:hover {
+    opacity: 1;
+    color: var(--insign-danger);
+}
+
 /* === Toggle pill switches ================================================= */
 .toggle-pill {
     display: inline-flex;
@@ -495,7 +576,7 @@ code {
     cursor: pointer;
     user-select: none;
     border-radius: 20px;
-    padding: 3px 10px 3px 4px;
+    padding: 5px 14px 5px 6px;
     transition: border-color 0.2s, background 0.2s;
     white-space: nowrap;
 }
@@ -504,26 +585,26 @@ code {
 }
 .toggle-pill-switch {
     display: inline-block;
-    width: 28px;
-    height: 16px;
-    border-radius: 8px;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
     position: relative;
     transition: background 0.2s;
-    margin-right: 6px;
+    margin-right: 8px;
     flex-shrink: 0;
 }
 .toggle-pill-switch::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 12px;
-    height: 12px;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     transition: transform 0.2s;
 }
 .toggle-pill input:checked ~ .toggle-pill-switch::after {
-    transform: translateX(12px);
+    transform: translateX(20px);
 }
 .toggle-pill-label {
     line-height: 1;
@@ -587,11 +668,12 @@ code {
 /* === Security hint panels ================================================= */
 .security-hint {
     display: flex;
-    gap: 8px;
-    padding: 8px 12px;
-    margin-bottom: 8px;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    margin-bottom: 12px;
     border-radius: 6px;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 .security-hint-icon {
     flex-shrink: 0;
