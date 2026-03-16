@@ -460,9 +460,16 @@
         // Check if this exact combo already exists in saved profiles or is the sandbox
         var all = getAllProfiles();
         var alreadySaved = all.some(function(p) {
-            return p.baseUrl.replace(/\/+$/, '') === baseUrl && p.username === username && p.password === password;
+            return p.baseUrl.replace(/\/+$/, '').toLowerCase() === baseUrl.toLowerCase()
+                && p.username.toLowerCase() === username.toLowerCase()
+                && p.password === password;
         });
-        $btn.prop('disabled', alreadySaved);
+        if (alreadySaved) {
+            $btn.closest('div').addClass('d-none');
+            $('#save-credentials-warning').addClass('d-none');
+        } else {
+            $btn.closest('div').removeClass('d-none');
+        }
     }
 
     function deleteProfile(index) {
@@ -474,14 +481,14 @@
     }
 
     var _selectedProfileKey = null; // track active selection explicitly
+    var _profileSelecting = false; // guard against change handlers clearing key
 
     function selectProfile(p) {
-        _selectedProfileKey = p.baseUrl.replace(/\/+$/, '') + '|' + p.username;
+        _profileSelecting = true;
+        _selectedProfileKey = p.baseUrl.replace(/\/+$/, '').toLowerCase() + '|' + p.username.toLowerCase();
         $('#cfg-base-url').val(p.baseUrl);
         $('#cfg-username').val(p.username);
         $('#cfg-password').val(p.password);
-        updateApiClient();
-        syncOAuth2Credentials();
         // Restore CORS and webhook settings if saved (without triggering change to avoid side effects)
         if (p.corsProxy !== undefined) {
             $('#cfg-cors-proxy').prop('checked', p.corsProxy);
@@ -493,8 +500,9 @@
             $('#webhook-provider-group').css('display', p.webhooksEnabled ? '' : 'none');
             $('#webhook-relay-warning').toggleClass('d-none', !p.webhooksEnabled);
         }
-        updateCorsVisibility();
-        saveAppState();
+        // Trigger base URL change to update API client and CORS visibility
+        $('#cfg-base-url').trigger('change');
+        _profileSelecting = false;
         renderProfiles();
         updateSaveButtonState();
     }
@@ -517,9 +525,8 @@
         }
         $group.removeClass('d-none');
 
-        var currentUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '');
-        var currentUser = ($('#cfg-username').val() || '').trim();
-        var currentKey = currentUrl + '|' + currentUser;
+        var currentUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '').toLowerCase();
+        var currentUser = ($('#cfg-username').val() || '').trim().toLowerCase();
 
         // Build dropdown entries
         var $container = $('#saved-profiles-list');
@@ -530,8 +537,10 @@
         var activeLabel = 'Select connection...';
         var activeIdx = -1;
         for (var i = 0; i < all.length; i++) {
-            var entryKey = all[i].baseUrl.replace(/\/+$/, '') + '|' + all[i].username;
-            if (entryKey === currentKey || entryKey === _selectedProfileKey) {
+            var entryUrl = all[i].baseUrl.replace(/\/+$/, '').toLowerCase();
+            var entryUser = all[i].username.toLowerCase();
+            if ((entryUrl === currentUrl && entryUser === currentUser) ||
+                (_selectedProfileKey && (entryUrl + '|' + entryUser) === _selectedProfileKey)) {
                 activeIdx = i;
                 var label = all[i].baseUrl.replace(/^https?:\/\//, '');
                 activeLabel = label + ' <span class="profile-user">@' + all[i].username + '</span>';
@@ -1348,9 +1357,9 @@
         if ($trustUrl.length) $trustUrl.text('\u2192 ' + $('#cfg-base-url').val());
 
         // Bind sidebar events
-        $('#cfg-base-url').on('change input', () => { _selectedProfileKey = null; updateApiClient(); saveAppState(); updateCorsVisibility(); updateSaveButtonState(); });
-        $('#cfg-username').on('change input', () => { _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
-        $('#cfg-password').on('change input', () => { _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
+        $('#cfg-base-url').on('change input', () => { if (!_profileSelecting) _selectedProfileKey = null; updateApiClient(); saveAppState(); updateCorsVisibility(); updateSaveButtonState(); });
+        $('#cfg-username').on('change input', () => { if (!_profileSelecting) _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
+        $('#cfg-password').on('change input', () => { if (!_profileSelecting) _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
 
         $('#btn-use-sandbox').on('click', () => {
             $('#cfg-base-url').val('https://sandbox.test.getinsign.show');
@@ -1383,8 +1392,11 @@
                 }
             } else {
                 $corsToggle.prop('checked', false).trigger('change');
-                $toggle.addClass('d-none');
-                $hint.addClass('d-none');
+                // Don't hide if shown for webhook CORS
+                if (!$toggle.attr('data-webhook-cors')) {
+                    $toggle.addClass('d-none');
+                    $hint.addClass('d-none');
+                }
             }
         }
 
@@ -1502,6 +1514,7 @@
             // Hide hint when proxy is enabled (user acted on the warning)
             if (on) {
                 $('#cors-hint-banner').addClass('d-none');
+                $('#cors-proxy-toggle-wrap').removeAttr('data-webhook-cors');
             } else if (!isSandboxUrl($('#cfg-base-url').val())) {
                 $('#cors-hint-banner').removeClass('d-none');
             }
@@ -1584,7 +1597,16 @@
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer; // for inline onclick handlers
 
-        state.webhookViewer.onCorsNeeded = () => setCorsNeeded(true);
+        state.webhookViewer.onCorsNeeded = () => {
+            // Only show if webhooks are enabled
+            if (!$('#cfg-webhooks').is(':checked')) return;
+            // Webhook provider CORS failure - show CORS proxy toggle and hint
+            $('#cors-proxy-toggle-wrap').removeClass('d-none');
+            $('#cors-hint-banner').removeClass('d-none')
+                .find('span').first().html('Webhook provider blocked by CORS. Enable the <strong>CORS proxy</strong> to route webhook requests through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a>');
+            // Mark as webhook-triggered so setCorsNeeded(false) won't hide it
+            $('#cors-proxy-toggle-wrap').attr('data-webhook-cors', '1');
+        };
 
         state.webhookViewer.onUrlCreated = (url) => {
             state.webhookUrl = url;
@@ -3844,7 +3866,16 @@
         var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer;
-        state.webhookViewer.onCorsNeeded = () => setCorsNeeded(true);
+        state.webhookViewer.onCorsNeeded = () => {
+            // Only show if webhooks are enabled
+            if (!$('#cfg-webhooks').is(':checked')) return;
+            // Webhook provider CORS failure - show CORS proxy toggle and hint
+            $('#cors-proxy-toggle-wrap').removeClass('d-none');
+            $('#cors-hint-banner').removeClass('d-none')
+                .find('span').first().html('Webhook provider blocked by CORS. Enable the <strong>CORS proxy</strong> to route webhook requests through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a>');
+            // Mark as webhook-triggered so setCorsNeeded(false) won't hide it
+            $('#cors-proxy-toggle-wrap').attr('data-webhook-cors', '1');
+        };
         state.webhookViewer.onUrlCreated = (url) => {
             state.webhookUrl = url;
             if (state.editors['create-session']) {
