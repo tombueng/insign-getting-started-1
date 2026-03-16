@@ -78,6 +78,9 @@ code {
 .card-insign {
     margin-bottom: 1.25rem;
     overflow: visible;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .card-insign .card-header {
@@ -99,6 +102,7 @@ code {
 .card-insign .card-body {
     padding: 1.25rem;
 }
+
 
 /* === Step Indicator ===================================================== */
 
@@ -495,12 +499,12 @@ code {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 6px 10px;
+    padding: 9px 14px;
     border: 1px solid var(--insign-border);
     border-radius: 6px;
     background: var(--insign-input-bg, transparent);
     color: var(--insign-text);
-    font-size: 0.82rem;
+    font-size: 0.92rem;
     cursor: pointer;
     text-align: left;
 }
@@ -529,7 +533,7 @@ code {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 8px 14px;
     cursor: pointer;
     transition: background 0.15s;
 }
@@ -545,7 +549,7 @@ code {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
 }
 .saved-profile-entry .profile-user {
     font-size: 0.72rem;
@@ -686,9 +690,11 @@ code {
 }
 .security-hint-list li { margin-bottom: 2px; }
 .security-hint-rec {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 4px;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
 }
 
 /* === CORS hint banner ===================================================== */
@@ -1450,4 +1456,12 @@ code {
 
 .trace-desc {
     margin-bottom: 2px;
+}
+
+@keyframes highlight-flash-anim {
+    0%, 100% { outline: 2px solid transparent; }
+    20%, 80% { outline: 2px solid var(--insign-orange); outline-offset: 4px; border-radius: 8px; }
+}
+.highlight-flash {
+    animation: highlight-flash-anim 1.5s ease;
 }

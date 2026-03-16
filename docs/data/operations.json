@@ -1,0 +1,119 @@
+{
+    "status": {
+        "method": "POST",
+        "path": "/get/status",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "checkstatus": {
+        "method": "POST",
+        "path": "/get/checkstatus",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "load": {
+        "method": "POST",
+        "path": "/persistence/loadsession",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "documents": {
+        "method": "POST",
+        "path": "/get/documents/full?includeAnnotations=true",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "document-single": {
+        "method": "POST",
+        "path": "/get/document",
+        "bodyFn": "getDocumentSingleBody",
+        "schemaKey": null,
+        "formParams": true,
+        "accept": "*/*"
+    },
+    "download": {
+        "method": "POST",
+        "path": "/get/documents/download",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput",
+        "accept": "*/*"
+    },
+    "extern": {
+        "method": "POST",
+        "path": "/extern/beginmulti",
+        "bodyFn": "getDefaultExternBody",
+        "schemaKey": "startExternMultiuser"
+    },
+    "abort-extern": {
+        "method": "POST",
+        "path": "/extern/abort",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "finish": {
+        "method": "POST",
+        "path": "/configure/fertig",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "restart": {
+        "method": "POST",
+        "path": "/configure/restartsession",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput",
+        "formParams": true,
+        "accept": "*/*"
+    },
+    "delete": {
+        "method": "POST",
+        "path": "/configure/ablehnen",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "delete-session": {
+        "method": "POST",
+        "path": "/configure/deletesession",
+        "accept": "*/*",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput",
+        "formParams": true
+    },
+    "audit": {
+        "method": "POST",
+        "path": "/get/audit",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "extern-users": {
+        "method": "POST",
+        "path": "/extern/users",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "send-reminder": {
+        "method": "POST",
+        "path": "/load/sendManualReminder",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "extern-info": {
+        "method": "POST",
+        "path": "/get/externInfos",
+        "bodyFn": "getSessionIdBody",
+        "schemaKey": "sessionIDInput"
+    },
+    "sso": {
+        "method": "POST",
+        "path": "/configure/createSSOForApiuser",
+        "bodyFn": "getSSOBody",
+        "schemaKey": null,
+        "accept": "text/plain"
+    },
+    "version": {
+        "method": "GET",
+        "path": "/version",
+        "accept": "*/*",
+        "bodyFn": null,
+        "schemaKey": null
+    }
+}

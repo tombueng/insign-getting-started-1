@@ -109,25 +109,31 @@
                         <h5 class="ms-0 mb-0" style="font-size:0.9rem">Connection Settings</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2 d-none" id="saved-profiles-group">
-                            <label class="form-label" style="font-size:0.78rem">Saved connections</label>
+                        <div class="mb-3 d-none" id="saved-profiles-group">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <label class="form-label fw-semibold mb-0" style="font-size:0.88rem"><i class="bi bi-bookmark-star" style="font-size:0.85rem"></i> Saved connections</label>
+                                <button type="button" class="btn btn-link text-danger p-0" id="btn-clear-all-storage" style="font-size:0.72rem;text-decoration:none" title="Delete all saved data from browser localStorage"><i class="bi bi-trash3"></i> Clear all saved data</button>
+                            </div>
                             <div id="saved-profiles-list"></div>
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label" for="cfg-base-url">API Base URL <span class="d-none" id="cors-direct-version" style="font-size:0.68rem;font-weight:400;color:var(--insign-success)"></span></label>
-                            <input type="text" class="form-control" id="cfg-base-url" name="api-base-url"
-                                   autocomplete="url" value="https://sandbox.test.getinsign.show">
-                        </div>
-                        <div class="d-flex gap-2 mb-2">
-                            <div class="flex-grow-1">
-                                <label class="form-label" for="cfg-username">Username</label>
-                                <input type="text" class="form-control" id="cfg-username" name="api-username"
-                                       autocomplete="username" value="controller">
+                        <div id="manual-connection-fields">
+                            <label class="form-label text-muted" style="font-size:0.72rem; letter-spacing:0.03em; text-transform:uppercase">Manual connection</label>
+                            <div class="mb-2">
+                                <label class="form-label" style="font-size:0.72rem" for="cfg-base-url">API Base URL <span class="d-none" id="cors-direct-version" style="font-size:0.68rem;font-weight:400;color:var(--insign-success)"></span></label>
+                                <input type="text" class="form-control form-control-sm" id="cfg-base-url" name="api-base-url"
+                                       autocomplete="url" value="https://sandbox.test.getinsign.show">
                             </div>
-                            <div class="flex-grow-1">
-                                <label class="form-label" for="cfg-password">Password</label>
-                                <input type="password" class="form-control" id="cfg-password" name="api-password"
-                                       autocomplete="current-password" value="pwd.insign.sandbox.4561">
+                            <div class="d-flex gap-2 mb-2">
+                                <div class="flex-grow-1">
+                                    <label class="form-label" style="font-size:0.72rem" for="cfg-username">Username</label>
+                                    <input type="text" class="form-control form-control-sm" id="cfg-username" name="api-username"
+                                           autocomplete="username" value="controller">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label class="form-label" style="font-size:0.72rem" for="cfg-password">Password</label>
+                                    <input type="password" class="form-control form-control-sm" id="cfg-password" name="api-password"
+                                           autocomplete="current-password" value="pwd.insign.sandbox.4561">
+                                </div>
                             </div>
                         </div>
 
@@ -149,11 +155,11 @@
                                     <li>Data persists even after closing the browser - anyone with access to this device can retrieve it</li>
                                     <li>Delete saved entries anytime via the <strong>&times;</strong> button in the "Saved connections" dropdown above</li>
                                 </ul>
-                                <span class="security-hint-rec"><i class="bi bi-shield-check"></i> Only save on trusted devices for non-production credentials.</span>
+                                <div class="security-hint-rec"><i class="bi bi-shield-check"></i> Only save on trusted devices for non-production credentials.</div>
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap" style="margin-top:16px">
                             <label class="toggle-pill toggle-pill-warn" for="cfg-webhooks">
                                 <input type="checkbox" id="cfg-webhooks" checked>
                                 <span class="toggle-pill-switch"></span>
@@ -173,8 +179,8 @@
                                     <li><strong>Document metadata</strong> including filenames and status information</li>
                                     <li><strong>Status changes</strong> that reveal the signing workflow and timing</li>
                                 </ul>
-                                The relay service operator can <strong>see, log, and store all of this data</strong> in plain text. Endpoints are typically public URLs that anyone with the link could monitor.
-                                <div class="security-hint-rec mt-1"><i class="bi bi-shield-check"></i> Acceptable for sandbox/demo use. For production data, use a self-hosted webhook endpoint or the CF Worker option.</div>
+                                <p style="margin-bottom:0">The relay service operator can <strong>see, log, and store all of this data</strong> in plain text. Endpoints are typically public URLs that anyone with the link could monitor.</p>
+                                <div class="security-hint-rec"><i class="bi bi-shield-check"></i> Acceptable for sandbox/demo use. For production data, use a self-hosted webhook endpoint or the CF Worker option.</div>
                             </div>
                         </div>
 
@@ -196,12 +202,17 @@
                                        onchange="window.app.onWebhookCustomUrlChange()">
                             </div>
                         </div>
-                        <div class="cors-hint-banner d-none" id="cors-hint-banner">
+                        <div class="cors-hint-banner d-none" id="cors-hint-banner-api">
                             <i class="bi bi-exclamation-triangle"></i>
                             <span>Your inSign server may block browser requests (CORS). Enable the <strong>CORS proxy</strong> below, or configure CORS on your server.
                             <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a></span>
                         </div>
-                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap d-none" id="cors-proxy-toggle-wrap">
+                        <div class="cors-hint-banner d-none" id="cors-hint-banner-webhook">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>Webhook provider blocked by CORS. Enable the <strong>CORS proxy</strong> below to route webhook requests through your local proxy.
+                            <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a></span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap" id="cors-proxy-toggle-wrap" style="margin-top:16px">
                             <label class="toggle-pill" for="cfg-cors-proxy">
                                 <input type="checkbox" id="cfg-cors-proxy">
                                 <span class="toggle-pill-switch"></span>
@@ -209,8 +220,6 @@
                             </label>
                         </div>
                         <div class="mb-2" id="cors-proxy-url-group" style="display:none">
-                            <label class="form-label">Local CORS Proxy</label>
-
                             <!-- Probe status + download + run instructions -->
                             <div class="proxy-local-panel">
                                 <div class="proxy-local-status">
@@ -218,7 +227,7 @@
                                     <span class="proxy-probe-label" id="proxy-probe-label">Checking...</span>
                                 </div>
                                 <div class="proxy-local-actions">
-                                    <a href="cors-proxy.js" download="cors-proxy.js" class="btn btn-insign btn-insign-sm" style="font-size:0.74rem;padding:2px 10px">
+                                    <a href="cors-proxy.js" download="cors-proxy.js" class="btn btn-insign btn-insign-sm btn-insign-outline" style="font-size:0.74rem;padding:2px 10px">
                                         <i class="bi bi-download"></i> Download cors-proxy.js
                                     </a>
                                     <span class="text-muted-sm" style="font-size:0.72rem">then run:</span>
@@ -551,6 +560,16 @@ node ~/Downloads/cors-proxy.js</code></pre>
                             <div class="collapse" id="branding-configurator">
                                 <div class="feature-panel p-3">
 
+                                    <!-- Sync from document toggle -->
+                                    <div class="mb-3 d-flex align-items-center gap-2">
+                                        <label class="toggle-pill" for="brand-sync-doc">
+                                            <input type="checkbox" id="brand-sync-doc" checked>
+                                            <span class="toggle-pill-switch"></span>
+                                            <span class="toggle-pill-label" style="font-size:0.78rem"><i class="bi bi-link-45deg"></i> Sync from selected document</span>
+                                        </label>
+                                        <span class="text-muted" style="font-size:0.68rem">auto-apply company style when switching documents</span>
+                                    </div>
+
                                     <!-- Color Scheme Presets -->
                                     <div class="mb-3">
                                         <label class="form-label" style="font-size:0.82rem;font-weight:600">
@@ -810,6 +829,9 @@ node ~/Downloads/cors-proxy.js</code></pre>
                             <button class="btn btn-insign btn-insign-primary" id="btn-create-session" onclick="window.app.createSession()">
                                 <i class="bi bi-send"></i> Send Request
                             </button>
+                            <button class="btn btn-insign btn-insign-cta" id="btn-create-session-open" onclick="window.app.createSessionAndOpen()">
+                                <i class="bi bi-box-arrow-up-right"></i> Send &amp; Open
+                            </button>
                             <button class="btn btn-insign btn-insign-primary d-none" id="btn-goto-step2" onclick="window.app.goToStep(3)">
                                 <i class="bi bi-arrow-right"></i> Operate &amp; Trace
                             </button>
@@ -833,11 +855,15 @@ node ~/Downloads/cors-proxy.js</code></pre>
                 <div class="floating-actions" id="floating-actions-step2">
                     <button class="btn btn-insign btn-insign-primary btn-floating" id="btn-floating-send"
                             onclick="window.app.createSession()" title="Send Request">
-                        <i class="bi bi-send"></i>
+                        <i class="bi bi-send"></i> Send Request
                     </button>
-                    <button class="btn btn-insign btn-insign-primary btn-floating btn-floating-accent" id="btn-floating-send-open"
+                    <button class="btn btn-insign btn-insign-cta btn-floating" id="btn-floating-send-open"
                             onclick="window.app.createSessionAndOpen()" title="Send &amp; Open in inSign">
                         <i class="bi bi-box-arrow-up-right"></i> Send &amp; Open
+                    </button>
+                    <button class="btn btn-insign btn-insign-primary btn-floating d-none" id="btn-floating-goto-step2"
+                            onclick="window.app.goToStep(3)">
+                        <i class="bi bi-arrow-right"></i> Operate &amp; Trace
                     </button>
                 </div>
             </div>
@@ -846,23 +872,6 @@ node ~/Downloads/cors-proxy.js</code></pre>
                  STEP 3 - Session Operations
                  ========================================================== -->
             <div id="step-3-panel" class="d-none">
-                <!-- Session ID Bar -->
-                <div class="alert alert-insign mb-3" style="background:rgba(1,101,188,0.06);color:var(--insign-dark)">
-                    <i class="bi bi-key" style="color:var(--insign-blue)"></i>
-                    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
-                        <strong style="white-space:nowrap">Session ID:</strong>
-                        <input type="text" class="form-control form-control-sm" id="manual-session-id" name="manual-session-id"
-                               placeholder="Paste an existing session ID or create one in Step 1"
-                               style="max-width:420px;font-family:'Roboto Mono',monospace;font-size:0.82rem">
-                        <code id="active-session-id" class="d-none"></code>
-                        <button class="btn btn-insign btn-insign-sm btn-insign-primary" onclick="window.app.applyManualSessionId()" title="Use this session ID">
-                            <i class="bi bi-arrow-right-circle"></i> Apply
-                        </button>
-                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID">
-                            <i class="bi bi-clipboard"></i>
-                        </button>
-                    </div>
-                </div>
 
                 <!-- Quick Actions -->
                 <div class="d-flex gap-2 mb-3 flex-wrap" id="step2-quick-actions">
@@ -880,6 +889,11 @@ node ~/Downloads/cors-proxy.js</code></pre>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#op-status" type="button">
                             <i class="bi bi-info-circle"></i> Status
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-checkstatus" type="button">
+                            <i class="bi bi-check2-square"></i> Check Status
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -1005,6 +1019,36 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                     <div class="response-panel">
                                         <div class="response-status" data-op="status"></div>
                                         <div class="editor-container" id="editor-op-status-response"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Check Status -->
+                    <div class="tab-pane fade" id="op-checkstatus" role="tabpanel">
+                        <div class="card-insign">
+                            <div class="card-header">
+                                <span class="badge-method badge-method-post">POST</span>
+                                <span class="endpoint-path">/get/checkstatus</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Check session status</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted-sm mb-3">Lightweight status check for a session. Returns the current signing state without full document details.</p>
+                                <div class="section-title">Request Headers</div>
+                                <div class="headers-display mb-3 op-headers" data-op="checkstatus"></div>
+                                <div class="section-title">Request Body</div>
+                                <div class="editor-container" id="editor-op-checkstatus"></div>
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('checkstatus')">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                                <div class="op-response d-none" data-op="checkstatus">
+                                    <div class="section-title mt-3">Response</div>
+                                    <div class="response-panel">
+                                        <div class="response-status" data-op="checkstatus"></div>
+                                        <div class="editor-container" id="editor-op-checkstatus-response"></div>
                                     </div>
                                 </div>
                             </div>

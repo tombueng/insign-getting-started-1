@@ -1,0 +1,51 @@
+{
+    "webhook.site": {
+        "label": "webhook.site",
+        "icon": "bi-inbox",
+        "tag": "Poll",
+        "favicon": "https://www.google.com/s2/favicons?domain=webhook.site&sz=32",
+        "desc": "Free, no signup. Auto-creates a unique endpoint and polls for incoming requests every 4 seconds.",
+        "hint": "Polling every 4s. GET & POST supported.",
+        "url": "https://webhook.site",
+        "postOnly": false
+    },
+    "smee": {
+        "label": "smee.io",
+        "icon": "bi-broadcast",
+        "tag": "SSE",
+        "favicon": "https://www.google.com/s2/favicons?domain=smee.io&sz=32",
+        "desc": "GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events.",
+        "hint": "Real-time via SSE. POST callbacks only.",
+        "url": "https://smee.io",
+        "postOnly": true
+    },
+    "postbin": {
+        "label": "postb.in",
+        "icon": "bi-collection",
+        "tag": "Poll",
+        "favicon": "https://www.google.com/s2/favicons?domain=postb.in&sz=32",
+        "desc": "Toptal-hosted request bin. Collects POSTs into a FIFO queue with 30-minute lifetime per bin.",
+        "hint": "FIFO queue, 30min bin lifetime.",
+        "url": "https://www.toptal.com/developers/postbin",
+        "postOnly": false
+    },
+    "ntfy": {
+        "label": "ntfy.sh",
+        "icon": "bi-bell",
+        "tag": "SSE",
+        "favicon": "https://www.google.com/s2/favicons?domain=ntfy.sh&sz=32",
+        "desc": "Open-source notification service repurposed as a webhook relay. Real-time SSE, but large JSON bodies may be truncated.",
+        "hint": "SSE real-time. Large payloads may be truncated.",
+        "url": "https://ntfy.sh",
+        "postOnly": false
+    },
+    "custom": {
+        "label": "Custom URL",
+        "icon": "bi-link-45deg",
+        "tag": "Custom",
+        "desc": "Point to any HTTP endpoint you control. No automatic polling or SSE - just injects the URL into the session JSON.",
+        "hint": "Enter your own webhook endpoint URL below.",
+        "postOnly": false,
+        "needsCustomUrl": true
+    }
+}

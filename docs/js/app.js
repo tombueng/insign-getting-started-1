@@ -32,10 +32,12 @@
         monacoReady: false,
         _editorSyncLock: false,        // prevent infinite loops during bidirectional sync
         webhookProvider: 'smee', // current webhook provider
-        authMode: 'basic'       // 'basic' or 'oauth2'
+        authMode: 'basic',      // 'basic' or 'oauth2'
+        _corsIssueApi: false,   // last base-URL probe had CORS/network issues
+        _corsIssueWebhook: false // last webhook endpoint creation had CORS/network issues
     };
 
-    /** Generate a stable human-readable user ID stored in localStorage */
+    /** Generate a stable human-readable user ID; only persist to localStorage when profiles are saved */
     function getOrCreateUserId() {
         const key = 'insign-explorer-userid';
         let id = null;
@@ -53,7 +55,10 @@
             const hex = Array.from(crypto.getRandomValues(new Uint8Array(4)),
                 b => b.toString(16).padStart(2, '0')).join('');
             id = name + '-' + hex;
-            try { localStorage.setItem(key, id); } catch { /* ignore */ }
+            // Only persist if user has saved connection profiles
+            if (loadProfiles().length > 0) {
+                try { localStorage.setItem(key, id); } catch { /* ignore */ }
+            }
         }
         return id;
     }
@@ -64,141 +69,9 @@
         return loc.origin + loc.pathname + '#step2';
     }
 
-    /** Webhook provider configuration */
-    function faviconUrl(domain) {
-        return 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=32';
-    }
-
-    const WEBHOOK_PROVIDERS = {
-        'webhook.site': {
-            label: 'webhook.site', icon: 'bi-inbox', tag: 'Poll',
-            favicon: faviconUrl('webhook.site'),
-            desc: 'Free, no signup. Auto-creates a unique endpoint and polls for incoming requests every 4 seconds.',
-            hint: 'Polling every 4s. GET & POST supported.',
-            url: 'https://webhook.site', postOnly: false
-        },
-        smee: {
-            label: 'smee.io', icon: 'bi-broadcast', tag: 'SSE',
-            favicon: faviconUrl('smee.io'),
-            desc: 'GitHub-hosted real-time event proxy. Streams webhook payloads to your browser via Server-Sent Events.',
-            hint: 'Real-time via SSE. POST callbacks only.',
-            url: 'https://smee.io', postOnly: true
-        },
-        postbin: {
-            label: 'postb.in', icon: 'bi-collection', tag: 'Poll',
-            favicon: faviconUrl('postb.in'),
-            desc: 'Toptal-hosted request bin. Collects POSTs into a FIFO queue with 30-minute lifetime per bin.',
-            hint: 'FIFO queue, 30min bin lifetime.',
-            url: 'https://www.toptal.com/developers/postbin', postOnly: false
-        },
-        ntfy: {
-            label: 'ntfy.sh', icon: 'bi-bell', tag: 'SSE',
-            favicon: faviconUrl('ntfy.sh'),
-            desc: 'Open-source notification service repurposed as a webhook relay. Real-time SSE, but large JSON bodies may be truncated.',
-            hint: 'SSE real-time. Large payloads may be truncated.',
-            url: 'https://ntfy.sh', postOnly: false
-        },
-        // cfworker disabled - CF Workers free tier has no reliable shared state across isolates
-        // cfworker: {
-        //     label: 'CF Worker', icon: 'bi-cloud-arrow-up', tag: 'Poll',
-        //     favicon: faviconUrl('workers.cloudflare.com'),
-        //     desc: 'Deploy cf-webhook-worker.js to your Cloudflare account.',
-        //     hint: 'Self-hosted on Cloudflare Workers. Enter your worker URL below.',
-        //     url: 'https://workers.cloudflare.com', postOnly: false, needsCustomUrl: true
-        // },
-        custom: {
-            label: 'Custom URL', icon: 'bi-link-45deg', tag: 'Custom',
-            desc: 'Point to any HTTP endpoint you control. No automatic polling or SSE - just injects the URL into the session JSON.',
-            hint: 'Enter your own webhook endpoint URL below.',
-            postOnly: false, needsCustomUrl: true
-        }
-    };
-
-    // =====================================================================
-    // Document catalog & URL helpers
-    // =====================================================================
-
-    /** Available test documents with metadata */
-    const DOCUMENTS = {
-        // --- Branded contracts (generated from docs/img/doc-headers + docs/data/branded-contracts.json) ---
-        acme: {
-            label: 'ACME - Software License', local: 'data/acme-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['licensor', 'licensee', 'compliance'],
-            desc: '2 pages • 3 SIG-tags • roles: licensor, licensee, compliance',
-            brand: 'acme', brandName: 'ACME Corporation', logo: 'img/sample-logos/acme-icon.svg', fileSize: 79924
-        },
-        greenleaf: {
-            label: 'GreenLeaf - Carbon Offset', local: 'data/greenleaf-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['supplier', 'buyer', 'auditor'],
-            desc: '2 pages • 3 SIG-tags • roles: supplier, buyer, auditor',
-            brand: 'greenleaf', brandName: 'GreenLeaf Sustainability', logo: 'img/sample-logos/greenleaf-icon.svg', fileSize: 103802
-        },
-        nova: {
-            label: 'NOVA - Portfolio Management', local: 'data/nova-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['manager', 'client', 'advisor'],
-            desc: '2 pages • 3 SIG-tags • roles: manager, client, advisor',
-            brand: 'nova', brandName: 'NOVA Finance', logo: 'img/sample-logos/nova-icon.svg', fileSize: 92687
-        },
-        blueprint: {
-            label: 'BluePrint - Architecture', local: 'data/blueprint-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['architect', 'developer', 'engineer'],
-            desc: '2 pages • 3 SIG-tags • roles: architect, developer, engineer',
-            brand: 'blueprint', brandName: 'BluePrint Design Studio', logo: 'img/sample-logos/blueprint-icon.svg', fileSize: 72434
-        },
-        solis: {
-            label: 'SOLIS - Solar Installation', local: 'data/solis-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['installer', 'owner', 'inspector'],
-            desc: '2 pages • 3 SIG-tags • roles: installer, owner, inspector',
-            brand: 'solis', brandName: 'SOLIS Technology', logo: 'img/sample-logos/solis-icon.svg', fileSize: 77091
-        },
-        sentinel: {
-            label: 'Sentinel - Property Insurance', local: 'data/sentinel-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['insurer', 'policyholder', 'broker'],
-            desc: '2 pages • 3 SIG-tags • roles: insurer, policyholder, broker',
-            brand: 'sentinel', brandName: 'Sentinel Insurance', logo: 'img/sample-logos/sentinel-icon.svg', fileSize: 98660
-        },
-        aegis: {
-            label: 'Aegis - Group Life Insurance', local: 'data/aegis-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['insurer', 'employer', 'trustee'],
-            desc: '2 pages • 3 SIG-tags • roles: insurer, employer, trustee',
-            brand: 'aegis', brandName: 'Aegis Life', logo: 'img/sample-logos/aegis-icon.svg', fileSize: 84349
-        },
-        harbor: {
-            label: 'Harbor - Reinsurance Treaty', local: 'data/harbor-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['reinsurer', 'cedent', 'actuary'],
-            desc: '2 pages • 3 SIG-tags • roles: reinsurer, cedent, actuary',
-            brand: 'harbor', brandName: 'Harbor Re', logo: 'img/sample-logos/harbor-icon.svg', fileSize: 79431
-        },
-        apex: {
-            label: 'Apex - Prof. Liability', local: 'data/apex-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['underwriter', 'insured', 'witness'],
-            desc: '2 pages • 3 SIG-tags • roles: underwriter, insured, witness',
-            brand: 'apex', brandName: 'Apex Assurance', logo: 'img/sample-logos/apex-icon.svg', fileSize: 75051
-        },
-        prism: {
-            label: 'Prism - Creative Retainer', local: 'data/prism-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['agency', 'client', 'director'],
-            desc: '2 pages • 3 SIG-tags • roles: agency, client, director',
-            brand: 'prism', brandName: 'Prism Digital', logo: 'img/sample-logos/prism-icon.svg', fileSize: 72695
-        },
-        mosaic: {
-            label: 'Mosaic - Research Agreement', local: 'data/mosaic-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['lab', 'partner', 'ethics'],
-            desc: '2 pages • 3 SIG-tags • roles: lab, partner, ethics',
-            brand: 'mosaic', brandName: 'Mosaic Labs', logo: 'img/sample-logos/mosaic-icon.svg', fileSize: 75881
-        },
-        nexus: {
-            label: 'Nexus - Term Sheet', local: 'data/nexus-contract.pdf', scanSigTags: true,
-            pages: 2, sigFields: 0, sigTags: 3, required: 3, optional: 0, roles: ['investor', 'founder', 'counsel'],
-            desc: '2 pages • 3 SIG-tags • roles: investor, founder, counsel',
-            brand: 'nexus', brandName: 'Nexus Group', logo: 'img/sample-logos/nexus-icon.svg', fileSize: 117514
-        },
-        custom: {
-            label: 'Your Own File', local: null, scanSigTags: false,
-            pages: null, sigFields: null, sigTags: null, required: null, optional: null, roles: [],
-            desc: 'Upload a PDF from your disk'
-        }
-    };
+    /** Webhook provider and document catalogs - loaded from JSON at init */
+    let WEBHOOK_PROVIDERS = {};
+    let DOCUMENTS = {};
 
     function getSelectedDocument() {
         return DOCUMENTS[state.selectedDoc] || DOCUMENTS.acme;
@@ -332,6 +205,7 @@
     }
 
     function saveFeatureSettings(settings) {
+        if (loadProfiles().length === 0) return; // only persist when user has saved profiles
         try { localStorage.setItem(FEATURE_STORE_KEY, JSON.stringify(settings)); } catch { /* ignore */ }
     }
 
@@ -401,6 +275,7 @@
                     corsProxyUrl: corsProxy ? ($('#cfg-cors-proxy-url').val() || '') : '',
                     webhooksEnabled: $('#cfg-webhooks').is(':checked'),
                     webhookProvider: state.webhookProvider || 'smee',
+                    webhookCustomUrl: $('#cfg-webhook-custom-url').val() || '',
                     updatedAt: Date.now()
                 };
                 if (idx >= 0) {
@@ -431,6 +306,7 @@
                     corsProxyUrl: corsProxy ? ($('#cfg-cors-proxy-url').val() || '') : '',
                     webhooksEnabled: $('#cfg-webhooks').is(':checked'),
                     webhookProvider: state.webhookProvider || 'smee',
+                    webhookCustomUrl: $('#cfg-webhook-custom-url').val() || '',
                     updatedAt: Date.now()
                 };
                 if (idx >= 0) {
@@ -453,23 +329,21 @@
     function updateSaveButtonState() {
         var $btn = $('#btn-save-connection');
         if (!$btn.length) return;
+        var $wrap = $btn.closest('div');
         var baseUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '');
         var username = ($('#cfg-username').val() || '').trim();
         var password = ($('#cfg-password').val() || '').trim();
-        if (!baseUrl || !username) { $btn.prop('disabled', true); return; }
-        // Check if this exact combo already exists in saved profiles or is the sandbox
+        if (!baseUrl || !username) { $wrap.addClass('d-none'); return; }
+        // Check if this exact combo already exists in saved profiles
         var all = getAllProfiles();
         var alreadySaved = all.some(function(p) {
             return p.baseUrl.replace(/\/+$/, '').toLowerCase() === baseUrl.toLowerCase()
                 && p.username.toLowerCase() === username.toLowerCase()
                 && p.password === password;
         });
-        if (alreadySaved) {
-            $btn.closest('div').addClass('d-none');
-            $('#save-credentials-warning').addClass('d-none');
-        } else {
-            $btn.closest('div').removeClass('d-none');
-        }
+        $wrap.toggleClass('d-none', alreadySaved);
+        // Warning stays visible as long as any profiles exist - only hidden when all deleted
+        $('#save-credentials-warning').toggleClass('d-none', loadProfiles().length === 0);
     }
 
     function deleteProfile(index) {
@@ -478,6 +352,25 @@
         profiles.splice(index, 1);
         saveProfiles(profiles);
         renderProfiles();
+        // If no profiles left, clear all persisted state
+        if (profiles.length === 0) {
+            clearAllStorage();
+        }
+        updateSaveButtonState();
+    }
+
+    /** Remove all app data from localStorage (profiles, state, settings, etc.) */
+    function clearAllStorage() {
+        var keys = [
+            PROFILES_STORE_KEY, STATE_STORE_KEY, FEATURE_STORE_KEY,
+            'insign-extern-options', 'insign-explorer-userid'
+        ];
+        for (var i = 0; i < keys.length; i++) {
+            try { localStorage.removeItem(keys[i]); } catch { /* ignore */ }
+        }
+        $('#save-credentials-warning').addClass('d-none');
+        renderProfiles();
+        updateSaveButtonState();
     }
 
     var _selectedProfileKey = null; // track active selection explicitly
@@ -500,11 +393,18 @@
             $('#webhook-provider-group').css('display', p.webhooksEnabled ? '' : 'none');
             $('#webhook-relay-warning').toggleClass('d-none', !p.webhooksEnabled);
         }
+        if (p.webhookProvider) {
+            state.webhookProvider = p.webhookProvider;
+        }
+        if (p.webhookCustomUrl) {
+            $('#cfg-webhook-custom-url').val(p.webhookCustomUrl);
+        }
         // Trigger base URL change to update API client and CORS visibility
         $('#cfg-base-url').trigger('change');
         _profileSelecting = false;
         renderProfiles();
         updateSaveButtonState();
+        saveAppState();
     }
 
     function getAllProfiles() {
@@ -604,6 +504,13 @@
 
     function saveAppState() {
         const hasSavedProfiles = loadProfiles().length > 0;
+        if (!hasSavedProfiles) {
+            // No saved connections - clear all persisted state
+            try { localStorage.removeItem(STATE_STORE_KEY); } catch { /* ignore */ }
+            return;
+        }
+        // Persist userId now that user has saved profiles
+        try { localStorage.setItem('insign-explorer-userid', state.userId); } catch { /* ignore */ }
         const data = {
             sessionId: state.sessionId,
             lastForuser: state.lastForuser || '',
@@ -613,6 +520,7 @@
             webhookUrl: state.webhookUrl,
             selectedDoc: state.selectedDoc,
             fileDelivery: state.fileDelivery,
+            selectedProfileKey: _selectedProfileKey,
             corsProxy: $('#cfg-cors-proxy').is(':checked'),
             corsProxyUrl: $('#cfg-cors-proxy-url').val() || '',
             webhooksEnabled: $('#cfg-webhooks').length ? $('#cfg-webhooks').is(':checked') : true,
@@ -620,7 +528,11 @@
             userfullname: $('#cfg-userfullname').val() || '',
             userEmail: $('#cfg-userEmail').val() || '',
             pollingEnabled: $('#sidebar-polling-toggle').is(':checked'),
-            hasSavedProfiles: hasSavedProfiles,
+            baseUrl: $('#cfg-base-url').val() || '',
+            username: $('#cfg-username').val() || '',
+            password: $('#cfg-password').val() || '',
+            authMode: state.authMode || 'basic',
+            brandSyncDoc: $('#brand-sync-doc').is(':checked'),
             brandColors: {
                 primary: $('#brand-color-primary').val() || '',
                 accent: $('#brand-color-accent').val() || '',
@@ -639,16 +551,9 @@
                 login: $('#brand-logo-extern').val() || ''
             }
         };
-        if (hasSavedProfiles) {
-            data.baseUrl = $('#cfg-base-url').val() || '';
-            data.username = $('#cfg-username').val() || '';
-            data.password = $('#cfg-password').val() || '';
-            // Persist OAuth2 token if active
-            data.authMode = state.authMode || 'basic';
-            if (state.apiClient && state.apiClient.oauth2Token) {
-                data.oauth2Token = state.apiClient.oauth2Token;
-                data.oauth2ExpiresAt = state.apiClient.oauth2ExpiresAt;
-            }
+        if (state.apiClient && state.apiClient.oauth2Token) {
+            data.oauth2Token = state.apiClient.oauth2Token;
+            data.oauth2ExpiresAt = state.apiClient.oauth2ExpiresAt;
         }
         try { localStorage.setItem(STATE_STORE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
     }
@@ -664,17 +569,28 @@
         const saved = loadAppState();
         if (!saved) return;
 
-        // Restore connection settings from saved profiles or app state
-        if (saved.hasSavedProfiles || saved.saveCredentials) {
-            if (saved.baseUrl) {
-                $('#cfg-base-url').val(saved.baseUrl);
+        // Restore selected profile key and apply the matching profile
+        if (saved.selectedProfileKey) {
+            _selectedProfileKey = saved.selectedProfileKey;
+            // Find the matching profile and apply its connection fields
+            var allProfiles = getAllProfiles();
+            for (var i = 0; i < allProfiles.length; i++) {
+                var pUrl = allProfiles[i].baseUrl.replace(/\/+$/, '').toLowerCase();
+                var pUser = allProfiles[i].username.toLowerCase();
+                if ((pUrl + '|' + pUser) === _selectedProfileKey) {
+                    _profileSelecting = true;
+                    $('#cfg-base-url').val(allProfiles[i].baseUrl);
+                    $('#cfg-username').val(allProfiles[i].username);
+                    $('#cfg-password').val(allProfiles[i].password);
+                    _profileSelecting = false;
+                    break;
+                }
             }
-            if (saved.username) {
-                $('#cfg-username').val(saved.username);
-            }
-            if (saved.password) {
-                $('#cfg-password').val(saved.password);
-            }
+        } else if (saved.baseUrl) {
+            // No profile selected - restore raw field values
+            $('#cfg-base-url').val(saved.baseUrl);
+            if (saved.username) $('#cfg-username').val(saved.username);
+            if (saved.password) $('#cfg-password').val(saved.password);
         }
 
         // Restore CORS proxy
@@ -1084,11 +1000,13 @@
             body.userEmail = owner.userEmail;
         }
 
-        // Include webhook URL if available
-        if (state.webhookUrl) {
-            body.serverSidecallbackURL = state.webhookUrl;
+        // Include webhook URL if available (prefer live viewer URL over saved state)
+        const liveWhUrl = (state.webhookViewer && state.webhookViewer.getUrl()) || state.webhookUrl;
+        if (liveWhUrl && $('#cfg-webhooks').is(':checked')) {
+            body.serverSidecallbackURL = liveWhUrl;
             body.serversideCallbackMethod = 'POST';
             body.serversideCallbackContenttype = 'json';
+            state.webhookUrl = liveWhUrl; // sync state
         }
 
         return body;
@@ -1178,107 +1096,37 @@
         } catch (e) { /* ignore parse errors */ }
     }
 
-    const OPERATIONS = {
-        'status': {
-            method: 'POST', path: '/get/status',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'load': {
-            method: 'POST', path: '/persistence/loadsession',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'documents': {
-            method: 'POST', path: '/get/documents/full?includeAnnotations=true',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'document-single': {
-            method: 'POST', path: '/get/document',
-            getBody: getDocumentSingleBody,
-            schemaKey: null,
-            formParams: true,
-            accept: '*/*'
-        },
-        'download': {
-            method: 'POST', path: '/get/documents/download',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput',
-            accept: '*/*'
-        },
-        'extern': {
-            method: 'POST', path: '/extern/beginmulti',
-            getBody: getDefaultExternBody,
-            schemaKey: 'startExternMultiuser'
-        },
-        'abort-extern': {
-            method: 'POST', path: '/extern/abort',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'finish': {
-            method: 'POST', path: '/configure/fertig',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'restart': {
-            method: 'POST', path: '/configure/restartsession',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput',
-            formParams: true,
-            accept: '*/*'
-        },
-        'delete': {
-            method: 'POST', path: '/configure/ablehnen',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'delete-session': {
-            method: 'POST', path: '/configure/deletesession',
-            accept: '*/*',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput',
-            formParams: true
-        },
-        'audit': {
-            method: 'POST', path: '/get/audit',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'extern-users': {
-            method: 'POST', path: '/extern/users',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'send-reminder': {
-            method: 'POST', path: '/load/sendManualReminder',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'extern-info': {
-            method: 'POST', path: '/get/externInfos',
-            getBody: getSessionIdBody,
-            schemaKey: 'sessionIDInput'
-        },
-        'sso': {
-            method: 'POST', path: '/configure/createSSOForApiuser',
-            getBody: getSSOBody,
-            schemaKey: null,
-            accept: 'text/plain'
-        },
-        'version': {
-            method: 'GET', path: '/version', accept: '*/*',
-            getBody: null,
-            schemaKey: null
-        }
-    };
+    /** Operations catalog - loaded from JSON at init, hydrated with function refs */
+    let OPERATIONS = {};
 
     // =====================================================================
     // Initialization
     // =====================================================================
 
     async function init() {
+        // Load catalog data from JSON files
+        var [whResp, docResp, opsResp] = await Promise.all([
+            fetch('data/webhook-providers.json'),
+            fetch('data/documents.json'),
+            fetch('data/operations.json')
+        ]);
+        if (whResp.ok) WEBHOOK_PROVIDERS = await whResp.json();
+        if (docResp.ok) DOCUMENTS = await docResp.json();
+        if (opsResp.ok) {
+            OPERATIONS = await opsResp.json();
+            // Hydrate bodyFn strings into actual function references
+            var bodyFns = {
+                getSessionIdBody: getSessionIdBody,
+                getDefaultExternBody: getDefaultExternBody,
+                getDocumentSingleBody: getDocumentSingleBody,
+                getSSOBody: getSSOBody
+            };
+            for (var op of Object.values(OPERATIONS)) {
+                op.getBody = op.bodyFn ? bodyFns[op.bodyFn] : null;
+                delete op.bodyFn;
+            }
+        }
+
         // Restore saved state before populating defaults
         restoreAppState();
         renderProfiles();
@@ -1319,9 +1167,20 @@
         buildColorSchemePresets();
         buildLogoSets();
         restoreBranding();
+        // When sync toggle is turned on, immediately apply current document's brand
+        $('#brand-sync-doc').on('change', function() {
+            saveAppState();
+            if ($(this).is(':checked')) {
+                var doc = getSelectedDocument();
+                if (doc.brand) {
+                    var idx = LOGO_SETS.findIndex(function(s) { return s.prefix === doc.brand; });
+                    if (idx >= 0) { selectColorScheme(idx); selectLogoSet(idx); }
+                }
+            }
+        });
         // Apply branding matching the selected document if no saved branding
         var saved = loadAppState();
-        if (!saved || saved.brandColorScheme == null) {
+        if ((!saved || saved.brandColorScheme == null) && $('#brand-sync-doc').is(':checked')) {
             var doc = getSelectedDocument();
             if (doc.brand) {
                 var idx = LOGO_SETS.findIndex(function(s) { return s.prefix === doc.brand; });
@@ -1380,24 +1239,8 @@
         }
 
         function setCorsNeeded(needed) {
-            const $toggle = $('#cors-proxy-toggle-wrap');
-            const $hint = $('#cors-hint-banner');
-            const $corsToggle = $('#cfg-cors-proxy');
-            if (needed) {
-                $toggle.removeClass('d-none');
-                if (!$corsToggle.is(':checked')) {
-                    $hint.removeClass('d-none');
-                } else {
-                    $hint.addClass('d-none');
-                }
-            } else {
-                $corsToggle.prop('checked', false).trigger('change');
-                // Don't hide if shown for webhook CORS
-                if (!$toggle.attr('data-webhook-cors')) {
-                    $toggle.addClass('d-none');
-                    $hint.addClass('d-none');
-                }
-            }
+            state._corsIssueApi = needed;
+            reconcileWebhookCorsState();
         }
 
         function updateCorsVisibility() {
@@ -1450,17 +1293,23 @@
             const $dot = $('#proxy-probe-dot');
             if (!$dot.length) return;
             $dot.attr('class', 'proxy-probe-dot probe-pending');
-            if (!baseUrl) { applyProbeResult(false, null); return; }
+            if (!baseUrl) { applyProbeResult(false, null, 'No API base URL configured'); return; }
             const url = proxyUrl + encodeURIComponent(baseUrl + '/version');
             fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store', signal: AbortSignal.timeout(4000) })
                 .then(r => {
                     if (r.ok) return r.text().then(t => applyProbeResult(true, t.trim()));
-                    applyProbeResult(false, null);
+                    var proxyOk = r.headers.get('X-Proxy-Status') === 'ok';
+                    if (proxyOk) {
+                        // Proxy reached the target, but target returned an error
+                        return applyProbeResult(false, null, 'Target returned HTTP ' + r.status + ' - check API Base URL');
+                    }
+                    // Proxy itself failed (502 with X-Proxy-Status: error)
+                    return r.text().then(t => applyProbeResult(false, null, t || ('Proxy error ' + r.status)));
                 })
-                .catch(() => applyProbeResult(false, null));
+                .catch(() => applyProbeResult(false, null, 'Proxy not running'));
         }
 
-        function applyProbeResult(ok, version) {
+        function applyProbeResult(ok, version, errorDetail) {
             const prev = probeStatus;
             probeStatus = ok ? 'ok' : 'fail';
             const $dot = $('#proxy-probe-dot');
@@ -1470,22 +1319,27 @@
                 const vText = version ? 'Connected - inSign ' + version : 'Connected';
                 $label.text(vText).attr('class', 'proxy-probe-label probe-label-ok');
             } else {
-                $label.text('Not reachable').attr('class', 'proxy-probe-label probe-label-fail');
+                var failText = errorDetail || 'Not reachable';
+                // Truncate long error messages for the label
+                if (failText.length > 80) failText = failText.slice(0, 77) + '...';
+                $label.text(failText).attr('class', 'proxy-probe-label probe-label-fail');
             }
             // Toast on status change (skip first probe)
             if (prev !== null && prev !== probeStatus) {
-                showProxyToast(ok, version);
+                showProxyToast(ok, version, errorDetail);
             }
         }
 
         function startProbePolling() {
             stopProbePolling();
+            if (state.currentStep !== 1) return; // only probe on connection tab
             probeLocalProxy();
             probeInterval = setInterval(() => {
+                if (state.currentStep !== 1) { stopProbePolling(); return; }
                 if ($('#cors-proxy-url-group').css('display') !== 'none') {
                     probeLocalProxy();
                 }
-            }, 1000);
+            }, 5000);
         }
 
         function stopProbePolling() {
@@ -1496,10 +1350,11 @@
             probeStatus = null;
         }
 
-        function showProxyToast(ok, version) {
+        function showProxyToast(ok, version, errorDetail) {
             $('.proxy-toast').remove();
             const icon = ok ? '<i class="bi bi-check-circle-fill"></i>' : '<i class="bi bi-x-circle-fill"></i>';
-            const msg = ok ? ('Connected to inSign' + (version ? ' ' + version : '')) : 'Proxy - inSign not reachable';
+            var msg = ok ? ('Connected to inSign' + (version ? ' ' + version : '')) : (errorDetail || 'Proxy - inSign not reachable');
+            if (msg.length > 100) msg = msg.slice(0, 97) + '...';
             const cls = ok ? 'toast-ok' : 'toast-fail';
             const $toast = $('<div class="proxy-toast ' + cls + '">' + icon + ' ' + msg + '</div>');
             $('body').append($toast);
@@ -1511,19 +1366,16 @@
             const on = $corsToggle.is(':checked');
             $('#cors-proxy-url-group').css('display', on ? '' : 'none');
             $('#cors-proxy-security-warning').toggleClass('d-none', !on);
-            // Hide hint when proxy is enabled (user acted on the warning)
-            if (on) {
-                $('#cors-hint-banner').addClass('d-none');
-                $('#cors-proxy-toggle-wrap').removeAttr('data-webhook-cors');
-            } else if (!isSandboxUrl($('#cfg-base-url').val())) {
-                $('#cors-hint-banner').removeClass('d-none');
-            }
             updateApiClient();
             saveAppState();
             if (on) {
                 startProbePolling();
             } else {
                 stopProbePolling();
+            }
+            // Reinit webhook so it retries through (or without) the proxy
+            if ($('#cfg-webhooks').is(':checked') && state.webhookViewer) {
+                reinitWebhook();
             }
         });
 
@@ -1550,6 +1402,13 @@
 
         // "Save connection" button
         $('#btn-save-connection').on('click', function() { saveConnectionProfile(); });
+
+        // "Clear all saved data" button
+        $('#btn-clear-all-storage').on('click', function() {
+            if (!confirm('Delete all saved connection profiles and settings from browser localStorage?')) return;
+            clearAllStorage();
+            showToast('All saved data cleared from browser.', 'info');
+        });
 
         // Bind owner field inputs → update JSON editor when changed
         const ownerRefresh = () => {
@@ -1597,30 +1456,8 @@
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer; // for inline onclick handlers
 
-        state.webhookViewer.onCorsNeeded = () => {
-            // Only show if webhooks are enabled
-            if (!$('#cfg-webhooks').is(':checked')) return;
-            // Webhook provider CORS failure - show CORS proxy toggle and hint
-            $('#cors-proxy-toggle-wrap').removeClass('d-none');
-            $('#cors-hint-banner').removeClass('d-none')
-                .find('span').first().html('Webhook provider blocked by CORS. Enable the <strong>CORS proxy</strong> to route webhook requests through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a>');
-            // Mark as webhook-triggered so setCorsNeeded(false) won't hide it
-            $('#cors-proxy-toggle-wrap').attr('data-webhook-cors', '1');
-        };
-
-        state.webhookViewer.onUrlCreated = (url) => {
-            state.webhookUrl = url;
-            // Update the create-session editor to include the webhook URL
-            if (state.editors['create-session']) {
-                const currentBody = getEditorValue('create-session');
-                if (typeof currentBody === 'object' && !currentBody.serverSidecallbackURL) {
-                    currentBody.serverSidecallbackURL = url;
-                    currentBody.serversideCallbackMethod = 'POST';
-                    currentBody.serversideCallbackContenttype = 'json';
-                    setEditorValue('create-session', currentBody);
-                }
-            }
-        };
+        state.webhookViewer.onUrlCreated = handleWebhookReady;
+        state.webhookViewer.onError = handleWebhookError;
 
         // Create webhook endpoint and start listening
         state.webhookViewer.createEndpoint().then(url => {
@@ -1636,29 +1473,15 @@
                 if ($providerGroup.length) $providerGroup.css('display', checked ? '' : 'none');
                 $('#webhook-relay-warning').toggleClass('d-none', !checked);
 
-                // Sync sidebar-step2 webhook toggle
-                const $sidebarWhToggle = $('#sidebar-webhooks-toggle');
-                if ($sidebarWhToggle.length) $sidebarWhToggle.prop('checked', $webhooksToggle.is(':checked'));
-
-                // Update session JSON: add/remove serverSidecallbackURL
-                if (state.editors['create-session']) {
-                    const body = getEditorValue('create-session');
-                    if (typeof body === 'object') {
-                        if ($webhooksToggle.is(':checked') && state.webhookUrl) {
-                            body.serverSidecallbackURL = state.webhookUrl;
-                            body.serversideCallbackMethod = 'POST';
-                            body.serversideCallbackContenttype = 'json';
-                        } else {
-                            delete body.serverSidecallbackURL;
-                            delete body.serversideCallbackMethod;
-                            delete body.serversideCallbackContenttype;
-                        }
-                        setEditorValue('create-session', body);
-                    }
+                if (!checked) {
+                    state._corsIssueWebhook = false;
+                    toggleWebhookSection(false);
+                } else {
+                    // Re-enable: reinit webhook to retry connection and probe
+                    reinitWebhook();
                 }
 
-                // Toggle webhook section in sidebar
-                toggleWebhookSection($webhooksToggle.is(':checked'));
+                reconcileWebhookCorsState();
             });
             // Show warning if already enabled on load
             if ($webhooksToggle.is(':checked')) {
@@ -1723,10 +1546,10 @@
                         tab.show();
                     }
                 }
-                // Focus session ID input if navigating to step 3 with no session
+                // Focus navbar session ID input if navigating to step 3 with no session
                 if (step === 3 && !state.sessionId) {
-                    const $input = $('#manual-session-id');
-                    if ($input.length) setTimeout(() => $input.focus(), 300);
+                    $('#navbar-session').removeClass('d-none').addClass('d-flex');
+                    setTimeout(() => $('#navbar-session-id').focus(), 300);
                 }
             }
         }
@@ -2318,10 +2141,10 @@
             $box.addClass('shine');
         }
 
-        // Show webhook/polling sections in right sidebar for step 3+
-        const showMonitor = step >= 3;
-        $('#section-webhooks').toggleClass('d-none', !showMonitor);
-        $('#section-polling').toggleClass('d-none', !showMonitor);
+        // Show polling section in right sidebar for step 3+
+        $('#section-polling').toggleClass('d-none', step < 3);
+        // Reconcile webhook sidebar + CORS hint state
+        reconcileWebhookCorsState();
         if (step === 3) {
             // Auto-open sidebar on "Operate and trace" tab (unless user collapsed it)
             if (!state.sidebarCollapsed) {
@@ -2408,7 +2231,7 @@
         $('#navbar-btn-open').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
         $('#btn-open-session-manager').toggleClass('d-none', !hasSession)
             .attr('title', state.accessURLProcessManagement || '');
-        $('#btn-goto-step2').removeClass('d-none');
+        $('#btn-goto-step2, #btn-floating-goto-step2').removeClass('d-none');
 
         // Reset histories and create new webhook URL for new sessions
         // But skip regeneration when coming from createSession - the URL was already sent
@@ -2491,8 +2314,10 @@
 
     async function createSession(andOpen) {
         const $btn = $('#btn-create-session');
+        const $btnOpen = $('#btn-create-session-open');
         const $floatBtns = $('#floating-actions-step2 .btn-floating');
         $btn.prop('disabled', true);
+        $btnOpen.prop('disabled', true);
         $floatBtns.prop('disabled', true);
         $btn.html('<span class="spinner-insign"></span> Sending...');
 
@@ -2512,6 +2337,8 @@
                     } catch (err) {
                         showCreateSessionError('Failed to load document: ' + err.message);
                         $btn.prop('disabled', false);
+                        $btnOpen.prop('disabled', false);
+                        $floatBtns.prop('disabled', false);
                         $btn.html('<i class="bi bi-send"></i> Send Request');
                         return;
                     }
@@ -2527,6 +2354,8 @@
                 } catch (err) {
                     showCreateSessionError('Failed to load document: ' + err.message);
                     $btn.prop('disabled', false);
+                    $btnOpen.prop('disabled', false);
+                    $floatBtns.prop('disabled', false);
                     $btn.html('<i class="bi bi-send"></i> Send Request');
                     return;
                 }
@@ -2594,28 +2423,30 @@
                     window.open(respBody.accessURL, '_blank');
                 }
 
-                // Auto-navigate to step 3 after 3s countdown
-                const $step2Btn = $('#btn-goto-step2');
-                if ($step2Btn.length && !$step2Btn.hasClass('d-none')) {
+                // Auto-navigate to step 3 after 3s countdown (synced on inline + floating)
+                const $step2Btns = $('#btn-goto-step2, #btn-floating-goto-step2');
+                if ($step2Btns.length && !$step2Btns.first().hasClass('d-none')) {
                     let countdown = 3;
-                    $step2Btn.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace (' + countdown + ')');
+                    const setLabel = (n) => $step2Btns.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace' + (n > 0 ? ' (' + n + ')' : ''));
+                    setLabel(countdown);
                     const timer = setInterval(() => {
                         countdown--;
                         if (countdown <= 0) {
                             clearInterval(timer);
-                            $step2Btn.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace');
+                            setLabel(0);
                             goToStep(3);
                         } else {
-                            $step2Btn.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace (' + countdown + ')');
+                            setLabel(countdown);
                         }
                     }, 1000);
-                    // Cancel countdown if user clicks something else
-                    $step2Btn.one('click', () => clearInterval(timer));
+                    // Cancel countdown if user clicks either button
+                    $step2Btns.one('click', () => clearInterval(timer));
                 }
             }
         }
 
         $btn.prop('disabled', false);
+        $btnOpen.prop('disabled', false);
         $floatBtns.prop('disabled', false);
         $btn.html('<i class="bi bi-send"></i> Send Request');
     }
@@ -2926,6 +2757,7 @@
     }
 
     function saveExternOptions() {
+        if (loadProfiles().length === 0) return; // only persist when user has saved profiles
         const opts = {};
         for (const key of ['sendEmails', 'singleSignOnEnabled', 'sendSMS', 'inOrder']) {
             const val = getExternOption(key);
@@ -3276,6 +3108,14 @@
                 }
             }
         }
+        // Update sessionid in the free request editor if present
+        if (state.editors['op-free'] && state.sessionId) {
+            const body = getEditorValue('op-free');
+            if (typeof body === 'object' && ('sessionid' in body)) {
+                body.sessionid = state.sessionId;
+                setEditorValue('op-free', body);
+            }
+        }
     }
 
     function copySessionId() {
@@ -3579,7 +3419,7 @@
         }
 
         // Switch branding to match document (must come after editor reset)
-        if (selDoc.brand) {
+        if (selDoc.brand && $('#brand-sync-doc').is(':checked')) {
             const brandIndex = LOGO_SETS.findIndex(s => s.prefix === selDoc.brand);
             if (brandIndex >= 0) {
                 selectColorScheme(brandIndex);
@@ -3809,6 +3649,71 @@
         }
     }
 
+    /** Called when webhook endpoint creation succeeds */
+    function handleWebhookReady(url) {
+        state.webhookUrl = url;
+        state._corsIssueWebhook = false;
+        reconcileWebhookCorsState();
+        saveAppState();
+    }
+
+    /** Called when webhook endpoint creation fails */
+    function handleWebhookError(message) {
+        state.webhookUrl = null;
+        state._corsIssueWebhook = !!(message && message.includes('Failed to fetch'));
+        reconcileWebhookCorsState();
+        saveAppState();
+    }
+
+    /**
+     * Single reconciliation function. Called whenever any webhook/CORS setting
+     * or probe result changes. Derives the correct end-state from scratch:
+     *
+     * - CORS proxy switch: always visible (no conditions)
+     * - Webhook sidebar:   visible only when relay enabled AND on step 3+
+     * - serverSidecallbackURL in JSON: present only when relay enabled AND url available
+     * - CORS hint banner:  visible when any recent CORS/connection issue detected
+     */
+    function reconcileWebhookCorsState() {
+        const webhooksOn = $('#cfg-webhooks').is(':checked');
+        const onStep3Plus = state.currentStep >= 3;
+        const url = state.webhookUrl;
+
+        // 1. Webhook sidebar section: visible when enabled AND on step 3+
+        $('#section-webhooks').toggleClass('d-none', !(webhooksOn && onStep3Plus));
+        if (webhooksOn && onStep3Plus) {
+            toggleWebhookSection($('#sidebar-webhooks-toggle').is(':checked'));
+        }
+
+        // 2. serverSidecallbackURL in JSON: present only when enabled AND url available
+        if (webhooksOn && url) {
+            updateSessionJsonWebhookUrl(url);
+        } else {
+            updateSessionJsonWebhookUrl(null);
+        }
+
+        // 3. CORS hint banners: show each independently based on what's failing
+        $('#cors-hint-banner-api').toggleClass('d-none', !state._corsIssueApi);
+        $('#cors-hint-banner-webhook').toggleClass('d-none', !(state._corsIssueWebhook && webhooksOn));
+    }
+
+    /** Update serverSidecallbackURL in the create-session editor */
+    function updateSessionJsonWebhookUrl(url) {
+        if (!state.editors['create-session']) return;
+        const body = getEditorValue('create-session');
+        if (typeof body !== 'object') return;
+        if (url) {
+            body.serverSidecallbackURL = url;
+            body.serversideCallbackMethod = 'POST';
+            body.serversideCallbackContenttype = 'json';
+        } else {
+            delete body.serverSidecallbackURL;
+            delete body.serversideCallbackMethod;
+            delete body.serversideCallbackContenttype;
+        }
+        setEditorValue('create-session', body);
+    }
+
     function setWebhookProvider(provider) {
         state.webhookProvider = provider;
         const info = WEBHOOK_PROVIDERS[provider] || WEBHOOK_PROVIDERS['webhook.site'];
@@ -3826,18 +3731,11 @@
         if ($customGroup.length) $customGroup.css('display', info.needsCustomUrl ? '' : 'none');
 
         if (info.needsCustomUrl) {
-            // Custom provider: just update session JSON with whatever URL user entered
+            // Custom provider: update state and session JSON with user-entered URL
             if (state.webhookViewer) state.webhookViewer.stopPolling();
             const customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
-            if (state.editors['create-session'] && customUrl) {
-                const body = getEditorValue('create-session');
-                if (typeof body === 'object') {
-                    body.serverSidecallbackURL = customUrl;
-                    body.serversideCallbackMethod = 'POST';
-                    body.serversideCallbackContenttype = 'json';
-                    setEditorValue('create-session', body);
-                }
-            }
+            state.webhookUrl = customUrl || null;
+            updateSessionJsonWebhookUrl(customUrl || null);
         } else {
             // Auto-managed providers - reinit with new provider
             reinitWebhook();
@@ -3853,6 +3751,11 @@
             var key = state.webhookProvider;
             probeWebhookProvider(key, customUrl);
         }
+        // Update state and session JSON
+        if (customUrl) {
+            state.webhookUrl = customUrl;
+            updateSessionJsonWebhookUrl(customUrl);
+        }
         // Re-apply current provider with the new URL
         setWebhookProvider(state.webhookProvider);
     }
@@ -3866,28 +3769,8 @@
         var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer;
-        state.webhookViewer.onCorsNeeded = () => {
-            // Only show if webhooks are enabled
-            if (!$('#cfg-webhooks').is(':checked')) return;
-            // Webhook provider CORS failure - show CORS proxy toggle and hint
-            $('#cors-proxy-toggle-wrap').removeClass('d-none');
-            $('#cors-hint-banner').removeClass('d-none')
-                .find('span').first().html('Webhook provider blocked by CORS. Enable the <strong>CORS proxy</strong> to route webhook requests through your local proxy. <a href="#cors-proxy-info" data-bs-toggle="collapse" style="font-size:0.74rem">Learn more</a>');
-            // Mark as webhook-triggered so setCorsNeeded(false) won't hide it
-            $('#cors-proxy-toggle-wrap').attr('data-webhook-cors', '1');
-        };
-        state.webhookViewer.onUrlCreated = (url) => {
-            state.webhookUrl = url;
-            if (state.editors['create-session']) {
-                const body = getEditorValue('create-session');
-                if (typeof body === 'object') {
-                    body.serverSidecallbackURL = url;
-                    body.serversideCallbackMethod = 'POST';
-                    body.serversideCallbackContenttype = 'json';
-                    setEditorValue('create-session', body);
-                }
-            }
-        };
+        state.webhookViewer.onUrlCreated = handleWebhookReady;
+        state.webhookViewer.onError = handleWebhookError;
         state.webhookViewer.createEndpoint().then(url => {
             if (url) state.webhookViewer.startPolling();
         });
@@ -4621,6 +4504,9 @@
         const saved = loadAppState();
         if (!saved) return;
 
+        if (saved.brandSyncDoc !== undefined) {
+            $('#brand-sync-doc').prop('checked', saved.brandSyncDoc);
+        }
         if (saved.brandColors) {
             const c = saved.brandColors;
             if (c.primary) { $('#brand-color-primary').val(c.primary); $('#brand-color-primary-hex').val(c.primary); }

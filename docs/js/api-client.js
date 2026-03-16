@@ -55,7 +55,8 @@ window.InsignApiClient = class InsignApiClient {
      * Check if OAuth2 token is valid and not expired
      */
     isOAuth2TokenValid() {
-        return this.oauth2Token && this.oauth2ExpiresAt && Date.now() < this.oauth2ExpiresAt;
+        // 30s safety margin to refresh before actual expiry
+        return this.oauth2Token && this.oauth2ExpiresAt && Date.now() < (this.oauth2ExpiresAt - 30000);
     }
 
     /**
@@ -121,6 +122,12 @@ window.InsignApiClient = class InsignApiClient {
 
         const url = this.buildUrl(path, queryParams);
 
+        // Pre-call hook (e.g. auto-refresh OAuth2 token) - must run before
+        // building headers so a refreshed token is used for this request
+        if (this._beforeCall) {
+            await this._beforeCall(method, path);
+        }
+
         const headers = {
             'Authorization': this.getAuthHeader(),
             'Accept': accept
@@ -138,11 +145,6 @@ window.InsignApiClient = class InsignApiClient {
         } else if (body !== null && method.toUpperCase() !== 'GET') {
             headers['Content-Type'] = contentType;
             fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
-        }
-
-        // Pre-call hook (e.g. auto-refresh OAuth2 token)
-        if (this._beforeCall) {
-            await this._beforeCall(method, path);
         }
 
         // Build request body snapshot for trace (avoid logging binary FormData)
