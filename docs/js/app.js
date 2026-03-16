@@ -347,7 +347,6 @@
             accessURL: state.accessURL,
             webhookProvider: state.webhookProvider,
             webhookCustomUrl: $('#cfg-webhook-custom-url').val() || '',
-            webhookChannelId: state.webhookViewer && state.webhookViewer._cfChannelId || '',
             webhookUrl: state.webhookUrl,
             selectedDoc: state.selectedDoc,
             fileDelivery: state.fileDelivery,
@@ -1256,7 +1255,15 @@
             }
         });
 
-        $('#cfg-cors-proxy-url').on('change', () => { updateApiClient(); saveAppState(); });
+        $('#cfg-cors-proxy-url').on('change', () => {
+            updateApiClient();
+            saveAppState();
+            // Update webhook viewer proxy
+            if (state.webhookViewer) {
+                var proxy = $corsToggle.is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
+                state.webhookViewer.setCorsProxy(proxy);
+            }
+        });
 
         // Show actual origin in CORS config hint
         $('#cors-origin-hint').text(window.location.origin);
@@ -1323,13 +1330,9 @@
         // Init webhook viewer in sidebar (before Monaco so URL is available for default JSON body)
         state.webhookViewer = new window.WebhookViewer('#sidebar-webhook-container');
         state.webhookViewer.setProvider(state.webhookProvider);
-        // Restore CF Worker config so createEndpoint reuses the existing channel
-        if (state.webhookProvider === 'cfworker') {
-            const workerUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
-            if (workerUrl) state.webhookViewer.setCfWorkerUrl(workerUrl);
-            var saved = loadAppState() || {};
-            if (saved.webhookChannelId) state.webhookViewer.setCfWorkerChannelId(saved.webhookChannelId);
-        }
+        // Pass CORS proxy URL so webhook providers can be reached from localhost
+        var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
+        if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer; // for inline onclick handlers
 
         state.webhookViewer.onUrlCreated = (url) => {
@@ -3587,10 +3590,8 @@
         }
         state.webhookViewer = new window.WebhookViewer('#sidebar-webhook-container');
         state.webhookViewer.setProvider(state.webhookProvider);
-        if (state.webhookProvider === 'cfworker') {
-            const workerUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
-            if (workerUrl) state.webhookViewer.setCfWorkerUrl(workerUrl);
-        }
+        var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
+        if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer;
         state.webhookViewer.onUrlCreated = (url) => {
             state.webhookUrl = url;
