@@ -336,11 +336,265 @@
     }
 
     // =====================================================================
+    // Saved connection profiles
+    // =====================================================================
+    const PROFILES_STORE_KEY = 'insign-explorer-profiles';
+    const SANDBOX_PROFILE = {
+        baseUrl: 'https://sandbox.test.getinsign.show',
+        username: 'controller',
+        password: 'pwd.insign.sandbox.4561',
+        fixed: true
+    };
+    var _profileProbeAbort = null;
+
+    function loadProfiles() {
+        try {
+            const raw = localStorage.getItem(PROFILES_STORE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch { return []; }
+    }
+
+    function saveProfiles(profiles) {
+        try { localStorage.setItem(PROFILES_STORE_KEY, JSON.stringify(profiles)); } catch { /* ignore */ }
+    }
+
+    function isSandboxProfile(p) {
+        return p && p.baseUrl === SANDBOX_PROFILE.baseUrl && p.username === SANDBOX_PROFILE.username;
+    }
+
+    /** Probe credentials via /version endpoint, then save if valid (button-triggered) */
+    function saveConnectionProfile() {
+        var baseUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '');
+        var username = ($('#cfg-username').val() || '').trim();
+        var password = ($('#cfg-password').val() || '').trim();
+        if (!baseUrl || !username) {
+            showToast('Please enter a base URL and username first.', 'warning');
+            return;
+        }
+
+        var $btn = $('#btn-save-connection');
+        var origHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Verifying...');
+
+        if (_profileProbeAbort) _profileProbeAbort.abort();
+        _profileProbeAbort = new AbortController();
+
+        // Build the fetch URL (through CORS proxy if enabled)
+        var versionUrl = baseUrl + '/version';
+        var corsProxy = $('#cfg-cors-proxy').is(':checked');
+        var fetchUrl = corsProxy ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') + encodeURIComponent(versionUrl) : versionUrl;
+
+        // Use basic auth to verify credentials work
+        var headers = { 'Authorization': 'Basic ' + btoa(username + ':' + password) };
+
+        fetch(fetchUrl, { method: 'GET', headers: headers, signal: _profileProbeAbort.signal, mode: 'cors', cache: 'no-store' })
+            .then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                // Credentials work - save profile with all settings
+                var profiles = loadProfiles();
+                var idx = profiles.findIndex(function(p) { return p.baseUrl.replace(/\/+$/, '') === baseUrl && p.username === username; });
+                var entry = {
+                    baseUrl: baseUrl,
+                    username: username,
+                    password: password,
+                    corsProxy: corsProxy,
+                    corsProxyUrl: corsProxy ? ($('#cfg-cors-proxy-url').val() || '') : '',
+                    webhooksEnabled: $('#cfg-webhooks').is(':checked'),
+                    webhookProvider: state.webhookProvider || 'smee',
+                    updatedAt: Date.now()
+                };
+                if (idx >= 0) {
+                    profiles[idx] = entry;
+                } else {
+                    profiles.push(entry);
+                }
+                if (profiles.length > 20) profiles = profiles.slice(-20);
+                saveProfiles(profiles);
+                renderProfiles();
+
+                // Show localStorage warning
+                $('#save-credentials-warning').removeClass('d-none');
+
+                $btn.html('<i class="bi bi-check-lg"></i> Saved!');
+                setTimeout(function() { $btn.html(origHtml); updateSaveButtonState(); }, 2000);
+                showToast('Connection saved.', 'success');
+            })
+            .catch(function(err) {
+                // Save anyway but warn that verification failed
+                var profiles = loadProfiles();
+                var idx = profiles.findIndex(function(p) { return p.baseUrl.replace(/\/+$/, '') === baseUrl && p.username === username; });
+                var entry = {
+                    baseUrl: baseUrl,
+                    username: username,
+                    password: password,
+                    corsProxy: corsProxy,
+                    corsProxyUrl: corsProxy ? ($('#cfg-cors-proxy-url').val() || '') : '',
+                    webhooksEnabled: $('#cfg-webhooks').is(':checked'),
+                    webhookProvider: state.webhookProvider || 'smee',
+                    updatedAt: Date.now()
+                };
+                if (idx >= 0) {
+                    profiles[idx] = entry;
+                } else {
+                    profiles.push(entry);
+                }
+                if (profiles.length > 20) profiles = profiles.slice(-20);
+                saveProfiles(profiles);
+                renderProfiles();
+                $('#save-credentials-warning').removeClass('d-none');
+
+                $btn.html('<i class="bi bi-check-lg"></i> Saved');
+                setTimeout(function() { $btn.html(origHtml); updateSaveButtonState(); }, 2000);
+                showToast('Connection saved (could not verify: ' + err.message + ').', 'warning');
+            });
+    }
+
+    /** Enable save button only when current credentials differ from any saved profile */
+    function updateSaveButtonState() {
+        var $btn = $('#btn-save-connection');
+        if (!$btn.length) return;
+        var baseUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '');
+        var username = ($('#cfg-username').val() || '').trim();
+        var password = ($('#cfg-password').val() || '').trim();
+        if (!baseUrl || !username) { $btn.prop('disabled', true); return; }
+        // Check if this exact combo already exists in saved profiles or is the sandbox
+        var all = getAllProfiles();
+        var alreadySaved = all.some(function(p) {
+            return p.baseUrl.replace(/\/+$/, '') === baseUrl && p.username === username && p.password === password;
+        });
+        $btn.prop('disabled', alreadySaved);
+    }
+
+    function deleteProfile(index) {
+        var profiles = loadProfiles();
+        if (isSandboxProfile(profiles[index])) return; // can't delete sandbox
+        profiles.splice(index, 1);
+        saveProfiles(profiles);
+        renderProfiles();
+    }
+
+    var _selectedProfileKey = null; // track active selection explicitly
+
+    function selectProfile(p) {
+        _selectedProfileKey = p.baseUrl.replace(/\/+$/, '') + '|' + p.username;
+        $('#cfg-base-url').val(p.baseUrl);
+        $('#cfg-username').val(p.username);
+        $('#cfg-password').val(p.password);
+        updateApiClient();
+        syncOAuth2Credentials();
+        // Restore CORS and webhook settings if saved (without triggering change to avoid side effects)
+        if (p.corsProxy !== undefined) {
+            $('#cfg-cors-proxy').prop('checked', p.corsProxy);
+            $('#cors-proxy-url-group').css('display', p.corsProxy ? '' : 'none');
+            if (p.corsProxyUrl) $('#cfg-cors-proxy-url').val(p.corsProxyUrl);
+        }
+        if (p.webhooksEnabled !== undefined) {
+            $('#cfg-webhooks').prop('checked', p.webhooksEnabled);
+            $('#webhook-provider-group').css('display', p.webhooksEnabled ? '' : 'none');
+            $('#webhook-relay-warning').toggleClass('d-none', !p.webhooksEnabled);
+        }
+        updateCorsVisibility();
+        saveAppState();
+        renderProfiles();
+        updateSaveButtonState();
+    }
+
+    function getAllProfiles() {
+        // Sandbox is always first and always present
+        var saved = loadProfiles();
+        // Filter out any duplicate sandbox entries from saved
+        var filtered = saved.filter(function(p) { return !isSandboxProfile(p); });
+        return [SANDBOX_PROFILE].concat(filtered);
+    }
+
+    function renderProfiles() {
+        var $group = $('#saved-profiles-group');
+        var all = getAllProfiles();
+        // Only show if there are entries beyond sandbox
+        if (all.length <= 1) {
+            $group.addClass('d-none');
+            return;
+        }
+        $group.removeClass('d-none');
+
+        var currentUrl = ($('#cfg-base-url').val() || '').trim().replace(/\/+$/, '');
+        var currentUser = ($('#cfg-username').val() || '').trim();
+        var currentKey = currentUrl + '|' + currentUser;
+
+        // Build dropdown entries
+        var $container = $('#saved-profiles-list');
+        var html = '<div class="saved-profiles-dropdown">'
+            + '<button type="button" class="saved-profiles-toggle" id="saved-profiles-btn">';
+
+        // Find active entry for button label
+        var activeLabel = 'Select connection...';
+        var activeIdx = -1;
+        for (var i = 0; i < all.length; i++) {
+            var entryKey = all[i].baseUrl.replace(/\/+$/, '') + '|' + all[i].username;
+            if (entryKey === currentKey || entryKey === _selectedProfileKey) {
+                activeIdx = i;
+                var label = all[i].baseUrl.replace(/^https?:\/\//, '');
+                activeLabel = label + ' <span class="profile-user">@' + all[i].username + '</span>';
+                break;
+            }
+        }
+        html += activeLabel + ' <i class="bi bi-chevron-down" style="font-size:0.65rem;margin-left:4px"></i></button>';
+        html += '<div class="saved-profiles-menu" id="saved-profiles-menu">';
+
+        for (var j = 0; j < all.length; j++) {
+            var p = all[j];
+            var isActive = (j === activeIdx);
+            var shortUrl = p.baseUrl.replace(/^https?:\/\//, '');
+            html += '<div class="saved-profile-entry' + (isActive ? ' active' : '') + '" data-idx="' + j + '">'
+                + '<span class="profile-label" title="' + p.baseUrl + '">' + shortUrl
+                + '<span class="profile-user">@' + (p.username || '?') + '</span></span>';
+            if (!p.fixed) {
+                html += '<button type="button" class="profile-delete" data-idx="' + j + '" title="Remove">&times;</button>';
+            }
+            html += '</div>';
+        }
+        html += '</div></div>';
+        $container.html(html);
+
+        // Toggle dropdown
+        $container.find('#saved-profiles-btn').on('click', function(e) {
+            e.stopPropagation();
+            var $menu = $container.find('#saved-profiles-menu');
+            $menu.toggleClass('open');
+            // Close on outside click
+            if ($menu.hasClass('open')) {
+                $(document).one('click', function() { $menu.removeClass('open'); });
+            }
+        });
+
+        // Select entry
+        $container.find('.saved-profile-entry').on('click', function(e) {
+            if ($(e.target).hasClass('profile-delete')) return;
+            e.stopPropagation();
+            $container.find('#saved-profiles-menu').removeClass('open');
+            var idx = parseInt($(this).attr('data-idx'));
+            selectProfile(all[idx]);
+        });
+
+        // Delete entry
+        $container.find('.profile-delete').on('click', function(e) {
+            e.stopPropagation();
+            var idx = parseInt($(this).attr('data-idx'));
+            // idx in all[] array, but sandbox is at 0 and not in saved profiles
+            // Find index in saved profiles (skip sandbox)
+            var savedProfiles = loadProfiles();
+            var target = all[idx];
+            var savedIdx = savedProfiles.findIndex(function(p) { return p.baseUrl === target.baseUrl && p.username === target.username; });
+            if (savedIdx >= 0) deleteProfile(savedIdx);
+        });
+    }
+
+    // =====================================================================
     // Persistent app state (survives reload / browser restart)
     // =====================================================================
 
     function saveAppState() {
-        const saveCredentials = $('#cfg-save-credentials').is(':checked');
+        const hasSavedProfiles = loadProfiles().length > 0;
         const data = {
             sessionId: state.sessionId,
             lastForuser: state.lastForuser || '',
@@ -357,7 +611,7 @@
             userfullname: $('#cfg-userfullname').val() || '',
             userEmail: $('#cfg-userEmail').val() || '',
             pollingEnabled: $('#sidebar-polling-toggle').is(':checked'),
-            saveCredentials,
+            hasSavedProfiles: hasSavedProfiles,
             brandColors: {
                 primary: $('#brand-color-primary').val() || '',
                 accent: $('#brand-color-accent').val() || '',
@@ -376,7 +630,7 @@
                 login: $('#brand-logo-extern').val() || ''
             }
         };
-        if (saveCredentials) {
+        if (hasSavedProfiles) {
             data.baseUrl = $('#cfg-base-url').val() || '';
             data.username = $('#cfg-username').val() || '';
             data.password = $('#cfg-password').val() || '';
@@ -401,10 +655,8 @@
         const saved = loadAppState();
         if (!saved) return;
 
-        // Restore "remember credentials" checkbox and connection settings
-        const $saveCreds = $('#cfg-save-credentials');
-        if ($saveCreds.length && saved.saveCredentials) {
-            $saveCreds.prop('checked', true);
+        // Restore connection settings from saved profiles or app state
+        if (saved.hasSavedProfiles || saved.saveCredentials) {
             if (saved.baseUrl) {
                 $('#cfg-base-url').val(saved.baseUrl);
             }
@@ -421,7 +673,7 @@
         if ($corsToggle.length && saved.corsProxy) {
             $corsToggle.prop('checked', true);
             $('#cors-proxy-url-group').css('display', '');
-            $('#cors-proxy-security-warning').css('display', '');
+            $('#cors-proxy-security-warning').removeClass('d-none');
         }
         if (saved.corsProxyUrl) {
             $('#cfg-cors-proxy-url').val(saved.corsProxyUrl);
@@ -1020,6 +1272,13 @@
     async function init() {
         // Restore saved state before populating defaults
         restoreAppState();
+        renderProfiles();
+        // Show localStorage warning if profiles were saved previously
+        if (loadProfiles().length > 0) {
+            $('#save-credentials-warning').removeClass('d-none');
+        }
+
+        updateSaveButtonState();
 
         // Load demo data
         try {
@@ -1089,9 +1348,9 @@
         if ($trustUrl.length) $trustUrl.text('\u2192 ' + $('#cfg-base-url').val());
 
         // Bind sidebar events
-        $('#cfg-base-url').on('change', () => { updateApiClient(); saveAppState(); updateCorsVisibility(); });
-        $('#cfg-username').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
-        $('#cfg-password').on('change', () => { updateApiClient(); syncOAuth2Credentials(); saveAppState(); });
+        $('#cfg-base-url').on('change input', () => { _selectedProfileKey = null; updateApiClient(); saveAppState(); updateCorsVisibility(); updateSaveButtonState(); });
+        $('#cfg-username').on('change input', () => { _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
+        $('#cfg-password').on('change input', () => { _selectedProfileKey = null; updateApiClient(); syncOAuth2Credentials(); saveAppState(); updateSaveButtonState(); });
 
         $('#btn-use-sandbox').on('click', () => {
             $('#cfg-base-url').val('https://sandbox.test.getinsign.show');
@@ -1239,7 +1498,7 @@
         $corsToggle.on('change', () => {
             const on = $corsToggle.is(':checked');
             $('#cors-proxy-url-group').css('display', on ? '' : 'none');
-            $('#cors-proxy-security-warning').css('display', on ? '' : 'none');
+            $('#cors-proxy-security-warning').toggleClass('d-none', !on);
             // Hide hint when proxy is enabled (user acted on the warning)
             if (on) {
                 $('#cors-hint-banner').addClass('d-none');
@@ -1276,18 +1535,8 @@
             setTimeout(() => startProbePolling(), 500);
         }
 
-        // "Save in browser" checkbox with security warning
-        const $saveCredsCheckbox = $('#cfg-save-credentials');
-        if ($saveCredsCheckbox.length) {
-            $saveCredsCheckbox.on('change', function () {
-                $('#save-credentials-warning').toggleClass('d-none', !$saveCredsCheckbox.is(':checked'));
-                saveAppState();
-            });
-            // Show warning if already checked on load
-            if ($saveCredsCheckbox.is(':checked')) {
-                $('#save-credentials-warning').removeClass('d-none');
-            }
-        }
+        // "Save connection" button
+        $('#btn-save-connection').on('click', function() { saveConnectionProfile(); });
 
         // Bind owner field inputs → update JSON editor when changed
         const ownerRefresh = () => {
@@ -1334,6 +1583,8 @@
         var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer; // for inline onclick handlers
+
+        state.webhookViewer.onCorsNeeded = () => setCorsNeeded(true);
 
         state.webhookViewer.onUrlCreated = (url) => {
             state.webhookUrl = url;
@@ -1494,7 +1745,7 @@
         state.apiClient._onCorsAutoEnabled = () => {
             $('#cfg-cors-proxy').prop('checked', true);
             $('#cors-proxy-url-group').css('display', '');
-            $('#cors-proxy-security-warning').css('display', '');
+            $('#cors-proxy-security-warning').removeClass('d-none');
             showToast('CORS error detected - automatically enabled CORS proxy.', 'info');
             saveAppState();
         };
@@ -3593,6 +3844,7 @@
         var corsProxyUrl = $('#cfg-cors-proxy').is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
         if (corsProxyUrl) state.webhookViewer.setCorsProxy(corsProxyUrl);
         window.webhookViewer = state.webhookViewer;
+        state.webhookViewer.onCorsNeeded = () => setCorsNeeded(true);
         state.webhookViewer.onUrlCreated = (url) => {
             state.webhookUrl = url;
             if (state.editors['create-session']) {

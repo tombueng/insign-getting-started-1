@@ -1,6 +1,9 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -16,7 +19,7 @@ public class InSignApiCall {
     static final String AUTH = "Basic " + Base64.getEncoder()
         .encodeToString("{{USERNAME}}:{{PASSWORD}}".getBytes(UTF_8));
     static final HttpClient http = HttpClient.newHttpClient();
-    static final ObjectMapper mapper = new ObjectMapper();
+    static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public static void main(String[] args) throws Exception {
 {{#if HAS_BODY}}
@@ -31,7 +34,7 @@ public class InSignApiCall {
             .header("Authorization", AUTH)
 {{#if HAS_BODY}}
             .header("Content-Type", "{{CONTENT_TYPE}}")
-            .{{METHOD}}(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)))
+            .{{METHOD}}(HttpRequest.BodyPublishers.ofString(gson.toJson(body)))
 {{/if}}
 {{#unless HAS_BODY}}
             .{{METHOD}}()
@@ -44,10 +47,11 @@ public class InSignApiCall {
             System.err.println("FAILED: expected HTTP 200, got " + res.statusCode());
             System.exit(1);
         }
-        var json = mapper.readTree(res.body());
+        JsonObject json = JsonParser.parseString(res.body()).getAsJsonObject();
 
         // 2) Get status
-        String sid = json.path("sessionid").asText(null);
+        JsonElement sidEl = json.get("sessionid");
+        String sid = sidEl != null && !sidEl.isJsonNull() ? sidEl.getAsString() : null;
         if (sid != null) {
             var r2 = post("/get/status?sessionid=" + sid);
             System.out.println("\n=== Status (HTTP " + r2.statusCode() + ") ===");
@@ -56,10 +60,18 @@ public class InSignApiCall {
                 System.err.println("FAILED: get/status returned HTTP " + r2.statusCode());
                 System.exit(1);
             }
-            var status = mapper.readTree(r2.body());
+            JsonObject status = JsonParser.parseString(r2.body()).getAsJsonObject();
 
             // 3) Download document (first doc)
-            String docId = status.at("/documentData/0/docid").asText("0");
+            String docId = "0";
+            JsonElement docData = status.get("documentData");
+            if (docData != null && docData.isJsonArray()) {
+                JsonArray docs = docData.getAsJsonArray();
+                if (!docs.isEmpty()) {
+                    JsonElement did = docs.get(0).getAsJsonObject().get("docid");
+                    if (did != null) docId = did.getAsString();
+                }
+            }
             var r3 = http.send(HttpRequest.newBuilder(URI.create(BASE + "/get/document?sessionid=" + sid + "&docid=" + docId))
                 .header("Authorization", AUTH).POST(HttpRequest.BodyPublishers.noBody()).build(),
                 HttpResponse.BodyHandlers.ofByteArray());

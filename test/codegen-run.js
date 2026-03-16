@@ -151,13 +151,13 @@ fi
 fs.writeFileSync(path.join(runDir, 'run_curl.sh'), curlScript);
 run('curl', 'bash run_curl.sh');
 
-// ---------- 2. Java (Jackson) ----------
+// ---------- 2. Java (GSON) ----------
 
 const javaCode = CodeGenerator.generate('java_pure', context);
 const javaFile = path.join(runDir, 'InSignApiCall.java');
 fs.writeFileSync(javaFile, javaCode);
 
-// Find jackson jars
+// Find GSON jar
 const m2 = path.join(process.env.HOME || process.env.USERPROFILE, '.m2', 'repository');
 function findJar(group, artifact) {
   try {
@@ -167,25 +167,23 @@ function findJar(group, artifact) {
     return fs.existsSync(jar) ? jar : null;
   } catch { return null; }
 }
-const jacksonJars = [
-  findJar('com.fasterxml.jackson.core', 'jackson-databind'),
-  findJar('com.fasterxml.jackson.core', 'jackson-core'),
-  findJar('com.fasterxml.jackson.core', 'jackson-annotations'),
+const gsonJars = [
+  findJar('com.google.code.gson', 'gson'),
 ].filter(Boolean);
-const cp = jacksonJars.join(':');
+const cp = gsonJars.join(':');
 
 if (cp) {
   try {
     execSync(`javac --release 11 -cp "${cp}" InSignApiCall.java`, { cwd: runDir, encoding: 'utf8', timeout: 30000 });
-    run('Java (Jackson)', `java -cp ".:${cp}" InSignApiCall`);
+    run('Java (GSON)', `java -cp ".:${cp}" InSignApiCall`);
   } catch (e) {
     console.error('Java compilation failed:', e.stdout || e.stderr || e.message);
-    results.push({ lang: 'Java (Jackson)', status: 'FAIL', note: 'compilation failed' });
+    results.push({ lang: 'Java (GSON)', status: 'FAIL', note: 'compilation failed' });
     exitCode = 1;
   }
 } else {
-  console.log('⚠ Skipping Java — jackson jars not found in ~/.m2');
-  results.push({ lang: 'Java (Jackson)', status: 'SKIP', note: 'jackson jars not found' });
+  console.log('⚠ Skipping Java - GSON jar not found in ~/.m2');
+  results.push({ lang: 'Java (GSON)', status: 'SKIP', note: 'GSON jar not found' });
 }
 
 // ---------- 3. Python ----------
