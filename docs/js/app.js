@@ -98,13 +98,14 @@
             hint: 'SSE real-time. Large payloads may be truncated.',
             url: 'https://ntfy.sh', postOnly: false
         },
-        cfworker: {
-            label: 'CF Worker', icon: 'bi-cloud-arrow-up', tag: 'Self-host',
-            favicon: faviconUrl('workers.cloudflare.com'),
-            desc: 'Deploy <a href="data/cf-webhook-worker.js" download="cf-webhook-worker.js" onclick="event.stopPropagation()" style="font-size:inherit">cf-webhook-worker.js</a> to your Cloudflare account. Free tier, fully under your control.',
-            hint: 'Self-hosted on Cloudflare Workers. Enter your worker URL below.',
-            url: 'https://workers.cloudflare.com', postOnly: false, needsCustomUrl: true
-        },
+        // cfworker disabled - CF Workers free tier has no reliable shared state across isolates
+        // cfworker: {
+        //     label: 'CF Worker', icon: 'bi-cloud-arrow-up', tag: 'Poll',
+        //     favicon: faviconUrl('workers.cloudflare.com'),
+        //     desc: 'Deploy cf-webhook-worker.js to your Cloudflare account.',
+        //     hint: 'Self-hosted on Cloudflare Workers. Enter your worker URL below.',
+        //     url: 'https://workers.cloudflare.com', postOnly: false, needsCustomUrl: true
+        // },
         custom: {
             label: 'Custom URL', icon: 'bi-link-45deg', tag: 'Custom',
             desc: 'Point to any HTTP endpoint you control. No automatic polling or SSE - just injects the URL into the session JSON.',
@@ -345,6 +346,8 @@
             lastForuser: state.lastForuser || '',
             accessURL: state.accessURL,
             webhookProvider: state.webhookProvider,
+            webhookCustomUrl: $('#cfg-webhook-custom-url').val() || '',
+            webhookChannelId: state.webhookViewer && state.webhookViewer._cfChannelId || '',
             webhookUrl: state.webhookUrl,
             selectedDoc: state.selectedDoc,
             fileDelivery: state.fileDelivery,
@@ -433,8 +436,8 @@
             if ($providerGroup.length) $providerGroup.css('display', $whToggle.is(':checked') ? '' : 'none');
         }
 
-        // Restore webhook provider
-        if (saved.webhookProvider) {
+        // Restore webhook provider (fall back to default if saved provider no longer exists)
+        if (saved.webhookProvider && WEBHOOK_PROVIDERS[saved.webhookProvider]) {
             state.webhookProvider = saved.webhookProvider;
             var whInfo = WEBHOOK_PROVIDERS[saved.webhookProvider];
             if (whInfo) {
@@ -444,7 +447,13 @@
                 $('#wh-dd-menu .wh-dd-item').each(function () {
                     $(this).toggleClass('wh-dd-item-selected', $(this).data('wh') === saved.webhookProvider);
                 });
+                if (whInfo.needsCustomUrl) {
+                    $('#webhook-custom-url-group').css('display', '');
+                }
             }
+        }
+        if (saved.webhookCustomUrl) {
+            $('#cfg-webhook-custom-url').val(saved.webhookCustomUrl);
         }
 
         // Restore owner fields
@@ -1314,6 +1323,13 @@
         // Init webhook viewer in sidebar (before Monaco so URL is available for default JSON body)
         state.webhookViewer = new window.WebhookViewer('#sidebar-webhook-container');
         state.webhookViewer.setProvider(state.webhookProvider);
+        // Restore CF Worker config so createEndpoint reuses the existing channel
+        if (state.webhookProvider === 'cfworker') {
+            const workerUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
+            if (workerUrl) state.webhookViewer.setCfWorkerUrl(workerUrl);
+            var saved = loadAppState() || {};
+            if (saved.webhookChannelId) state.webhookViewer.setCfWorkerChannelId(saved.webhookChannelId);
+        }
         window.webhookViewer = state.webhookViewer; // for inline onclick handlers
 
         state.webhookViewer.onUrlCreated = (url) => {
@@ -2030,13 +2046,17 @@
         const showMonitor = step >= 3;
         $('#section-webhooks').toggleClass('d-none', !showMonitor);
         $('#section-polling').toggleClass('d-none', !showMonitor);
-        if (showMonitor) {
-            // Ensure right sidebar is visible (unless user collapsed it)
+        if (step === 3) {
+            // Auto-open sidebar on "Operate and trace" tab (unless user collapsed it)
             if (!state.sidebarCollapsed) {
                 $('#trace-column').removeClass('d-none');
                 $('#expand-right-sidebar').addClass('d-none');
             }
             updateSidebarMode();
+        } else {
+            // Auto-hide sidebar on other steps, but keep expand button visible so user can open it
+            $('#trace-column').addClass('d-none');
+            $('#expand-right-sidebar').removeClass('d-none');
         }
 
         updateMainColumnWidth();
@@ -3440,9 +3460,15 @@
         updateWhDetailPanel();
 
         // Probe all providers once in background
+        var customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
         Object.keys(WEBHOOK_PROVIDERS).forEach(function (key) {
             var p = WEBHOOK_PROVIDERS[key];
-            if (p.url) probeWebhookProvider(key, p.url);
+            if (p.needsCustomUrl) {
+                // For cfworker/custom, probe the user-entered URL instead of the static one
+                if (customUrl) probeWebhookProvider(key, customUrl);
+            } else if (p.url) {
+                probeWebhookProvider(key, p.url);
+            }
         });
 
         // Toggle
@@ -3523,14 +3549,7 @@
         const $customGroup = $('#webhook-custom-url-group');
         if ($customGroup.length) $customGroup.css('display', info.needsCustomUrl ? '' : 'none');
 
-        if (provider === 'cfworker') {
-            // Cloudflare Worker: set base URL, then auto-create channel
-            const workerUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
-            if (workerUrl && state.webhookViewer) {
-                state.webhookViewer.setCfWorkerUrl(workerUrl);
-            }
-            reinitWebhook();
-        } else if (info.needsCustomUrl) {
+        if (info.needsCustomUrl) {
             // Custom provider: just update session JSON with whatever URL user entered
             if (state.webhookViewer) state.webhookViewer.stopPolling();
             const customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
@@ -3549,6 +3568,17 @@
         }
 
         saveAppState();
+    }
+
+    function onWebhookCustomUrlChange() {
+        var customUrl = ($('#cfg-webhook-custom-url').val() || '').trim();
+        // Probe the user-entered URL
+        if (customUrl) {
+            var key = state.webhookProvider;
+            probeWebhookProvider(key, customUrl);
+        }
+        // Re-apply current provider with the new URL
+        setWebhookProvider(state.webhookProvider);
     }
 
     function reinitWebhook() {
@@ -4574,6 +4604,7 @@
         resetRequestBody,
         toggleDarkMode,
         setWebhookProvider,
+        onWebhookCustomUrlChange,
         pollNow,
         togglePolling,
         toggleWebhookSection,
