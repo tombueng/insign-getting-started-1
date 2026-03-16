@@ -348,7 +348,7 @@ window.WebhookViewer = class WebhookViewer {
        User deploys cf-webhook-worker.js to their CF account.
        POST /channel/new → {id, url, pollUrl}
        POST /channel/{id} ← inSign callbacks
-       GET  /channel/{id}/requests → stored requests
+       GET  /channel/{id}/stream → SSE real-time stream
        ================================================================== */
 
     async _createCfWorker() {
@@ -357,6 +357,19 @@ window.WebhookViewer = class WebhookViewer {
             this.renderError('Enter your Cloudflare Worker URL first (deploy cf-webhook-worker.js).');
             return null;
         }
+
+        // Reuse existing channel if we have one (e.g. after page reload)
+        if (this._cfRestoredChannelId) {
+            this._cfChannelId = this._cfRestoredChannelId;
+            this._cfBaseUrl = baseUrl;
+            this.channelUrl = baseUrl + '/channel/' + this._cfChannelId;
+            this._cfRestoredChannelId = null;
+            console.log('[webhook] reusing existing CF channel:', this._cfChannelId);
+            this._seenIds.clear();
+            this._finishCreate();
+            return this.channelUrl;
+        }
+
         try {
             const resp = await fetch(baseUrl + '/channel/new', { method: 'POST' });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -364,6 +377,7 @@ window.WebhookViewer = class WebhookViewer {
             this._cfChannelId = data.id;
             this._cfBaseUrl = baseUrl;
             this.channelUrl = data.url;
+            console.log('[webhook] created new CF channel:', this._cfChannelId);
             this._seenIds.clear();
             this._finishCreate();
             return this.channelUrl;
@@ -373,6 +387,9 @@ window.WebhookViewer = class WebhookViewer {
             return null;
         }
     }
+
+    /** Restore a previously saved CF Worker channel ID (call before createEndpoint) */
+    setCfWorkerChannelId(channelId) { this._cfRestoredChannelId = channelId; }
 
     _pollCfWorker() {
         this.stopPolling();
@@ -405,6 +422,30 @@ window.WebhookViewer = class WebhookViewer {
         };
         poll();
         this._pollTimer = setInterval(poll, this._pollInterval);
+    }
+
+    _sseCfWorker() {
+        this.stopPolling();
+        if (!this._cfChannelId || !this._cfBaseUrl) return;
+        const streamUrl = this._cfBaseUrl + '/channel/' + this._cfChannelId + '/stream';
+        this._eventSource = new EventSource(streamUrl);
+        this._eventSource.addEventListener('webhook', (event) => {
+            try {
+                const item = JSON.parse(event.data);
+                if (this._seenIds.has(item.id)) return;
+                this._seenIds.add(item.id);
+                this._addRequest({
+                    id: item.id,
+                    method: (item.method || 'POST').toUpperCase(),
+                    content_type: item.content_type || '',
+                    body: this._tryParseJson(item.body),
+                    timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+                    headers: item.headers || {}
+                });
+                this.renderRequests();
+            } catch (err) { console.warn('[webhook] CF Worker SSE parse error:', err.message); }
+        });
+        this._eventSource.onerror = () => {};
     }
 
     /** Set the CF Worker base URL (called from app.js config) */
@@ -456,7 +497,7 @@ window.WebhookViewer = class WebhookViewer {
             'smee':           { name: 'smee.io',           mode: 'SSE',   cls: 'bg-success' },
             'postbin':        { name: 'postb.in',          mode: 'poll',  cls: 'bg-info' },
             'ntfy':           { name: 'ntfy.sh',           mode: 'SSE',   cls: 'bg-success' },
-            'cfworker':       { name: 'CF Worker',         mode: 'poll',  cls: 'bg-warning' },
+            'cfworker':       { name: 'CF Worker',         mode: 'poll',  cls: 'bg-info' },
             'custom':         { name: 'custom',            mode: '',      cls: 'bg-secondary' },
         };
         const info = LABELS[this._provider] || LABELS.custom;

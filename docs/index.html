@@ -17,6 +17,7 @@
 
     <!-- Custom styles -->
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/style-theme.css" rel="stylesheet">
 </head>
 <body>
 
@@ -195,7 +196,7 @@
                             <div id="webhook-custom-url-group" style="display:none" class="mt-1">
                                 <input type="text" class="form-control form-control-sm" id="cfg-webhook-custom-url" name="cfg-webhook-custom-url"
                                        placeholder="https://your-endpoint.example.com/webhook"
-                                       onchange="window.app.setWebhookProvider('custom')">
+                                       onchange="window.app.onWebhookCustomUrlChange()">
                             </div>
                         </div>
                         <div class="mb-2" id="cors-proxy-url-group" style="display:none">
