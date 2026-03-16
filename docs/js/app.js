@@ -849,6 +849,7 @@
                     setEditorValue('create-session', body);
                 }
             }
+            _updateFeatureChangedCount();
             return;
         }
 
@@ -879,6 +880,7 @@
         }
 
         setEditorValue('create-session', body);
+        _updateFeatureChangedCount();
     }
 
     // =====================================================================
@@ -943,6 +945,7 @@
             }
         }
         if (settingsChanged) saveFeatureSettings(saved);
+        _updateFeatureChangedCount();
     }
 
     function _syncInputFromJson(inputId, jsonVal) {
@@ -1167,6 +1170,11 @@
 
         // Build document selector, feature toggles, and branding presets
         buildDocumentSelector();
+        // Re-trigger thumbnail lazy-loading when the doc list section is expanded
+        const docPanel = document.getElementById('doc-selector-panel');
+        if (docPanel) {
+            docPanel.addEventListener('shown.bs.collapse', () => _lazyLoadVisibleThumbs());
+        }
         initFileDeliveryDropdown();
         initDragDrop();
         buildWebhookProviderDropdown();
@@ -1195,6 +1203,10 @@
             }
         }
         updateBrandColor();
+
+        // Update collapsed section summaries
+        _updateFeatureChangedCount();
+        _updateBrandingHeaderSummary();
 
         // Derive GitHub repo link from Pages URL (user.github.io/repo → github.com/user/repo)
         const ghLink = document.getElementById('github-repo-link');
@@ -3404,33 +3416,37 @@
         const selectedKey = state.selectedDoc;
         const uploads = _getUploadedFiles();
 
-        // --- Resolve display label for selected item ---
-        let btnContent;
-        if (selectedKey && selectedKey.startsWith('upload:')) {
-            const upId = selectedKey.substring(7);
-            const up = uploads.find(u => u.id === upId);
-            const label = _docLabel(selectedKey, null) || (up ? up.name : 'Uploaded File');
-            btnContent = `<img src="favicon.svg" class="doc-dd-btn-logo" alt=""> <span>${label}</span>`;
-        } else {
-            const selectedDoc = DOCUMENTS[selectedKey];
-            if (selectedDoc) {
-                const label = _docLabel(selectedKey, selectedDoc);
-                const logoHtml = selectedDoc.logo
-                    ? `<img src="${selectedDoc.logo}" class="doc-dd-btn-logo" alt="">`
-                    : `<i class="bi bi-file-earmark-pdf"></i>`;
-                btnContent = `${logoHtml} <span>${label}</span>`;
-            } else {
-                btnContent = `<i class="bi bi-file-earmark-pdf"></i> <span>Select document</span>`;
-            }
-        }
+        // --- Update section header with selected doc info ---
+        _updateDocSelectorHeader(selectedKey, uploads);
 
-        let html = `
-            <div class="doc-dropdown" id="doc-dropdown">
-                <button class="doc-dd-btn" type="button" id="doc-dd-toggle">
-                    ${btnContent}
-                    <i class="bi bi-chevron-down doc-dd-chevron"></i>
-                </button>
-                <div class="doc-dd-menu" id="doc-dd-menu">`;
+        let html = '';
+        let totalItems = 0;
+
+        // --- Uploaded files first (own docs) ---
+        if (uploads.length > 0) {
+            html += `<div class="doc-dd-group-label"><i class="bi bi-cloud-arrow-up me-1"></i>Your Uploads <span class="doc-dd-count">${uploads.length}</span></div>`;
+            for (const up of uploads) {
+                const upKey = 'upload:' + up.id;
+                const label = _docLabel(upKey, null) || up.name.replace(/\.pdf$/i, '');
+                const sel = upKey === selectedKey ? ' doc-dd-item-selected' : '';
+                const sizeStr = up.size ? _formatFileSize(up.size) : '';
+                html += `
+                    <div class="doc-dd-item${sel}" data-doc="${upKey}" onclick="window.app.selectDocument('${upKey}')">
+                        <canvas class="doc-dd-thumb skeleton-pulse" data-upload-id="${up.id}" width="80" height="106"></canvas>
+                        <div class="doc-dd-info">
+                            <div class="doc-dd-title"><img src="favicon.png" class="doc-dd-logo" alt=""><span class="doc-dd-label">${label}</span></div>
+                            <div class="doc-dd-meta">
+                                ${sizeStr ? `<span>${sizeStr}</span>` : ''}
+                                <span class="doc-dd-sep"></span>
+                                <span>${new Date(up.storedAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        ${_docActions(upKey, label)}
+                    </div>`;
+                totalItems++;
+            }
+            html += `<div class="doc-dd-divider"></div>`;
+        }
 
         // --- Branded contracts ---
         const visibleBrand = brandKeys.filter(k => !_docHidden(k));
@@ -3444,7 +3460,7 @@
             const sizeStr = _formatFileSize(doc.fileSize);
             html += `
                 <div class="doc-dd-item${sel}" data-doc="${key}" onclick="window.app.selectDocument('${key}')">
-                    <canvas class="doc-dd-thumb" data-pdf="${doc.local}" width="80" height="106"></canvas>
+                    <canvas class="doc-dd-thumb skeleton-pulse" data-pdf="${doc.local}" width="80" height="106"></canvas>
                     <div class="doc-dd-info">
                         <div class="doc-dd-title">
                             ${doc.logo ? `<img src="${doc.logo}" class="doc-dd-logo" alt="">` : ''}
@@ -3460,31 +3476,7 @@
                     </div>
                     ${_docActions(key, label)}
                 </div>`;
-        }
-
-        // --- Uploaded files ---
-        if (uploads.length > 0) {
-            html += `<div class="doc-dd-divider"></div>`;
-            html += `<div class="doc-dd-group-label"><i class="bi bi-cloud-arrow-up me-1"></i>Your Uploads <span class="doc-dd-count">${uploads.length}</span></div>`;
-            for (const up of uploads) {
-                const upKey = 'upload:' + up.id;
-                const label = _docLabel(upKey, null) || up.name.replace(/\.pdf$/i, '');
-                const sel = upKey === selectedKey ? ' doc-dd-item-selected' : '';
-                const sizeStr = up.size ? _formatFileSize(up.size) : '';
-                html += `
-                    <div class="doc-dd-item${sel}" data-doc="${upKey}" onclick="window.app.selectDocument('${upKey}')">
-                        <canvas class="doc-dd-thumb" data-upload-id="${up.id}" width="80" height="106"></canvas>
-                        <div class="doc-dd-info">
-                            <div class="doc-dd-title"><img src="favicon.svg" class="doc-dd-logo" alt=""><span class="doc-dd-label">${label}</span></div>
-                            <div class="doc-dd-meta">
-                                ${sizeStr ? `<span>${sizeStr}</span>` : ''}
-                                <span class="doc-dd-sep"></span>
-                                <span>${new Date(up.storedAt).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                        ${_docActions(upKey, label)}
-                    </div>`;
-            }
+            totalItems++;
         }
 
         // --- Drag-drop hint ---
@@ -3514,62 +3506,94 @@
             }
         }
 
-        html += `</div></div>`;
         $container.html(html);
 
-        // --- Toggle dropdown ---
-        const $menu = $('#doc-dd-menu');
-        const $toggle = $('#doc-dd-toggle');
-        $toggle.on('click', (e) => {
-            e.stopPropagation();
-            const wasOpen = $menu.hasClass('open');
-            $menu.toggleClass('open');
-            $toggle.toggleClass('open');
-            if (!wasOpen) {
-                const btnRect = $toggle[0].getBoundingClientRect();
-                const spaceBelow = window.innerHeight - btnRect.bottom;
-                const spaceAbove = btnRect.top;
-                if (spaceAbove > spaceBelow) {
-                    $menu.addClass('open-up');
-                } else {
-                    $menu.removeClass('open-up');
-                }
-                _lazyLoadVisibleThumbs();
-            }
-        });
-        // Close on outside click (but not while renaming)
-        $(document).off('click.docdd').on('click.docdd', (e) => {
-            if ($('.doc-dd-rename-input:focus').length) return;
-            if (!$(e.target).closest('#doc-dropdown').length) {
-                $menu.removeClass('open open-up');
-                $toggle.removeClass('open');
-            }
-        });
+        // Add scrollable class only when >10 items
+        if (totalItems > 10) {
+            $container.addClass('doc-list-scrollable');
+        } else {
+            $container.removeClass('doc-list-scrollable');
+        }
+
+        // Lazy-load thumbnails
+        _lazyLoadVisibleThumbs();
     }
 
-    /** Lazy-load PDF thumbnails for items currently visible in the dropdown */
+    /** Update the collapsible section header with the currently selected document */
+    function _updateDocSelectorHeader(selectedKey, uploads) {
+        const $title = $('#doc-selector-title');
+        const $subtitle = $('#doc-selector-subtitle');
+        const $logo = $('#doc-header-logo');
+        const headerCanvas = document.getElementById('doc-header-thumb');
+        if (!$title.length) return;
+
+        let docName = 'Test Document';
+        let subtitle = 'Select a branded test contract or drag-and-drop your own PDF.';
+        let logoHtml = '';
+        let thumbSource = null; // URL or 'upload:id'
+
+        if (selectedKey && selectedKey.startsWith('upload:')) {
+            const upId = selectedKey.substring(7);
+            const up = uploads.find(u => u.id === upId);
+            docName = _docLabel(selectedKey, null) || (up ? up.name : 'Uploaded File');
+            subtitle = 'Your uploaded PDF. Drag-and-drop another to replace.';
+            logoHtml = '<img src="favicon.png" style="width:20px;height:20px;border-radius:3px;vertical-align:middle;margin-right:4px" alt="">';
+            thumbSource = 'upload:' + upId;
+        } else if (selectedKey && DOCUMENTS[selectedKey]) {
+            const doc = DOCUMENTS[selectedKey];
+            docName = _docLabel(selectedKey, doc);
+            subtitle = doc.desc || `${doc.pages} pages - ${doc.roles.length} roles`;
+            if (doc.logo) {
+                logoHtml = `<img src="${doc.logo}" style="width:20px;height:20px;border-radius:3px;vertical-align:middle;margin-right:4px" alt="">`;
+            }
+            if (doc.local) thumbSource = doc.local;
+        }
+
+        $title.text(docName);
+        if ($logo.length) $logo.html(logoHtml);
+        $subtitle.text(subtitle);
+
+        // Render header thumbnail (show skeleton until loaded)
+        if (headerCanvas && thumbSource) {
+            headerCanvas.dataset.loaded = '';
+            headerCanvas.classList.add('skeleton-pulse');
+            const clearSkeleton = () => headerCanvas.classList.remove('skeleton-pulse');
+            if (thumbSource.startsWith('upload:')) {
+                _renderUploadThumb(thumbSource.substring(7), headerCanvas).then(clearSkeleton, clearSkeleton);
+            } else {
+                renderPdfThumbnail(thumbSource, headerCanvas, 80).then(clearSkeleton, clearSkeleton);
+            }
+        }
+    }
+
+    /** Lazy-load PDF thumbnails for items currently visible in the list */
     function _lazyLoadVisibleThumbs() {
-        const menu = document.getElementById('doc-dd-menu');
-        if (!menu) return;
+        const container = document.getElementById('doc-selector');
+        if (!container) return;
+
+        // Use the scrollable container as root if it scrolls, otherwise null (viewport)
+        const root = container.classList.contains('doc-list-scrollable') ? container : null;
 
         // Predefined docs (loaded by URL)
-        $('#doc-dd-menu canvas.doc-dd-thumb[data-pdf]').each(function() {
+        $('#doc-selector canvas.doc-dd-thumb[data-pdf]').each(function() {
             const canvas = this;
             if (canvas.dataset.loaded) return;
             canvas.dataset.loaded = '1';
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        renderPdfThumbnail(canvas.dataset.pdf, canvas, 106);
                         observer.unobserve(canvas);
+                        renderPdfThumbnail(canvas.dataset.pdf, canvas, 106)
+                            .then(() => canvas.classList.remove('skeleton-pulse'))
+                            .catch(() => canvas.classList.remove('skeleton-pulse'));
                     }
                 });
-            }, { root: menu, threshold: 0.1 });
+            }, { root, threshold: 0.1 });
             observer.observe(canvas);
         });
 
         // Uploaded files (loaded from IndexedDB)
-        $('#doc-dd-menu canvas.doc-dd-thumb[data-upload-id]').each(function() {
+        $('#doc-selector canvas.doc-dd-thumb[data-upload-id]').each(function() {
             const canvas = this;
             if (canvas.dataset.loaded) return;
             canvas.dataset.loaded = '1';
@@ -3578,10 +3602,12 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         observer.unobserve(canvas);
-                        _renderUploadThumb(uploadId, canvas);
+                        _renderUploadThumb(uploadId, canvas)
+                            .then(() => canvas.classList.remove('skeleton-pulse'))
+                            .catch(() => canvas.classList.remove('skeleton-pulse'));
                     }
                 });
-            }, { root: menu, threshold: 0.1 });
+            }, { root, threshold: 0.1 });
             observer.observe(canvas);
         });
     }
@@ -3626,9 +3652,7 @@
             } catch { /* fallback: customFileData may already be set */ }
         }
 
-        // Close dropdown and rebuild it to reflect new selection
-        $('#doc-dd-menu').removeClass('open open-up');
-        $('#doc-dd-toggle').removeClass('open');
+        // Rebuild list to reflect new selection
         buildDocumentSelector();
 
         // Update displayname input to match selected document
@@ -4703,7 +4727,12 @@
     function buildColorSchemePresets() {
         const container = document.getElementById('color-scheme-presets');
         if (!container) return;
-        container.innerHTML = COLOR_SCHEMES.map((scheme, i) => `
+        let html = `
+            <div class="color-scheme-btn" onclick="window.app.removeColorScheme()" title="Default - remove custom CSS">
+                <i class="bi bi-x-circle" style="font-size:0.85rem;color:var(--insign-text-muted)"></i>
+                <span style="font-size:0.7rem">Default</span>
+            </div>`;
+        html += COLOR_SCHEMES.map((scheme, i) => `
             <div class="color-scheme-btn" onclick="window.app.selectColorScheme(${i})" title="${scheme.name}">
                 <span class="color-scheme-dot" style="background:${scheme.colors.primary}"></span>
                 <span class="color-scheme-dot" style="background:${scheme.colors.accent}"></span>
@@ -4712,6 +4741,7 @@
                 <span style="font-size:0.7rem">${scheme.name}</span>
             </div>
         `).join('');
+        container.innerHTML = html;
     }
 
     function selectColorScheme(index) {
@@ -4729,10 +4759,34 @@
             if (lock) lock.checked = false;
         });
 
-        // Highlight active
-        document.querySelectorAll('.color-scheme-btn').forEach((btn, j) => btn.classList.toggle('active', j === index));
+        // Highlight active (index+1 because first btn is Default)
+        document.querySelectorAll('.color-scheme-btn').forEach((btn, j) => btn.classList.toggle('active', j === index + 1));
 
         updateBrandColor();
+    }
+
+    /** Remove custom CSS - reset to server defaults */
+    function removeColorScheme() {
+        // Highlight Default button (first one)
+        document.querySelectorAll('.color-scheme-btn').forEach((btn, j) => btn.classList.toggle('active', j === 0));
+
+        // Remove externalPropertiesURL from JSON
+        if (state.editors['create-session']) {
+            const body = getEditorValue('create-session');
+            if (typeof body === 'object') {
+                delete body.externalPropertiesURL;
+                setEditorValue('create-session', body);
+            }
+        }
+
+        // Clear CSS preview
+        const preview = document.getElementById('brand-css-preview');
+        if (preview) preview.value = '';
+        const richEl = document.getElementById('brand-css-rich');
+        if (richEl) richEl.innerHTML = '<span style="color:var(--insign-text-muted);font-style:italic">No custom CSS - using server defaults</span>';
+
+        saveAppState();
+        _updateBrandingHeaderSummary();
     }
 
     function updateBrandColor() {
@@ -4757,6 +4811,7 @@
         // Auto-apply to JSON body
         applyBrandingCSS();
         saveAppState();
+        _updateBrandingHeaderSummary();
     }
 
     function applyBrandingCSS() {
@@ -4920,6 +4975,7 @@
         showPreview('brand-mail-header-preview', mailUrl);
         showPreview('brand-logo-extern-preview', loginUrl);
         saveAppState();
+        _updateBrandingHeaderSummary();
     }
 
     function restoreBranding() {
@@ -4980,6 +5036,7 @@
         document.getElementById('brand-mail-header-preview').innerHTML = '';
         document.getElementById('brand-logo-extern-preview').innerHTML = '';
         saveAppState();
+        _updateBrandingHeaderSummary();
     }
 
     /** Update a single logo slot: icon | mail | login */
@@ -5166,6 +5223,55 @@
         $('#section-' + name).toggleClass('collapsed');
     }
 
+    /** Update the feature changed count badge on the collapsed header */
+    function _updateFeatureChangedCount() {
+        const el = document.getElementById('feature-changed-count');
+        if (!el) return;
+        const saved = loadFeatureSettings();
+        const count = Object.keys(saved).length;
+        if (count > 0) {
+            el.textContent = count + ' changed';
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    /** Update the branding header summary with color dots and logo icon */
+    function _updateBrandingHeaderSummary() {
+        const el = document.getElementById('branding-header-summary');
+        if (!el) return;
+
+        // Check if "Default" color scheme is active (no custom CSS)
+        const defaultSchemeActive = document.querySelector('.color-scheme-btn:first-child.active');
+
+        let html = '';
+
+        // Active logo set: show mail header logo (the bigger one)
+        const activeCard = document.querySelector('.logo-set-card.active');
+        if (activeCard) {
+            const mailImg = activeCard.querySelector('.logo-set-mail') || activeCard.querySelector('.logo-set-login');
+            if (mailImg && mailImg.src) {
+                html += `<img class="branding-header-logo skeleton-pulse" src="${mailImg.src}" alt="" title="Active logo set" onload="this.classList.remove('skeleton-pulse')" onerror="this.classList.remove('skeleton-pulse')">`;
+            }
+        }
+
+        // Color dots for primary, accent, dark, error (skip if default/no CSS)
+        if (!defaultSchemeActive) {
+            let dots = '';
+            const colorIds = ['primary', 'accent', 'dark', 'error'];
+            for (const id of colorIds) {
+                const input = document.getElementById('brand-color-' + id);
+                if (input && input.value) {
+                    dots += `<span class="branding-header-dot" style="background:${input.value}" title="${id}: ${input.value}"></span>`;
+                }
+            }
+            if (dots) html += `<div class="branding-header-dots">${dots}</div>`;
+        }
+
+        el.innerHTML = html;
+    }
+
     window.app = {
         createSession,
         createSessionAndOpen,
@@ -5213,6 +5319,7 @@
         clearOAuth2Token,
         // Branding
         selectColorScheme,
+        removeColorScheme,
         updateBrandColor,
         applyBrandingCSS,
         resetBranding,
