@@ -294,7 +294,8 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
     }
 
     /**
-     * Extract path summaries/descriptions from the OpenAPI spec.
+     * Extract path summaries/descriptions and request/response schema refs
+     * from the OpenAPI spec.
      */
     _extractPaths(paths) {
         if (!paths) return;
@@ -302,10 +303,101 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
             this.paths[path] = {};
             for (const [method, info] of Object.entries(methods)) {
                 if (typeof info === 'object' && info !== null) {
-                    this.paths[path][method.toLowerCase()] = {
+                    const entry = {
                         summary: info.summary || '',
                         description: info.description || ''
                     };
+
+                    // Extract request body schema ref (JSON or form-encoded)
+                    const reqContent = info.requestBody?.content;
+                    const reqRef = reqContent?.['application/json']?.schema?.['$ref']
+                        || reqContent?.['*/*']?.schema?.['$ref'];
+                    if (reqRef && reqRef.startsWith('#/components/schemas/')) {
+                        entry.requestSchemaKey = this._toCamelCase(reqRef.substring('#/components/schemas/'.length));
+                    }
+
+                    // Check for form-urlencoded or multipart request body with inline schema
+                    if (!entry.requestSchemaKey && reqContent) {
+                        const formSchema = reqContent['application/x-www-form-urlencoded']?.schema
+                            || reqContent['multipart/form-data']?.schema;
+                        if (formSchema) {
+                            if (formSchema['$ref'] && formSchema['$ref'].startsWith('#/components/schemas/')) {
+                                entry.requestSchemaKey = this._toCamelCase(formSchema['$ref'].substring('#/components/schemas/'.length));
+                            } else if (formSchema.properties) {
+                                // Inline form schema - synthesize and register it
+                                const syntheticKey = '_form_' + path.replace(/[^a-zA-Z0-9]/g, '_') + '_' + method.toLowerCase();
+                                const converted = this._convertRefs(structuredClone(formSchema));
+                                this._addMarkdownDescriptions(converted);
+                                const uri = 'insign://schemas/' + syntheticKey;
+                                this.schemas[syntheticKey] = { uri, schema: converted };
+                                entry.requestSchemaKey = syntheticKey;
+                            }
+                        }
+                    }
+
+                    // If no JSON request body, synthesize a schema from parameters
+                    // (query, form, path params displayed as JSON in the editor)
+                    if (!entry.requestSchemaKey && Array.isArray(info.parameters) && info.parameters.length > 0) {
+                        const syntheticKey = '_params_' + path.replace(/[^a-zA-Z0-9]/g, '_') + '_' + method.toLowerCase();
+                        const props = {};
+                        const required = [];
+                        for (const param of info.parameters) {
+                            if (!param.name) continue;
+                            const propSchema = {};
+                            if (param.schema) {
+                                if (param.schema.type) propSchema.type = param.schema.type;
+                                if (param.schema.enum) propSchema.enum = param.schema.enum;
+                                if (param.schema.default !== undefined) propSchema.default = param.schema.default;
+                            }
+                            if (param.description) {
+                                propSchema.description = param.description;
+                            }
+                            this._addMarkdownDescriptions(propSchema, param.name);
+                            props[param.name] = propSchema;
+                            if (param.required) required.push(param.name);
+                        }
+                        const syntheticSchema = {
+                            type: 'object',
+                            properties: props,
+                            additionalProperties: false
+                        };
+                        if (required.length) syntheticSchema.required = required;
+
+                        const uri = 'insign://schemas/' + syntheticKey;
+                        this.schemas[syntheticKey] = { uri, schema: syntheticSchema };
+                        entry.requestSchemaKey = syntheticKey;
+                    }
+
+                    // Extract response schema (first success response with content)
+                    if (info.responses) {
+                        for (const [code, resp] of Object.entries(info.responses)) {
+                            if (!(code.startsWith('2') || code === 'default')) continue;
+                            if (!resp?.content) continue;
+
+                            // Try all content types, prefer application/json
+                            const respSchema = resp.content['application/json']?.schema
+                                || resp.content['*/*']?.schema;
+                            if (!respSchema) continue;
+
+                            if (respSchema['$ref'] && respSchema['$ref'].startsWith('#/components/schemas/')) {
+                                entry.responseSchemaKey = this._toCamelCase(respSchema['$ref'].substring('#/components/schemas/'.length));
+                                break;
+                            }
+
+                            // Inline response schema - synthesize and register it
+                            if (respSchema.properties || respSchema.type || respSchema.allOf || respSchema.oneOf) {
+                                const syntheticKey = '_resp_' + path.replace(/[^a-zA-Z0-9]/g, '_') + '_' + method.toLowerCase();
+                                const converted = this._convertRefs(structuredClone(respSchema));
+                                this._addMarkdownDescriptions(converted);
+                                const uri = 'insign://schemas/' + syntheticKey;
+                                this.schemas[syntheticKey] = { uri, schema: converted };
+                                entry.responseSchemaKey = syntheticKey;
+                                break;
+                            }
+                        }
+                    }
+
+                    this.paths[path][method.toLowerCase()] = entry;
                 }
             }
         }
@@ -313,7 +405,7 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
 
     /**
      * Look up a description for a given API path and method.
-     * Returns { summary, description } or null.
+     * Returns { summary, description, requestSchemaKey, responseSchemaKey } or null.
      * Handles paths with query strings by stripping them for lookup.
      */
     getPathInfo(path, method) {
@@ -322,5 +414,124 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
         if (!entry) return null;
         const m = (method || 'post').toLowerCase();
         return entry[m] || Object.values(entry)[0] || null;
+    }
+
+    /**
+     * Look up the response schema key for an API path and method.
+     * @returns {string|null} camelCase schema key or null
+     */
+    getResponseSchemaKey(path, method) {
+        const info = this.getPathInfo(path, method);
+        return info?.responseSchemaKey || null;
+    }
+
+    /**
+     * Look up the request schema key for an API path and method.
+     * @returns {string|null} camelCase schema key or null
+     */
+    getRequestSchemaKey(path, method) {
+        const info = this.getPathInfo(path, method);
+        return info?.requestSchemaKey || null;
+    }
+
+    /**
+     * Resolve a dotted JSON property path to a schema description.
+     * E.g. for schemaKey "sessionStatus" and path "documents[0].id",
+     * walk through the schema tree following properties/items/$ref.
+     * @param {string} schemaKey - The camelCase schema key
+     * @param {string} propPath - Dotted/bracketed path like "documents[0].name"
+     * @returns {{ description: string, markdownDescription: string, type: string }|null}
+     */
+    resolvePropertyDescription(schemaKey, propPath) {
+        if (!schemaKey || !propPath) return null;
+        const entry = this.schemas[schemaKey];
+        if (!entry) return null;
+
+        const segments = propPath.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+        let current = entry.schema;
+
+        for (const seg of segments) {
+            if (!current) return null;
+
+            // Resolve $ref
+            current = this._resolveRef(current);
+            if (!current) return null;
+
+            // If segment is a number, follow items (array index)
+            if (/^\d+$/.test(seg)) {
+                current = current.items ? this._resolveRef(current.items) : null;
+                continue;
+            }
+
+            // If current is an array type without explicit index, auto-follow items
+            if (current.type === 'array' && current.items && !current.properties) {
+                current = this._resolveRef(current.items);
+                if (!current) return null;
+            }
+
+            // Follow properties
+            if (current.properties && current.properties[seg]) {
+                current = current.properties[seg];
+            } else if (current.additionalProperties && typeof current.additionalProperties === 'object') {
+                current = current.additionalProperties;
+            } else {
+                return null;
+            }
+        }
+
+        if (!current) return null;
+        current = this._resolveRef(current);
+        if (!current) return null;
+
+        return {
+            description: current.description || null,
+            markdownDescription: current.markdownDescription || null,
+            type: current.type || null,
+            enum: current.enum || null
+        };
+    }
+
+    /**
+     * Resolve a $ref to the actual schema object.
+     * @param {object} schema
+     * @returns {object|null}
+     */
+    _resolveRef(schema) {
+        if (!schema || typeof schema !== 'object') return schema;
+        if (!schema['$ref']) return schema;
+        const ref = schema['$ref'];
+        // insign://schemas/fooBar -> fooBar
+        if (ref.startsWith('insign://schemas/')) {
+            const key = ref.substring('insign://schemas/'.length);
+            return this.schemas[key]?.schema || null;
+        }
+        return schema;
+    }
+
+    /**
+     * Get all top-level property names and descriptions for a schema.
+     * Used for building tooltip lookup maps.
+     * @param {string} schemaKey
+     * @returns {Object<string, { description: string, type: string }>|null}
+     */
+    getSchemaProperties(schemaKey) {
+        if (!schemaKey) return null;
+        const entry = this.schemas[schemaKey];
+        if (!entry?.schema) return null;
+
+        const schema = this._resolveRef(entry.schema);
+        if (!schema?.properties) return null;
+
+        const result = {};
+        for (const [key, prop] of Object.entries(schema.properties)) {
+            const resolved = this._resolveRef(prop) || prop;
+            result[key] = {
+                description: resolved.description || '',
+                markdownDescription: resolved.markdownDescription || '',
+                type: resolved.type || (resolved.enum ? 'enum' : ''),
+                enum: resolved.enum || null
+            };
+        }
+        return result;
     }
 };

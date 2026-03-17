@@ -1412,7 +1412,8 @@ code {
     background: rgba(0,0,0,0.025);
 }
 
-#feature-float-tooltip {
+#feature-float-tooltip,
+#json-hover-tooltip {
     color: var(--insign-text-muted, #666);
     background: var(--insign-card-bg, #fff);
     border-left: 3px solid var(--insign-blue, #0d6efd);
@@ -1684,4 +1685,16 @@ code {
     color: #fff;
     border-radius: 8px;
     line-height: 1.4;
+}
+
+/* Polling toggle - paused state (red + prominent) */
+.btn-polling-paused {
+    background: var(--insign-danger) !important;
+    border-color: var(--insign-danger) !important;
+    color: #fff !important;
+}
+.btn-polling-paused:hover {
+    background: #c82333 !important;
+    border-color: #bd2130 !important;
+    color: #fff !important;
 }

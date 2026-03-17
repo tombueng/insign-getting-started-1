@@ -3,25 +3,29 @@
         "method": "POST",
         "path": "/get/status",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "checkstatus": {
         "method": "POST",
         "path": "/get/checkstatus",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "load": {
         "method": "POST",
         "path": "/persistence/loadsession",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "documents": {
         "method": "POST",
         "path": "/get/documents/full?includeAnnotations=true",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "document-single": {
         "method": "POST",
@@ -42,19 +46,22 @@
         "method": "POST",
         "path": "/extern/beginmulti",
         "bodyFn": "getDefaultExternBody",
-        "schemaKey": "startExternMultiuser"
+        "schemaKey": "startExternMultiuser",
+        "responseSchemaKey": "sessionStatus"
     },
     "abort-extern": {
         "method": "POST",
         "path": "/extern/abort",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "finish": {
         "method": "POST",
         "path": "/configure/fertig",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "restart": {
         "method": "POST",
@@ -68,7 +75,8 @@
         "method": "POST",
         "path": "/configure/ablehnen",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "delete-session": {
         "method": "POST",
@@ -82,25 +90,29 @@
         "method": "POST",
         "path": "/get/audit",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "extern-users": {
         "method": "POST",
         "path": "/extern/users",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "send-reminder": {
         "method": "POST",
         "path": "/load/sendManualReminder",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "extern-info": {
         "method": "POST",
         "path": "/get/externInfos",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput"
+        "schemaKey": "sessionIDInput",
+        "responseSchemaKey": "sessionStatus"
     },
     "sso": {
         "method": "POST",
