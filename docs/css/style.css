@@ -34,6 +34,14 @@ code {
     position: sticky;
     top: 0;
     z-index: 1030;
+    flex-wrap: wrap;
+}
+.navbar-insign > .container-fluid {
+    justify-content: space-between;
+}
+.navbar-insign .step-indicator {
+    flex: 1;
+    justify-content: center;
 }
 
 .navbar-insign .navbar-brand {
@@ -235,7 +243,7 @@ code {
 /* === Headers Display ==================================================== */
 
 .headers-display {
-    padding: 0.75rem 1rem;
+    padding: 0.4rem 0.65rem;
     margin-bottom: 1rem;
 }
 
@@ -322,7 +330,12 @@ code {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0.5rem 1rem;
+    padding: 0.3rem 0.75rem;
+}
+
+/* Session/ForUser bar - second row in navbar */
+.navbar-session-bar {
+    margin-top: 2px;
 }
 
 .webhook-url-display input {
@@ -330,6 +343,8 @@ code {
     border: none;
     background: transparent;
     outline: none;
+    padding: 2px 6px;
+    height: 28px;
 }
 
 /* === Document Selector (Dropdown) ======================================= */
@@ -337,8 +352,28 @@ code {
 /* Document selector header with thumbnail */
 .doc-header {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    flex-direction: column;
+    gap: 8px;
+}
+.doc-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.doc-header-top .feature-configurator-chevron {
+    position: static;
+}
+.doc-header-detail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.doc-header-doc-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .doc-header-thumb-wrap {
     position: relative;
@@ -348,8 +383,8 @@ code {
     overflow: hidden;
 }
 .doc-header-thumb {
-    width: 60px;
-    height: 80px;
+    width: 48px;
+    height: 64px;
     border-radius: 5px;
     object-fit: contain;
 }
@@ -392,10 +427,14 @@ code {
 .doc-selector-list {
     padding: 4px 0;
 }
-/* Scroll only when more than 10 items */
-.doc-selector-list.doc-list-scrollable {
-    max-height: calc(10 * 120px);
-    overflow-y: auto;
+/* 2-column grid for document items */
+.doc-dd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+@media (max-width: 680px) {
+    .doc-dd-grid { grid-template-columns: 1fr; }
 }
 
 /* Group labels */
@@ -447,12 +486,10 @@ code {
     overflow: hidden;
 }
 .doc-dd-title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
 }
 .doc-dd-logo {
     width: 28px;
@@ -1056,6 +1093,33 @@ code {
     }
 }
 
+/* Configurator header row layout (text wraps, controls on right) */
+.configurator-header-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.configurator-header-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Defaults button on collapsed configurator headers */
+.configurator-defaults-btn.btn {
+    padding: 1px 6px !important;
+    font-size: 0.55rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
+    white-space: nowrap;
+}
+.configurator-defaults-btn:hover {
+    opacity: 1;
+}
+.configurator-header-row .feature-configurator-chevron,
+.branding-header .feature-configurator-chevron {
+    position: static;
+}
+
 /* === Trust Hint ======================================================= */
 
 .trust-hint {
@@ -1086,19 +1150,21 @@ code {
 /* Branding header layout (text wraps, summary on right) */
 .branding-header {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    align-items: center;
+    gap: 16px;
+    padding-top: 8px;
+    padding-bottom: 6px;
 }
 .branding-header-text {
-    flex: 1;
+    flex: 1 1 50%;
     min-width: 0;
 }
 .branding-header-summary {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
+    gap: 10px;
+    flex: 1 1 50%;
+    justify-content: center;
     margin-right: 20px;
 }
 .branding-header-dots {
@@ -1113,10 +1179,11 @@ code {
     border: 1px solid rgba(0,0,0,0.1);
 }
 .branding-header-logo {
-    width: 48px;
-    height: 28px;
-    border-radius: 4px;
+    width: 200px;
+    border-radius: 6px;
     object-fit: contain;
+    margin: 0;
+    display: block;
 }
 
 .feature-configurator-box {
@@ -1310,21 +1377,24 @@ code {
     display: none;
     z-index: 50;
 }
-/* Hover: overlay (absolute, doesn't push content) */
-.feature-toggle:hover .feature-desc:not(.pinned) {
-    display: block;
-    position: absolute;
-    top: 100%;
-    left: 8px;
-    right: 8px;
-    width: auto;
-}
 /* Pinned: inline (pushes content, sticky) */
 .feature-desc.pinned {
     display: block;
     position: relative;
     width: 100%;
     margin: 2px 0 4px 0;
+}
+/* Floating tooltip that follows cursor */
+#feature-float-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 420px;
+    line-height: 1.45;
+    padding: 8px 12px;
+    border-radius: 8px;
+    pointer-events: none;
+    display: none;
+    font-size: 0.75rem;
 }
 
 .feature-toggle .feature-label {

@@ -35,7 +35,7 @@
             <span class="badge-version">Sandbox</span>
         </a>
 
-        <!-- Step navigation in navbar -->
+        <!-- Step navigation + action buttons (centered together) -->
         <div class="step-indicator" id="navbar-steps">
             <div class="step active" data-step="1" onclick="window.app.goToStep(1)">
                 <span class="step-number">1</span>
@@ -53,39 +53,44 @@
                 <span class="step-number">4</span>
                 Live Code Snippets
             </div>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
-            <!-- Session ID in top bar -->
-            <div class="d-none align-items-center gap-1" id="navbar-session" style="font-size:0.78rem">
-                <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
-                <input type="text" class="form-control form-control-sm" id="navbar-session-id" name="navbar-session-id"
-                       placeholder="No session"
-                       style="width:240px;font-family:'Roboto Mono',monospace;font-size:0.75rem;padding:2px 6px;height:28px"
-                       onchange="window.app.applyNavbarSessionId()">
-                <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID" style="padding:2px 6px;height:28px">
-                    <i class="bi bi-clipboard"></i>
-                </button>
-                <button class="btn btn-insign btn-insign-sm btn-insign-cta d-none" id="navbar-btn-open" onclick="window.app.openInSign()" title="Open in inSign" style="padding:2px 8px;height:28px">
-                    <i class="bi bi-box-arrow-up-right"></i>
-                </button>
-            </div>
-            <a href="DOCUMENTATION.md" target="_blank"
-               class="btn btn-insign btn-insign-sm btn-insign-outline" title="Documentation">
-                <i class="bi bi-file-earmark-text"></i> Docs
-            </a>
-            <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" target="_blank"
-               class="btn btn-insign btn-insign-sm btn-insign-outline">
-                <i class="bi bi-book"></i> Swagger
-            </a>
-            <a id="github-repo-link" href="#" target="_blank"
-               class="btn btn-insign btn-insign-sm btn-insign-outline" title="View on GitHub">
-                <i class="bi bi-github"></i> GitHub
-            </a>
-            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.toggleDarkMode()" title="Toggle dark mode" id="btn-dark-mode">
-                <i class="bi bi-moon"></i>
+            <!-- Open in inSign button -->
+            <button class="btn btn-insign btn-insign-sm btn-insign-cta d-none" id="navbar-btn-open" onclick="window.app.openInSign()" title="Open in inSign" style="padding:2px 10px;height:28px;margin-left:4px">
+                <i class="bi bi-box-arrow-up-right"></i> Open in inSign
+            </button>
+            <!-- Session Manager button -->
+            <button class="btn btn-insign btn-insign-sm btn-insign-outline d-none" id="navbar-btn-session-mgr" onclick="window.app.openSessionManager()" title="Session Manager" style="padding:2px 10px;height:28px">
+                <i class="bi bi-kanban"></i> Session Manager
             </button>
         </div>
+
+        <!-- More menu (Docs, Swagger, GitHub, Dark mode) -->
+        <div class="dropdown">
+            <button class="btn btn-insign btn-insign-sm btn-insign-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding:2px 8px;height:28px">
+                <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="DOCUMENTATION.md" target="_blank"><i class="bi bi-file-earmark-text me-2"></i>Docs</a></li>
+                <li><a class="dropdown-item" href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" target="_blank"><i class="bi bi-book me-2"></i>Swagger</a></li>
+                <li><a class="dropdown-item" id="github-repo-link" href="#" target="_blank"><i class="bi bi-github me-2"></i>GitHub</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item" onclick="window.app.toggleDarkMode()" id="btn-dark-mode"><i class="bi bi-moon me-2"></i>Toggle dark mode</button></li>
+            </ul>
+        </div>
+    </div>
+    <!-- Second row: Session ID + ForUser (hidden until session exists) -->
+    <div class="d-none align-items-center justify-content-center gap-2 navbar-session-bar" id="navbar-session" style="font-size:0.62rem;padding:1px 8px;width:100%">
+        <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
+        <input type="text" class="form-control form-control-sm" id="navbar-session-id" name="navbar-session-id"
+               placeholder="No session"
+               style="width:200px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px"
+               onchange="window.app.applyNavbarSessionId()">
+        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID" style="padding:0px 4px;height:18px;font-size:0.6rem">
+            <i class="bi bi-clipboard"></i>
+        </button>
+        <span style="color:var(--insign-muted);white-space:nowrap;margin-left:4px">ForUser:</span>
+        <input type="text" class="form-control form-control-sm" id="navbar-foruser-id" name="navbar-foruser-id"
+               placeholder="-" readonly
+               style="width:160px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px">
     </div>
 </nav>
 
@@ -494,16 +499,23 @@ node ~/Downloads/cors-proxy.js</code></pre>
                     <div class="card-body">
                         <!-- Feature Configurator (visual toggles that modify the JSON) -->
                         <div class="feature-configurator-box mb-3">
-                            <div class="feature-configurator-header" data-bs-toggle="collapse" data-bs-target="#feature-configurator">
-                                <div class="feature-configurator-title">
-                                    <i class="bi bi-sliders"></i> Session Feature Configurator
-                                    <span id="feature-changed-count" class="feature-changed-badge" style="display:none"></span>
+                            <div class="feature-configurator-header configurator-header-row" data-bs-toggle="collapse" data-bs-target="#feature-configurator">
+                                <div class="configurator-header-text">
+                                    <div class="feature-configurator-title">
+                                        <i class="bi bi-sliders"></i> Session Feature Configurator
+                                        <span id="feature-changed-count" class="feature-changed-badge" style="display:none"></span>
+                                    </div>
+                                    <div class="feature-configurator-subtitle">
+                                        Configure UI behavior, signing devices, form editing, external signing and more.
+                                        Toggle properties visually - only non-default values are included in the JSON request body.
+                                    </div>
                                 </div>
-                                <div class="feature-configurator-subtitle">
-                                    Configure UI behavior, signing devices, form editing, external signing and more.
-                                    Toggle properties visually - only non-default values are included in the JSON request body.
+                                <div class="d-flex flex-column align-items-end justify-content-between align-self-stretch flex-shrink-0">
+                                    <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                                    <button class="btn btn-insign btn-insign-sm btn-insign-outline configurator-defaults-btn" onclick="event.stopPropagation();window.app.resetAllFeatures()" title="Reset all toggles to default">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Defaults
+                                    </button>
                                 </div>
-                                <i class="bi bi-chevron-down feature-configurator-chevron"></i>
                             </div>
                             <div class="collapse" id="feature-configurator">
                                 <div class="feature-panel p-3">
@@ -553,7 +565,12 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                     </div>
                                 </div>
                                 <div id="branding-header-summary" class="branding-header-summary"></div>
-                                <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                                <div class="d-flex flex-column align-items-end justify-content-between align-self-stretch flex-shrink-0">
+                                    <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                                    <button class="btn btn-insign btn-insign-sm btn-insign-outline configurator-defaults-btn" onclick="event.stopPropagation();window.app.resetBrandingAll()" title="Reset colors and logos to defaults">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Defaults
+                                    </button>
+                                </div>
                             </div>
                             <div class="collapse" id="branding-configurator">
                                 <div class="feature-panel p-3">
@@ -626,26 +643,6 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- CSS Preview -->
-                                    <div class="mb-3">
-                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
-                                            <i class="bi bi-code-slash"></i> Generated CSS
-                                            <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
-                                                - raw CSS string set as <code>externalPropertiesURL</code>
-                                            </span>
-                                        </label>
-                                        <textarea class="form-control" id="brand-css-preview" rows="4" readonly
-                                                  style="font-family:'Roboto Mono',monospace;font-size:0.7rem;background:var(--insign-code-bg);resize:vertical;display:none"></textarea>
-                                        <div id="brand-css-rich" class="css-rich-editor" contenteditable="false"></div>
-                                        <div class="d-flex gap-2 mt-1">
-                                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.resetBranding()" title="Reset to defaults">
-                                                <i class="bi bi-arrow-counterclockwise"></i> Reset
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <hr style="margin:12px 0;border-color:var(--insign-border)">
 
                                     <!-- Sample Logo Sets -->
                                     <div class="mb-3">
@@ -742,6 +739,26 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                         <div class="mt-1" id="brand-logo-extern-preview" style="min-height:30px"></div>
                                     </div>
 
+                                    <hr style="margin:12px 0;border-color:var(--insign-border)">
+
+                                    <!-- CSS Preview -->
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.82rem;font-weight:600">
+                                            <i class="bi bi-code-slash"></i> Generated CSS
+                                            <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
+                                                - raw CSS string set as <code>externalPropertiesURL</code>
+                                            </span>
+                                        </label>
+                                        <textarea class="form-control" id="brand-css-preview" rows="4" readonly
+                                                  style="font-family:'Roboto Mono',monospace;font-size:0.7rem;background:var(--insign-code-bg);resize:vertical;display:none"></textarea>
+                                        <div id="brand-css-rich" class="css-rich-editor" contenteditable="false"></div>
+                                        <div class="d-flex gap-2 mt-1">
+                                            <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.resetBranding()" title="Reset to defaults">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -773,20 +790,27 @@ node ~/Downloads/cors-proxy.js</code></pre>
                         <!-- Test Document Selector (collapsible section) -->
                         <div class="feature-configurator-box mb-3">
                             <div class="feature-configurator-header doc-header" data-bs-toggle="collapse" data-bs-target="#doc-selector-panel">
-                                <div class="doc-header-thumb-wrap" onclick="event.stopPropagation();window.app.previewDocument()" title="Click to preview">
-                                    <canvas class="doc-header-thumb skeleton-pulse" id="doc-header-thumb" width="60" height="80"></canvas>
-                                    <div class="doc-header-thumb-overlay"><i class="bi bi-eye"></i></div>
-                                </div>
-                                <div class="doc-header-info">
+                                <div class="doc-header-top">
                                     <div class="feature-configurator-title">
-                                        <span id="doc-header-logo"></span>
-                                        <span id="doc-selector-title">Test Document</span>
+                                        <i class="bi bi-file-earmark-pdf"></i> Document
                                     </div>
-                                    <div class="feature-configurator-subtitle" id="doc-selector-subtitle">
-                                        Select a branded test contract or drag-and-drop your own PDF.
+                                    <i class="bi bi-chevron-down feature-configurator-chevron"></i>
+                                </div>
+                                <div class="doc-header-detail">
+                                    <div class="doc-header-thumb-wrap" onclick="event.stopPropagation();window.app.previewDocument()" title="Click to preview">
+                                        <canvas class="doc-header-thumb skeleton-pulse" id="doc-header-thumb" width="48" height="64"></canvas>
+                                        <div class="doc-header-thumb-overlay"><i class="bi bi-eye"></i></div>
+                                    </div>
+                                    <div class="doc-header-info">
+                                        <div class="doc-header-doc-title">
+                                            <span id="doc-header-logo"></span>
+                                            <span id="doc-selector-title">Test Document</span>
+                                        </div>
+                                        <div class="feature-configurator-subtitle" id="doc-selector-subtitle">
+                                            Select a branded test contract or drag-and-drop your own PDF.
+                                        </div>
                                     </div>
                                 </div>
-                                <i class="bi bi-chevron-down feature-configurator-chevron"></i>
                             </div>
                             <div class="collapse" id="doc-selector-panel">
                                 <div class="doc-selector-list" id="doc-selector">
@@ -889,16 +913,6 @@ node ~/Downloads/cors-proxy.js</code></pre>
                  STEP 3 - Session Operations
                  ========================================================== -->
             <div id="step-3-panel" class="d-none">
-
-                <!-- Quick Actions -->
-                <div class="d-flex gap-2 mb-3 flex-wrap" id="step2-quick-actions">
-                    <button class="btn btn-insign btn-insign-cta d-none" id="btn-open-insign" onclick="window.app.openInSign()">
-                        <i class="bi bi-box-arrow-up-right"></i> Open in inSign
-                    </button>
-                    <button class="btn btn-insign btn-insign-outline d-none" id="btn-open-session-manager" onclick="window.app.openSessionManager()">
-                        <i class="bi bi-kanban"></i> Session Manager
-                    </button>
-                </div>
 
                 <!-- Operation Tabs -->
                 <ul class="nav nav-operations" id="operation-tabs" role="tablist">
@@ -1942,6 +1956,7 @@ node ~/Downloads/cors-proxy.js</code></pre>
 <script src="js/openapi-schema-loader.js"></script>
 <script src="js/api-client.js"></script>
 <!-- Global drag-and-drop overlay -->
+<div id="feature-float-tooltip"></div>
 <div id="drop-overlay" class="drop-overlay">
     <div class="drop-overlay-content">
         <i class="bi bi-file-earmark-arrow-down drop-overlay-icon"></i>
