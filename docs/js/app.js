@@ -1108,6 +1108,13 @@
         return { sessionid: state.sessionId || '<session-id>' };
     }
 
+    function getUserSessionsBody() {
+        return {
+            user: state.lastForuser || state.userId || '',
+            includeTemplates: false
+        };
+    }
+
     function getSSOBody() {
         const foruser = state.lastForuser || state.userId || '';
         return {
@@ -1163,7 +1170,8 @@
                 getSessionIdBody: getSessionIdBody,
                 getDefaultExternBody: getDefaultExternBody,
                 getDocumentSingleBody: getDocumentSingleBody,
-                getSSOBody: getSSOBody
+                getSSOBody: getSSOBody,
+                getUserSessionsBody: getUserSessionsBody
             };
             for (var op of Object.values(OPERATIONS)) {
                 op.getBody = op.bodyFn ? bodyFns[op.bodyFn] : null;
