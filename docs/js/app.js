@@ -1222,6 +1222,7 @@
         initDragDrop();
         buildWebhookProviderDropdown();
         buildFeatureToggles();
+        _initJsonHoverTooltip();
         buildColorSchemePresets();
         buildLogoSets();
         restoreBranding();
@@ -1984,10 +1985,15 @@
                 });
             }
 
-            // Create operation editors
+            // Create operation editors - use schemaKey from operations.json,
+            // falling back to OpenAPI spec lookup for request body schemas
             for (const [opKey, opDef] of Object.entries(OPERATIONS)) {
                 if (opDef.getBody) {
-                    createEditor('op-' + opKey, opDef.getBody(), opDef.schemaKey);
+                    let sk = opDef.schemaKey;
+                    if (!sk && state.schemaLoader) {
+                        sk = state.schemaLoader.getRequestSchemaKey(opDef.path, opDef.method) || null;
+                    }
+                    createEditor('op-' + opKey, opDef.getBody(), sk);
                 }
             }
 
@@ -2082,9 +2088,19 @@
         const container = $('#editor-' + id)[0];
         if (!container) return null;
         const uncapped = opts && opts.uncapped;
+        const schemaKey = opts && opts.schemaKey;
+
+        // If a schemaKey is provided and language is json, create a model with
+        // a URI whose filename matches the schema's fileMatch pattern so Monaco
+        // picks up validation, autocomplete & hover descriptions automatically.
+        let model = null;
+        if (schemaKey && (!language || language === 'json')) {
+            const filename = schemaKey + '.json';
+            const modelUri = monaco.Uri.parse('insign://models/' + id + '/' + filename);
+            model = monaco.editor.createModel(content || '', 'json', modelUri);
+        }
 
         const editorOpts = {
-            value: content,
             language: language || 'json',
             theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
             minimap: { enabled: false },
@@ -2104,6 +2120,12 @@
                 detailsVisible: true
             }
         };
+
+        if (model) {
+            editorOpts.model = model;
+        } else {
+            editorOpts.value = content;
+        }
 
         if (uncapped) {
             editorOpts.scrollbar.vertical = 'hidden';
@@ -2145,14 +2167,29 @@
         }
     }
 
-    function showResponseEditor(id, response) {
+    function showResponseEditor(id, response, schemaKey) {
         // Create response editor if not exists
         const editorId = id + '-response';
         const container = $('#editor-' + editorId)[0];
         if (!container) return;
 
         if (!state.editors[editorId]) {
-            createReadOnlyEditor(editorId, '', 'json');
+            createReadOnlyEditor(editorId, '', 'json', { schemaKey: schemaKey || null });
+        } else if (schemaKey) {
+            // If the editor already exists but didn't have a schema, re-associate
+            // its model with the schema by updating the model URI
+            const editor = state.editors[editorId];
+            const model = editor.getModel();
+            const expectedFilename = schemaKey + '.json';
+            if (model && !model.uri.path.endsWith('/' + expectedFilename)) {
+                // Dispose old model and create a new one with the correct URI
+                const content = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
+                const modelUri = monaco.Uri.parse('insign://models/' + editorId + '/' + expectedFilename);
+                const newModel = monaco.editor.createModel(content, 'json', modelUri);
+                editor.setModel(newModel);
+                model.dispose();
+                return; // Content already set via new model
+            }
         }
 
         const content = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
@@ -2452,7 +2489,10 @@
             <span class="ms-auto text-muted-sm">${result.duration}ms</span>
         `);
 
-        showResponseEditor('create-session', result.body);
+        const createSessionRespSchema = (state.schemaLoader
+            ? state.schemaLoader.getResponseSchemaKey('/configure/session', 'POST')
+            : null) || 'sessionStatus';
+        showResponseEditor('create-session', result.body, createSessionRespSchema);
 
         if (result.ok && result.body) {
             const respBody = typeof result.body === 'object' ? result.body : {};
@@ -2639,8 +2679,13 @@
         const $responseEditorContainer = $('#editor-' + editorId + '-response');
         const $responsePre = $(`pre.response-body[data-op="${opKey}"]`);
 
+        // Look up response schema from OpenAPI spec, fall back to operations.json hint
+        const respSchemaKey = (state.schemaLoader
+            ? state.schemaLoader.getResponseSchemaKey(opDef.path, opDef.method)
+            : null) || opDef.responseSchemaKey || null;
+
         if ($responseEditorContainer.length) {
-            showResponseEditor(editorId, result.body);
+            showResponseEditor(editorId, result.body, respSchemaKey);
         } else if ($responsePre.length) {
             const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
             $responsePre.text(content);
@@ -2958,7 +3003,10 @@
             `);
         }
 
-        showResponseEditor('op-extern', result.body);
+        const externRespSchema = (state.schemaLoader
+            ? state.schemaLoader.getResponseSchemaKey('/extern/beginmulti', 'POST')
+            : null) || 'sessionStatus';
+        showResponseEditor('op-extern', result.body, externRespSchema);
 
         // Render signing links if present
         const $linksDiv = $('#extern-signing-links');
@@ -4280,9 +4328,13 @@
     function updatePollingToggleButton(running) {
         const $btn = $('#btn-polling-toggle');
         if (!$btn.length) return;
-        $btn.html(running
-            ? '<i class="bi bi-pause-fill"></i> Pause'
-            : '<i class="bi bi-play-fill"></i> Start');
+        if (running) {
+            $btn.html('<i class="bi bi-arrow-repeat polling-spin"></i> Polling')
+                .removeClass('btn-polling-paused');
+        } else {
+            $btn.html('<i class="bi bi-hourglass-split"></i> Paused')
+                .addClass('btn-polling-paused');
+        }
     }
 
     function startCountdownAnimation() {
@@ -4346,13 +4398,25 @@
 
             if ($statusText.length) $statusText.text('Last poll: ' + new Date().toLocaleTimeString());
 
+            // Resolve response schema for this polling endpoint
+            let pollSchemaKey = state.schemaLoader
+                ? state.schemaLoader.getResponseSchemaKey(endpoint, 'POST')
+                : null;
+            if (!pollSchemaKey) {
+                const cleanEp = endpoint.split('?')[0];
+                const matchedOp = Object.values(OPERATIONS).find(op =>
+                    op.path.split('?')[0] === cleanEp && (op.method || 'POST').toUpperCase() === 'POST'
+                );
+                if (matchedOp?.responseSchemaKey) pollSchemaKey = matchedOp.responseSchemaKey;
+            }
+
             // First poll: show full status; subsequent polls: show diffs
             if (_lastPollBody === null && typeof body === 'object') {
-                addPollFullCard(body);
+                addPollFullCard(body, pollSchemaKey);
             } else if (_lastPollBody !== null && typeof body === 'object') {
                 const diffs = jsonDiff(_lastPollBody, body);
                 if (diffs.length > 0) {
-                    addPollChangeCard(diffs);
+                    addPollChangeCard(diffs, pollSchemaKey);
                 }
             }
             _lastPollBody = typeof body === 'object' ? JSON.parse(JSON.stringify(body)) : body;
@@ -4417,13 +4481,15 @@
         return String(val);
     }
 
-    function addPollFullCard(body) {
+    function addPollFullCard(body, schemaKey) {
         const $container = $('#polling-changes');
         if (!$container.length) return;
         $container.find('.text-center').remove();
 
         const time = new Date().toLocaleTimeString();
-        const json = JSON.stringify(body, null, 2);
+        const bodyHtml = (schemaKey && state.schemaLoader && typeof body === 'object')
+            ? renderJsonWithTooltips(body, schemaKey)
+            : escapeHtml(JSON.stringify(body, null, 2));
 
         const $card = $('<div>');
         $card.addClass('webhook-entry');
@@ -4435,12 +4501,12 @@
                 </span>
                 <span class="badge bg-info" style="font-size:0.65rem">initial</span>
             </div>
-            <pre style="font-size:0.7rem;margin:0;max-height:300px;overflow:auto;background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all">${escapeHtml(json)}</pre>
+            <pre style="font-size:0.7rem;margin:0;max-height:300px;overflow:auto;background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all">${bodyHtml}</pre>
         `);
         $container.prepend($card);
     }
 
-    function addPollChangeCard(diffs) {
+    function addPollChangeCard(diffs, schemaKey) {
         const $container = $('#polling-changes');
         if (!$container.length) return;
 
@@ -4464,9 +4530,23 @@
                 valueHtml = `<span style="color:#ff9999;text-decoration:line-through">${escapeHtml(formatDiffValue(d.oldVal))}</span>`;
             }
 
+            // Add schema description tooltip to the path label if available
+            let pathHtml;
+            if (schemaKey && state.schemaLoader) {
+                const info = state.schemaLoader.resolvePropertyDescription(schemaKey, d.path);
+                if (info && info.description) {
+                    const tooltipText = escapeHtml(d.path) + ': ' + escapeHtml(info.description);
+                    pathHtml = `<span class="json-key-hover" style="color:#79b8ff" data-desc="${tooltipText.replace(/"/g, '&quot;')}">${escapeHtml(d.path)}</span>`;
+                } else {
+                    pathHtml = `<span style="color:#79b8ff">${escapeHtml(d.path)}</span>`;
+                }
+            } else {
+                pathHtml = `<span style="color:#79b8ff">${escapeHtml(d.path)}</span>`;
+            }
+
             return `<div style="font-size:0.73rem;margin-bottom:2px;line-height:1.4;padding:2px 6px;border-radius:3px;background:${bgColor};word-break:break-word;white-space:pre-wrap;font-family:monospace">` +
                 `<span style="display:inline-block;min-width:14px;text-align:center;font-weight:700;color:${textColor}">${label}</span> ` +
-                `<span style="color:#79b8ff">${escapeHtml(d.path)}</span> ` +
+                pathHtml + ' ' +
                 valueHtml +
                 `</div>`;
         }).join('');
@@ -5144,6 +5224,92 @@
         }
     }
 
+    // =====================================================================
+    // JSON Hover Tooltips - for trace & polling <pre> elements
+    // =====================================================================
+
+    /**
+     * Render a JSON object as syntax-highlighted HTML with hoverable keys.
+     * Keys that have descriptions in the schema get a .json-key-hover span
+     * with data-desc / data-md attributes for tooltip display.
+     *
+     * @param {*} obj - The parsed JSON value
+     * @param {string|null} schemaKey - The schema key to look up descriptions
+     * @param {string} [parentPath] - Internal: dot-path for nested resolution
+     * @param {number} [indent] - Internal: current indentation level
+     * @returns {string} HTML string
+     */
+    function renderJsonWithTooltips(obj, schemaKey, parentPath, indent) {
+        indent = indent || 0;
+        parentPath = parentPath || '';
+        const pad = '  '.repeat(indent);
+        const pad1 = '  '.repeat(indent + 1);
+
+        if (obj === null) return '<span class="json-null">null</span>';
+        if (typeof obj === 'boolean') return '<span class="json-bool">' + obj + '</span>';
+        if (typeof obj === 'number') return '<span class="json-num">' + obj + '</span>';
+        if (typeof obj === 'string') return '<span class="json-str">"' + escapeHtml(obj) + '"</span>';
+
+        if (Array.isArray(obj)) {
+            if (obj.length === 0) return '[]';
+            const items = obj.map((item, i) => {
+                const childPath = parentPath ? parentPath + '[' + i + ']' : '[' + i + ']';
+                return pad1 + renderJsonWithTooltips(item, schemaKey, childPath, indent + 1);
+            });
+            return '[\n' + items.join(',\n') + '\n' + pad + ']';
+        }
+
+        if (typeof obj === 'object') {
+            const keys = Object.keys(obj);
+            if (keys.length === 0) return '{}';
+            const entries = keys.map(key => {
+                const childPath = parentPath ? parentPath + '.' + key : key;
+                const valueHtml = renderJsonWithTooltips(obj[key], schemaKey, childPath, indent + 1);
+
+                // Try to resolve description from schema
+                let keyHtml;
+                if (schemaKey && state.schemaLoader) {
+                    const info = state.schemaLoader.resolvePropertyDescription(schemaKey, childPath);
+                    if (info && (info.description || info.markdownDescription)) {
+                        const desc = escapeHtml(info.description || '');
+                        const typeBadge = info.type ? ' (' + escapeHtml(info.type) + ')' : '';
+                        const enumInfo = info.enum ? ' - enum: ' + info.enum.map(v => escapeHtml(String(v))).join(', ') : '';
+                        const tooltipText = escapeHtml(key) + typeBadge + (desc ? ': ' + desc : '') + enumInfo;
+                        keyHtml = '<span class="json-key-hover" data-desc="' + tooltipText.replace(/"/g, '&quot;') + '">"' + escapeHtml(key) + '"</span>';
+                    } else {
+                        keyHtml = '"' + escapeHtml(key) + '"';
+                    }
+                } else {
+                    keyHtml = '"' + escapeHtml(key) + '"';
+                }
+
+                return pad1 + keyHtml + ': ' + valueHtml;
+            });
+            return '{\n' + entries.join(',\n') + '\n' + pad + '}';
+        }
+
+        return escapeHtml(String(obj));
+    }
+
+    /** Initialize the JSON hover tooltip on trace/polling containers */
+    function _initJsonHoverTooltip() {
+        const tooltip = document.getElementById('json-hover-tooltip');
+        if (!tooltip) return;
+
+        $(document).on('mouseenter', '.json-key-hover', function (e) {
+            const desc = this.getAttribute('data-desc');
+            if (!desc) return;
+            tooltip.textContent = desc;
+            tooltip.style.display = 'block';
+            _positionFloatTooltip(e, tooltip);
+        }).on('mousemove', '.json-key-hover', function (e) {
+            if (tooltip.style.display === 'none') return;
+            _positionFloatTooltip(e, tooltip);
+        }).on('mouseleave', '.json-key-hover', function () {
+            tooltip.style.display = 'none';
+        });
+    }
+
     /** Render a single trace entry and prepend it to the list */
     function renderTraceEntry(entry) {
         showTraceColumn();
@@ -5169,17 +5335,41 @@
             }).join('');
         };
 
-        // Format body for display
-        const fmtBody = (body) => {
+        // Look up endpoint description and schema keys from OpenAPI spec
+        const pathInfo = state.schemaLoader ? state.schemaLoader.getPathInfo(entry.path, entry.method) : null;
+        const reqSchemaKey = pathInfo?.requestSchemaKey || null;
+        // Fall back to operations.json responseSchemaKey for endpoints the spec doesn't document
+        let respSchemaKey = pathInfo?.responseSchemaKey || null;
+        if (!respSchemaKey) {
+            const cleanPath = entry.path.split('?')[0];
+            const matchedOp = Object.values(OPERATIONS).find(op =>
+                op.path.split('?')[0] === cleanPath && (op.method || 'POST').toUpperCase() === entry.method.toUpperCase()
+            );
+            if (matchedOp?.responseSchemaKey) respSchemaKey = matchedOp.responseSchemaKey;
+        }
+
+        // Format body for display - with schema-aware tooltips when available
+        const fmtBody = (body, schemaKey) => {
             if (body === null || body === undefined) return '<span style="opacity:0.5">empty</span>';
             if (typeof body === 'object') {
-                try { return escapeHtml(JSON.stringify(body, null, 2)); } catch { return escapeHtml(String(body)); }
+                try {
+                    if (schemaKey && state.schemaLoader) {
+                        return renderJsonWithTooltips(body, schemaKey);
+                    }
+                    return escapeHtml(JSON.stringify(body, null, 2));
+                } catch { return escapeHtml(String(body)); }
+            }
+            // Try to parse string as JSON for tooltip rendering
+            if (schemaKey && typeof body === 'string') {
+                try {
+                    const parsed = JSON.parse(body);
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        return renderJsonWithTooltips(parsed, schemaKey);
+                    }
+                } catch { /* not JSON, fall through */ }
             }
             return escapeHtml(String(body));
         };
-
-        // Look up endpoint description from OpenAPI spec
-        const pathInfo = state.schemaLoader ? state.schemaLoader.getPathInfo(entry.path, entry.method) : null;
         const descHtml = pathInfo && (pathInfo.summary || pathInfo.description)
             ? `<div class="trace-desc">${escapeHtml(pathInfo.summary || pathInfo.description)}</div>`
             : '';
@@ -5214,13 +5404,13 @@
                     <div class="trace-headers">${fmtHeaders(entry.requestHeaders)}</div>
 
                     <div class="trace-section-label">Request Body</div>
-                    <div class="trace-body-preview">${fmtBody(entry.requestBody)}</div>
+                    <div class="trace-body-preview">${fmtBody(entry.requestBody, reqSchemaKey)}</div>
 
                     <div class="trace-section-label">Response Headers</div>
                     <div class="trace-headers">${fmtHeaders(entry.responseHeaders)}</div>
 
                     <div class="trace-section-label">Response Body</div>
-                    <div class="trace-body-preview">${fmtBody(entry.responseBody)}</div>
+                    <div class="trace-body-preview">${fmtBody(entry.responseBody, respSchemaKey)}</div>
                 </div>
             </div>`;
 

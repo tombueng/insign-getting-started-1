@@ -1397,6 +1397,28 @@ code {
     font-size: 0.75rem;
 }
 
+/* JSON hover tooltip for trace/polling <pre> elements */
+#json-hover-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 420px;
+    line-height: 1.45;
+    padding: 8px 12px;
+    border-radius: 8px;
+    pointer-events: none;
+    display: none;
+    font-size: 0.75rem;
+}
+/* Hoverable JSON key in trace/polling */
+.json-key-hover {
+    cursor: help;
+    border-radius: 2px;
+    transition: background 0.15s;
+}
+.json-key-hover:hover {
+    background: rgba(121, 184, 255, 0.15);
+}
+
 .feature-toggle .feature-label {
     flex: 1;
     min-width: 0;
@@ -1593,6 +1615,15 @@ code {
 
 .trace-desc {
     margin-bottom: 2px;
+}
+
+/* === Polling toggle button states ======================================== */
+@keyframes polling-spin {
+    to { transform: rotate(360deg); }
+}
+.polling-spin {
+    display: inline-block;
+    animation: polling-spin 1s linear infinite;
 }
 
 @keyframes highlight-flash-anim {
