@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script>!function(){var d=!0;try{var s=localStorage.getItem('insign-dark-mode');if(s!==null)d=s==='true'}catch(e){}document.documentElement.setAttribute('data-theme',d?'dark':'light')}()</script>
+    <script>!function(){var m=location.hash.match(/^#step(\d)/);if(m){var s=parseInt(m[1]);if(s>=1&&s<=4){var css='';for(var i=1;i<=4;i++){if(i===s){css+='#step-'+i+'-panel{display:block!important}';css+='.step-indicator .step[data-step="'+i+'"]{background:var(--insign-blue)!important;border-color:var(--insign-blue)!important;color:#fff!important}';css+='.step[data-step="'+i+'"] .step-number{background:rgba(255,255,255,0.25)!important}'}else{css+='#step-'+i+'-panel{display:none!important}';if(i<s){css+='.step-indicator .step[data-step="'+i+'"]{background:rgba(1,101,188,0.1)!important;border-color:var(--insign-blue)!important;color:var(--insign-blue)!important}';css+='.step[data-step="'+i+'"] .step-number{background:var(--insign-blue)!important;color:#fff!important}'}}}var el=document.createElement('style');el.id='early-step-css';el.textContent=css;document.head.appendChild(el);window.__insign_init_step=s}}}()</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>inSign API Explorer - Interactive Getting Started</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -169,7 +170,7 @@
 
                         <div class="d-flex align-items-center gap-2 mb-2 flex-wrap" style="margin-top:16px">
                             <label class="toggle-pill toggle-pill-warn" for="cfg-webhooks">
-                                <input type="checkbox" id="cfg-webhooks" checked>
+                                <input type="checkbox" id="cfg-webhooks">
                                 <span class="toggle-pill-switch"></span>
                                 <span class="toggle-pill-label"><i class="bi bi-broadcast" style="font-size:0.7rem"></i> Webhook relay</span>
                             </label>
@@ -578,7 +579,7 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                     <!-- Sync from document toggle -->
                                     <div class="mb-3 d-flex align-items-center gap-2">
                                         <label class="toggle-pill" for="brand-sync-doc">
-                                            <input type="checkbox" id="brand-sync-doc" checked>
+                                            <input type="checkbox" id="brand-sync-doc">
                                             <span class="toggle-pill-switch"></span>
                                             <span class="toggle-pill-label" style="font-size:0.78rem"><i class="bi bi-link-45deg"></i> Sync from selected document</span>
                                         </label>
@@ -736,13 +737,12 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                             <div class="col-auto" id="brand-logo-extern-preview" style="min-width:80px"></div>
                                         </div>
                                     </div>
-                                        <div class="mt-1" id="brand-logo-extern-preview" style="min-height:30px"></div>
                                     </div>
 
-                                    <hr style="margin:12px 0;border-color:var(--insign-border)">
+                                    <hr style="margin:6px 0;border-color:var(--insign-border)">
 
                                     <!-- CSS Preview -->
-                                    <div class="mb-3">
+                                    <div class="mb-2">
                                         <label class="form-label" style="font-size:0.82rem;font-weight:600">
                                             <i class="bi bi-code-slash"></i> Generated CSS
                                             <span class="text-muted" style="font-size:0.7rem;font-weight:normal">
@@ -770,9 +770,11 @@ node ~/Downloads/cors-proxy.js</code></pre>
                         </div>
                         <div class="row g-2 mb-3">
                             <div class="col-sm-6">
-                                <label class="form-label" for="cfg-foruser" style="font-size:0.78rem">foruser <span class="text-muted-sm">(owner ID)</span></label>
+                                <label class="form-label d-flex align-items-center gap-1" for="cfg-foruser" style="font-size:0.78rem">foruser <span class="text-muted-sm">(owner ID)</span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-auto" id="btn-regenerate-user" title="Generate new random user" style="font-size:0.72rem;line-height:1"><i class="bi bi-arrow-repeat"></i></button>
+                                </label>
                                 <input type="text" class="form-control form-control-sm" id="cfg-foruser" name="cfg-foruser"
-                                       placeholder="Auto-generated UUID"
+                                       placeholder="firstname-lastname-id"
                                        style="font-family:'Roboto Mono',monospace;font-size:0.75rem">
                             </div>
                             <div class="col-sm-6">
@@ -1182,8 +1184,11 @@ node ~/Downloads/cors-proxy.js</code></pre>
                                 <div class="section-title">Request Body</div>
                                 <div class="editor-container" id="editor-op-document-single"></div>
                                 <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeDocumentSingle()">
-                                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.downloadDocumentSingle()">
+                                        <i class="bi bi-download"></i> Download
+                                    </button>
+                                    <button class="btn btn-insign btn-insign-outline" onclick="window.app.previewDocumentSingle()">
+                                        <i class="bi bi-eye"></i> Preview
                                     </button>
                                 </div>
                                 <div class="op-response d-none" data-op="document-single">
@@ -1581,8 +1586,8 @@ node ~/Downloads/cors-proxy.js</code></pre>
                     <div class="tab-pane fade" id="op-delete-session" role="tabpanel">
                         <div class="card-insign">
                             <div class="card-header">
-                                <span class="badge-method badge-method-delete">POST</span>
-                                <span class="endpoint-path">/configure/deletesession</span>
+                                <span class="badge-method badge-method-delete">DELETE</span>
+                                <span class="endpoint-path">/persistence/delete</span>
                                 <h5 class="ms-auto mb-0" style="font-size:0.9rem">Delete session permanently</h5>
                             </div>
                             <div class="card-body">

@@ -716,6 +716,27 @@
     return { body: resolved, hasFiledata: found };
   }
 
+  /**
+   * Replace <logo:*> placeholders in the body with descriptive URLs for code snippets.
+   * These placeholders are used in the JSON editor to avoid embedding large base64 data URLs.
+   */
+  function resolveLogoPlaceholders(body) {
+    if (!body || typeof body !== 'object') return body;
+    var resolved = JSON.parse(JSON.stringify(body));
+    var map = {
+      '<logo:icon>':  'https://example.test/logo-icon.png',
+      '<logo:mail>':  'https://example.test/logo-mail.png',
+      '<logo:login>': 'https://example.test/logo-login.png'
+    };
+    if (resolved.guiProperties) {
+      for (var k in resolved.guiProperties) {
+        if (map[resolved.guiProperties[k]]) resolved.guiProperties[k] = map[resolved.guiProperties[k]];
+      }
+    }
+    if (map[resolved.logoExtern]) resolved.logoExtern = map[resolved.logoExtern];
+    return resolved;
+  }
+
   /** Generate language-specific commented code for reading a file from disk and base64-encoding it */
   function filedataComment(langKey, filename) {
     var fn = filename || 'document.pdf';
@@ -767,7 +788,8 @@
 
     // Resolve <filedata> placeholders: replace with fileURL for runnable code
     var filedataResult = hasBody ? resolveFiledata(ctx.body, ctx) : { body: ctx.body, hasFiledata: false };
-    var bodyForBuild = filedataResult.body;
+    // Resolve <logo:*> placeholders with example URLs for code snippets
+    var bodyForBuild = hasBody ? resolveLogoPlaceholders(filedataResult.body) : filedataResult.body;
 
     var vars = {
       URL:           url,
@@ -859,37 +881,41 @@
   var propertyCatalog = null;
   var propertyDocs = {};  // key → { label, desc, path }
 
-  /** Load the property catalog from feature-descriptions.json */
-  function getPropertyCatalog() {
-    if (propertyCatalog) return propertyCatalog;
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'data/feature-descriptions.json', false);
-      xhr.send();
-      if (xhr.status === 200) {
-        var data = JSON.parse(xhr.responseText);
-        propertyCatalog = { root: [], guiProperties: [], signConfig: [], deliveryConfig: [] };
-        data.featureGroups.forEach(function (group) {
-          group.features.forEach(function (f) {
-            var section = f.path || 'root';
-            if (section === 'doc') return;
-            if (!propertyCatalog[section]) propertyCatalog[section] = [];
-            propertyCatalog[section].push({ key: f.key, type: f.type, label: f.label });
-            propertyDocs[f.key] = { label: f.label, desc: f.desc || '', path: section };
-          });
-        });
-        // Also read featureDescriptions array (uses 'description' field instead of 'desc')
-        if (data.featureDescriptions) {
-          data.featureDescriptions.forEach(function (f) {
-            if (!propertyDocs[f.key]) {
-              propertyDocs[f.key] = { label: f.key, desc: f.description || '', path: 'root' };
-            } else if (!propertyDocs[f.key].desc && f.description) {
-              propertyDocs[f.key].desc = f.description;
-            }
-          });
+  /** Parse the property catalog from already-fetched JSON data */
+  function parsePropertyCatalog(data) {
+    propertyCatalog = { root: [], guiProperties: [], signConfig: [], deliveryConfig: [] };
+    data.featureGroups.forEach(function (group) {
+      group.features.forEach(function (f) {
+        var section = f.path || 'root';
+        if (section === 'doc') return;
+        if (!propertyCatalog[section]) propertyCatalog[section] = [];
+        propertyCatalog[section].push({ key: f.key, type: f.type, label: f.label });
+        propertyDocs[f.key] = { label: f.label, desc: f.desc || '', path: section };
+      });
+    });
+    if (data.featureDescriptions) {
+      data.featureDescriptions.forEach(function (f) {
+        if (!propertyDocs[f.key]) {
+          propertyDocs[f.key] = { label: f.key, desc: f.description || '', path: 'root' };
+        } else if (!propertyDocs[f.key].desc && f.description) {
+          propertyDocs[f.key].desc = f.description;
         }
-      }
-    } catch (e) { /* ignore - samples will simply be omitted */ }
+      });
+    }
+  }
+
+  /** Preload the property catalog asynchronously */
+  function preloadPropertyCatalog() {
+    if (propertyCatalog) return;
+    try {
+      fetch('data/feature-descriptions.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { if (data) parsePropertyCatalog(data); });
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Return the property catalog (must be preloaded) */
+  function getPropertyCatalog() {
     return propertyCatalog;
   }
 
@@ -1053,24 +1079,7 @@
   // ---------------------------------------------------------------------------
 
   function loadTemplate(filename) {
-    if (templateCache[filename]) {
-      return templateCache[filename];
-    }
-
-    // Synchronous fetch (acceptable for small template files on same origin)
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'codegen-templates/' + filename, false);
-      xhr.send();
-      if (xhr.status === 200) {
-        templateCache[filename] = xhr.responseText;
-        return xhr.responseText;
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    return null;
+    return templateCache[filename] || null;
   }
 
   /** Pre-load all templates asynchronously */
@@ -1095,8 +1104,8 @@
     LANGUAGES: LANGUAGES,
     INSIGN_PROPERTY_MAP: INSIGN_PROPERTY_MAP,
 
-    /** Pre-load templates (call on page init) */
-    preload: preloadTemplates,
+    /** Pre-load templates and property catalog (call on page init) */
+    preload: function () { preloadTemplates(); preloadPropertyCatalog(); },
 
     /**
      * Generate a code snippet for the given language and request context.
@@ -1115,8 +1124,12 @@
 
   // Auto-preload on script load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', preloadTemplates);
+    document.addEventListener('DOMContentLoaded', function () {
+      preloadTemplates();
+      preloadPropertyCatalog();
+    });
   } else {
     preloadTemplates();
+    preloadPropertyCatalog();
   }
 })();

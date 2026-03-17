@@ -19,11 +19,12 @@
         apiClient: null,
         webhookViewer: null,
         webhookUrl: null,             // resolved webhook URL (set once endpoint is created)
-        demoData: null,
         userId: getOrCreateUserId(),  // persistent UUID for foruser
         selectedDoc: 'acme',
         fileDelivery: 'base64',       // 'base64' | 'upload' | 'url'
         customFileData: null,         // { name, base64, blob } when user picks own file
+        namesList: [],                // loaded from data/names.json - EU names with unicode
+        brandLogoData: {},            // { icon, mail, login } data URLs for uploaded logos (resolved at send time)
         discoveredRoles: null,        // ['seller','buyer'] from /get/documents/full
         discoveredFields: null,       // [{role, name, required, signed}]
         pdfViewer: null,              // PdfViewer instance
@@ -38,24 +39,88 @@
     };
 
     /** Generate a stable human-readable user ID; only persist to localStorage when profiles are saved */
+    /** Strip title prefixes (Dr., Prof., etc.) from a full name */
+    function _stripTitle(fullName) {
+        return fullName.replace(/^(Dr\.|Prof\.|Mag\.|Ing\.)\s+/i, '');
+    }
+
+    /** Transliterate accented/special chars to ASCII for IDs and email local parts */
+    function _toAscii(str) {
+        const map = {
+            'ä':'ae','ö':'oe','ü':'ue','ß':'ss','Ä':'Ae','Ö':'Oe','Ü':'Ue',
+            'á':'a','à':'a','â':'a','ã':'a','å':'a','ą':'a','ă':'a',
+            'é':'e','è':'e','ê':'e','ë':'e','ę':'e','ě':'e',
+            'í':'i','ì':'i','î':'i','ï':'i','ı':'i',
+            'ó':'o','ò':'o','ô':'o','õ':'o','ő':'o','ø':'o',
+            'ú':'u','ù':'u','û':'u','ű':'u','ů':'u',
+            'ý':'y','ÿ':'y',
+            'ñ':'n','ń':'n','ň':'n',
+            'ç':'c','ć':'c','č':'c',
+            'ð':'d','đ':'d','ď':'d',
+            'ł':'l','ľ':'l',
+            'ř':'r','ŕ':'r',
+            'š':'s','ś':'s','ş':'s',
+            'ť':'t','þ':'th',
+            'ž':'z','ź':'z','ż':'z',
+            'æ':'ae','œ':'oe',
+            'Á':'A','À':'A','Â':'A','Ã':'A','Å':'A','Ą':'A','Ă':'A',
+            'É':'E','È':'E','Ê':'E','Ë':'E','Ę':'E','Ě':'E',
+            'Í':'I','Ì':'I','Î':'I','Ï':'I',
+            'Ó':'O','Ò':'O','Ô':'O','Õ':'O','Ő':'O','Ø':'O',
+            'Ú':'U','Ù':'U','Û':'U','Ű':'U','Ů':'U',
+            'Ý':'Y',
+            'Ñ':'N','Ń':'N','Ň':'N',
+            'Ç':'C','Ć':'C','Č':'C',
+            'Ð':'D','Đ':'D','Ď':'D',
+            'Ł':'L','Ľ':'L',
+            'Ř':'R','Ŕ':'R',
+            'Š':'S','Ś':'S','Ş':'S',
+            'Ť':'T','Þ':'Th',
+            'Ž':'Z','Ź':'Z','Ż':'Z',
+            'Æ':'Ae','Œ':'Oe',
+            'ð':'d','Ð':'D'
+        };
+        return str.replace(/[^\x00-\x7F]/g, ch => map[ch] || '');
+    }
+
+    /** Generate a random user identity from names.json entry */
+    function generateUserFromName(fullName) {
+        const bare = _stripTitle(fullName);
+        const parts = bare.split(/\s+/);
+        const firstName = parts[0];
+        const lastName = parts.slice(1).join(' ');
+        const firstAscii = _toAscii(firstName).toLowerCase();
+        const lastAscii = _toAscii(lastName).toLowerCase();
+        const hex5 = Array.from(crypto.getRandomValues(new Uint8Array(3)),
+            b => b.toString(16).padStart(2, '0')).join('').slice(0, 5);
+        const foruser = firstAscii + '-' + lastAscii + '-' + hex5;
+        const emailFirst = _toAscii(firstName);
+        const emailLast = _toAscii(lastName);
+        const userEmail = emailFirst + '.' + emailLast + '@company.invalid';
+        return { foruser, userFullName: fullName, userEmail };
+    }
+
+    /** Pick a random name from the loaded names list and generate user identity.
+     *  Accepts an optional list arg so it can be called before state is initialized. */
+    function generateRandomUser(namesList) {
+        const list = namesList || (state && state.namesList) || [];
+        if (!list.length) {
+            const hex = Array.from(crypto.getRandomValues(new Uint8Array(4)),
+                b => b.toString(16).padStart(2, '0')).join('');
+            return { foruser: 'user-' + hex, userFullName: 'Demo User', userEmail: '' };
+        }
+        const name = list[Math.floor(Math.random() * list.length)];
+        return generateUserFromName(name);
+    }
+
     function getOrCreateUserId() {
         const key = 'insign-explorer-userid';
         let id = null;
         try { id = localStorage.getItem(key); } catch { /* ignore */ }
-        // Regenerate if old-style UUID
-        if (id && id.length > 20) id = null;
         if (!id) {
-            const names = [
-                'alex', 'chris', 'dana', 'emma', 'finn', 'greta', 'hanna', 'ivan',
-                'julia', 'karl', 'lena', 'max', 'nina', 'oscar', 'petra', 'robin',
-                'sara', 'tom', 'vera', 'willi', 'yara', 'zoe', 'ben', 'clara',
-                'david', 'elena', 'felix', 'gina', 'hugo', 'ida', 'jan', 'lea'
-            ];
-            const name = names[Math.floor(Math.random() * names.length)];
-            const hex = Array.from(crypto.getRandomValues(new Uint8Array(4)),
-                b => b.toString(16).padStart(2, '0')).join('');
-            id = name + '-' + hex;
-            // Only persist if user has saved connection profiles
+            // Names not loaded yet at init time - use fallback
+            const user = generateRandomUser([]);
+            id = user.foruser;
             if (loadProfiles().length > 0) {
                 try { localStorage.setItem(key, id); } catch { /* ignore */ }
             }
@@ -529,7 +594,7 @@
             selectedProfileKey: _selectedProfileKey,
             corsProxy: $('#cfg-cors-proxy').is(':checked'),
             corsProxyUrl: $('#cfg-cors-proxy-url').val() || '',
-            webhooksEnabled: $('#cfg-webhooks').length ? $('#cfg-webhooks').is(':checked') : true,
+            webhooksEnabled: $('#cfg-webhooks').length ? $('#cfg-webhooks').is(':checked') : false,
             displayname: $('#cfg-displayname').val() || '',
             userfullname: $('#cfg-userfullname').val() || '',
             userEmail: $('#cfg-userEmail').val() || '',
@@ -613,7 +678,7 @@
         // Restore webhooks toggle
         const $whToggle = $('#cfg-webhooks');
         if ($whToggle.length) {
-            $whToggle.prop('checked', saved.webhooksEnabled !== false);
+            $whToggle.prop('checked', saved.webhooksEnabled === true);
             const $providerGroup = $('#webhook-provider-group');
             if ($providerGroup.length) $providerGroup.css('display', $whToggle.is(':checked') ? '' : 'none');
         }
@@ -1056,25 +1121,22 @@
         return body;
     }
 
+    /** Generate a random extern user entry for a given role */
+    function _randomExternUser(role, opts) {
+        const rnd = generateRandomUser();
+        return {
+            recipient: rnd.userEmail,
+            realName: rnd.userFullName,
+            roles: [role],
+            sendEmails: opts.sendEmails,
+            sendSMS: opts.sendSMS,
+            singleSignOnEnabled: opts.singleSignOnEnabled
+        };
+    }
+
     function getDefaultExternBody() {
-        const d = state.demoData || {};
-        const seller = d.seller || {};
-        const buyer = d.buyer || {};
-        const sw = d.streetWorkContract || {};
-        const broker = sw.broker || {};
-        const customer = sw.customer || {};
-        const agency = sw.agency || {};
         // Use discovered roles if available, else use document catalog, else demo defaults
         const roles = state.discoveredRoles || getSelectedDocument().roles || ['seller', 'buyer'];
-        const roleData = {
-            seller: { email: seller.email, name: seller.name, phone: seller.phone },
-            buyer: { email: buyer.email, name: buyer.name, phone: buyer.phone },
-            broker: { email: broker.email, name: broker.name, phone: broker.phone },
-            customer: { email: customer.email, name: customer.name, phone: customer.phone },
-            agency: { email: agency.email, name: agency.name, phone: agency.phone },
-            role_one: { email: seller.email, name: seller.name, phone: seller.phone },
-            role_two: { email: buyer.email, name: buyer.name, phone: buyer.phone }
-        };
 
         let savedOpts = { sendEmails: false, sendSMS: false, singleSignOnEnabled: true, inOrder: false };
         try {
@@ -1082,20 +1144,7 @@
             if (stored) savedOpts = { ...savedOpts, ...stored };
         } catch { /* ignore */ }
 
-        const externUsers = roles.map(role => {
-            const data = roleData[role] || {};
-            const user = {
-                recipient: data.email || `${role}@nowhere.invalid`,
-                realName: data.name || role,
-                roles: [role],
-                sendEmails: savedOpts.sendEmails,
-                sendSMS: savedOpts.sendSMS,
-                singleSignOnEnabled: savedOpts.singleSignOnEnabled
-            };
-            // Include phone number for SMS delivery when available
-            if (data.phone) user.mobileNumber = data.phone.replace(/\s/g, '');
-            return user;
-        });
+        const externUsers = roles.map(role => _randomExternUser(role, savedOpts));
 
         return {
             sessionid: state.sessionId || '<session-id>',
@@ -1189,22 +1238,25 @@
 
         updateSaveButtonState();
 
-        // Load demo data
+        // Load names list for user generation
         try {
-            const resp = await fetch('data/demo-data.json');
-            if (resp.ok) state.demoData = await resp.json();
+            const resp = await fetch('data/names.json');
+            if (resp.ok) state.namesList = await resp.json();
         } catch { /* ok, use defaults */ }
 
-        // Populate owner fields from demo data (only if not restored from saved state)
-        if (state.demoData) {
-            const seller = state.demoData.seller || {};
+        // Populate owner fields with a random user (only if not restored from saved state)
+        {
             const $dnInput = $('#cfg-displayname');
             const $fnInput = $('#cfg-userfullname');
             const $emInput = $('#cfg-userEmail');
             const $fuInput = $('#cfg-foruser');
-            if ($fnInput.length && !$fnInput.val()) $fnInput.val(seller.name || '');
-            if ($emInput.length && !$emInput.val()) $emInput.val(seller.email || '');
-            if ($fuInput.length && !$fuInput.val()) $fuInput.val(state.userId);
+            if ($fuInput.length && !$fuInput.val()) {
+                const user = generateRandomUser();
+                $fuInput.val(user.foruser);
+                if ($fnInput.length && !$fnInput.val()) $fnInput.val(user.userFullName);
+                if ($emInput.length && !$emInput.val()) $emInput.val(user.userEmail);
+                state.userId = user.foruser;
+            }
             if ($dnInput.length && !$dnInput.val()) {
                 const selDoc = getSelectedDocument();
                 $dnInput.val(selDoc.label || '');
@@ -1246,7 +1298,15 @@
                 if (idx >= 0) { selectColorScheme(idx); selectLogoSet(idx); }
             }
         }
-        updateBrandColor();
+        // Only generate/apply CSS if a non-default color scheme is explicitly selected;
+        // when Default or nothing is selected, ensure no CSS leaks into JSON
+        const activeSchemeBtn = document.querySelector('.color-scheme-btn.active');
+        const isNonDefault = activeSchemeBtn && activeSchemeBtn !== document.querySelector('.color-scheme-btn:first-child');
+        if (isNonDefault) {
+            updateBrandColor();
+        } else {
+            removeColorScheme();
+        }
 
         // Update collapsed section summaries
         _updateFeatureChangedCount();
@@ -1502,6 +1562,17 @@
         });
         const $dnEl = $('#cfg-displayname');
         if ($dnEl.length) $dnEl.on('input', () => { displaynameRefresh(); saveAppState(); });
+
+        // Regenerate user button - picks a new random name and fills foruser/fullname/email
+        $('#btn-regenerate-user').on('click', () => {
+            const user = generateRandomUser();
+            $('#cfg-foruser').val(user.foruser);
+            $('#cfg-userfullname').val(user.userFullName);
+            $('#cfg-userEmail').val(user.userEmail);
+            state.userId = user.foruser;
+            ownerRefresh();
+            saveAppState();
+        });
 
         // Bind session ID input
         const $sessionInput = $('#manual-session-id');
@@ -2016,6 +2087,37 @@
         });
     }
 
+    /** Add word-wrap toggle hint (bottom-right) + Alt+Z keybinding to a Monaco editor */
+    function setupEditorWrapToggle(editor, container) {
+        const hint = document.createElement('span');
+        hint.className = 'editor-wrap-hint';
+        hint.title = 'Toggle word wrap (Alt+Z)';
+        container.style.position = 'relative';
+        container.appendChild(hint);
+
+        function updateHint() {
+            const on = editor.getOption(monaco.editor.EditorOption.wordWrap) !== 'off';
+            hint.textContent = on ? 'wrap: on (Alt+Z)' : 'wrap: off (Alt+Z)';
+            hint.classList.toggle('wrap-off', !on);
+        }
+        updateHint();
+
+        function toggleWrap() {
+            const on = editor.getOption(monaco.editor.EditorOption.wordWrap) !== 'off';
+            editor.updateOptions({ wordWrap: on ? 'off' : 'on' });
+            updateHint();
+        }
+
+        hint.addEventListener('click', toggleWrap);
+
+        editor.addAction({
+            id: 'toggle-word-wrap',
+            label: 'Toggle Word Wrap',
+            keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+            run: toggleWrap
+        });
+    }
+
     /** Auto-resize a Monaco editor to fit its content (clamped to container max-height) */
     function autoResizeEditor(editor, container, uncapped) {
         const MAX_HEIGHT = uncapped ? Infinity : 600;
@@ -2202,6 +2304,10 @@
 
     function goToStep(step, skipHash) {
         state.currentStep = step;
+
+        // Remove early-init CSS override (injected in <head> to prevent flash)
+        const earlyCss = document.getElementById('early-step-css');
+        if (earlyCss) earlyCss.remove();
 
         // Update URL hash without triggering hashchange
         if (!skipHash) {
@@ -2465,6 +2571,23 @@
         $btn.html('<span class="spinner-insign"></span> Sending...');
         state.lastForuser = body.foruser || '';
         saveAppState();
+
+        // Resolve <logo:*> placeholders with actual data URLs before sending
+        const logoMap = {
+            icon:  { key: 'message.start.logo.url.editor.desktop', path: 'guiProperties', placeholder: '<logo:icon>' },
+            mail:  { key: 'message.mt.header.image',               path: 'guiProperties', placeholder: '<logo:mail>' },
+            login: { key: 'logoExtern',                            path: 'root',          placeholder: '<logo:login>' }
+        };
+        for (const [slot, cfg] of Object.entries(logoMap)) {
+            const dataUrl = state.brandLogoData[slot];
+            if (!dataUrl) continue;
+            if (cfg.path === 'guiProperties' && body.guiProperties?.[cfg.key] === cfg.placeholder) {
+                body.guiProperties[cfg.key] = dataUrl;
+            } else if (cfg.path === 'root' && body[cfg.key] === cfg.placeholder) {
+                body[cfg.key] = dataUrl;
+            }
+        }
+
         const result = await state.apiClient.post('/configure/session', body);
 
         // Store last request for code generation (show placeholder, not raw base64)
@@ -2474,6 +2597,15 @@
                 if (doc.file && doc.file.length > 100) {
                     doc.file = '<filedata>';
                 }
+            }
+        }
+        // Restore logo placeholders for snippet display
+        for (const [slot, cfg] of Object.entries(logoMap)) {
+            if (!state.brandLogoData[slot]) continue;
+            if (cfg.path === 'guiProperties' && bodyForSnippet.guiProperties?.[cfg.key]?.startsWith('data:')) {
+                bodyForSnippet.guiProperties[cfg.key] = cfg.placeholder;
+            } else if (cfg.path === 'root' && bodyForSnippet[cfg.key]?.startsWith('data:')) {
+                bodyForSnippet[cfg.key] = cfg.placeholder;
             }
         }
         state.lastRequest = { method: 'POST', path: '/configure/session', body: bodyForSnippet };
@@ -2593,6 +2725,30 @@
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
+
+        // Trace the form POST so it appears in the API trace sidebar
+        if (state.apiClient) {
+            var path;
+            try { path = new URL(url).pathname; } catch (_) { path = url; }
+            // Redact jwt from traced body
+            var tracedParams = Object.assign({}, params);
+            if (tracedParams.jwt) tracedParams.jwt = tracedParams.jwt.substring(0, 20) + '...';
+            state.apiClient._trace({
+                id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                timestamp: new Date().toISOString(),
+                method: 'POST',
+                path: path,
+                url: url,
+                requestHeaders: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                requestBody: tracedParams,
+                status: 'N/A',
+                statusText: 'Form POST to new tab',
+                ok: true,
+                responseHeaders: {},
+                responseBody: null,
+                duration: 0
+            });
+        }
     }
 
     async function openInSign() {
@@ -2921,53 +3077,19 @@
 
     /** Build extern/beginmulti body using discovered or catalog roles */
     function buildExternBodyFromRoles() {
-        const d = state.demoData || {};
-        const seller = d.seller || {};
-        const buyer = d.buyer || {};
-        const sw = d.streetWorkContract || {};
-        const broker = sw.broker || {};
-        const customer = sw.customer || {};
-        const agency = sw.agency || {};
         const roles = state.discoveredRoles || [];
 
         const sendEmails = getExternOption('sendEmails') !== false;
         const sendSMS = getExternOption('sendSMS') === true;
         const singleSignOnEnabled = getExternOption('singleSignOnEnabled') !== false;
+        const opts = { sendEmails, sendSMS, singleSignOnEnabled };
 
-        const externUsers = [];
-        const roleData = {
-            seller: { email: seller.email, name: seller.name, phone: seller.phone },
-            buyer: { email: buyer.email, name: buyer.name, phone: buyer.phone },
-            broker: { email: broker.email, name: broker.name, phone: broker.phone },
-            customer: { email: customer.email, name: customer.name, phone: customer.phone },
-            agency: { email: agency.email, name: agency.name, phone: agency.phone },
-            role_one: { email: seller.email, name: seller.name, phone: seller.phone },
-            role_two: { email: buyer.email, name: buyer.name, phone: buyer.phone }
-        };
-
-        for (const role of roles) {
-            const data = roleData[role] || {};
-            const user = {
-                recipient: data.email || `${role}@nowhere.invalid`,
-                realName: data.name || role,
-                roles: [role],
-                sendEmails,
-                sendSMS,
-                singleSignOnEnabled
-            };
-            if (data.phone) user.mobileNumber = data.phone.replace(/\s/g, '');
-            externUsers.push(user);
-        }
+        const externUsers = roles.map(role => _randomExternUser(role, opts));
 
         if (externUsers.length === 0) {
-            const mkUser = (data, fallbackEmail, role) => {
-                const u = { recipient: data.email || fallbackEmail, realName: data.name, roles: [role], sendEmails, sendSMS, singleSignOnEnabled };
-                if (data.phone) u.mobileNumber = data.phone.replace(/\s/g, '');
-                return u;
-            };
             externUsers.push(
-                mkUser(seller, 'seller@nowhere.invalid', 'seller'),
-                mkUser(buyer, 'buyer@nowhere.invalid', 'buyer')
+                _randomExternUser('seller', opts),
+                _randomExternUser('buyer', opts)
             );
         }
 
@@ -3128,7 +3250,7 @@
         }
     }
 
-    async function executeDocumentSingle() {
+    async function fetchDocumentSingle() {
         const body = getEditorValue('op-document-single');
         const obj = typeof body === 'string' ? JSON.parse(body) : body;
         const qs = new URLSearchParams(obj).toString();
@@ -3151,31 +3273,42 @@
 
         const $responsePre = $('pre.response-body[data-op="document-single"]');
 
-        if (result.ok && result.blob) {
-            const url = URL.createObjectURL(result.blob);
-            const $a = $('<a>');
-            $a.attr('href', url);
-            $a.attr('download', (body.docid || 'document') + '.pdf');
-            $a[0].click();
-            URL.revokeObjectURL(url);
-
-            const sizeStr = result.blob.size < 1024 ? result.blob.size + ' B' :
-                (result.blob.size / 1024).toFixed(1) + ' KB';
-            if ($responsePre.length) {
-                $responsePre.html(`Downloaded ${sizeStr} (${result.blob.type})` +
-                    (state.pdfViewer ? ` &mdash; <a href="#" onclick="window.app.previewLastDownload();return false" style="color:var(--insign-blue)">Preview</a>` : ''));
-            }
-            if (state.pdfViewer) {
-                state._lastDownloadBlob = result.blob;
-                previewBlob(result.blob, 'Document: ' + (body.docid || ''));
-            }
-        } else {
+        if (!result.ok || !result.blob) {
             if ($responsePre.length) {
                 const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
                 $responsePre.text(content);
             }
+        } else {
+            const sizeStr = result.blob.size < 1024 ? result.blob.size + ' B' :
+                (result.blob.size / 1024).toFixed(1) + ' KB';
+            if ($responsePre.length) {
+                $responsePre.text(`Received ${sizeStr} (${result.blob.type})`);
+            }
+            state._lastDownloadBlob = result.blob;
+            state._lastDownloadName = (obj.docid || 'document') + '.pdf';
         }
+
         updateCodeSnippets();
+        return result;
+    }
+
+    async function downloadDocumentSingle() {
+        const result = await fetchDocumentSingle();
+        if (result.ok && result.blob) {
+            const url = URL.createObjectURL(result.blob);
+            const $a = $('<a>');
+            $a.attr('href', url);
+            $a.attr('download', state._lastDownloadName || 'document.pdf');
+            $a[0].click();
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    async function previewDocumentSingle() {
+        const result = await fetchDocumentSingle();
+        if (result.ok && result.blob && state.pdfViewer) {
+            previewBlob(result.blob, 'Document: ' + (state._lastDownloadName || ''));
+        }
     }
 
     async function uploadDocument() {
@@ -3771,6 +3904,10 @@
                 selectColorScheme(brandIndex);
                 selectLogoSet(brandIndex);
             }
+        } else {
+            // Re-apply existing branding even when not syncing to document
+            applyBrandingCSS();
+            applyBrandingLogos();
         }
         saveAppState();
     }
@@ -3814,6 +3951,8 @@
         // Update editor
         if (state.editors['create-session']) {
             setEditorValue('create-session', getDefaultCreateSessionBody());
+            applyBrandingCSS();
+            applyBrandingLogos();
         }
         saveAppState();
     }
@@ -3984,6 +4123,8 @@
     function resetRequestBody(editorId) {
         if (editorId === 'create-session') {
             setEditorValue('create-session', getDefaultCreateSessionBody());
+            applyBrandingCSS();
+            applyBrandingLogos();
         }
     }
 
@@ -4804,30 +4945,41 @@
             const m = line.match(/^(\s*)(--[\w-]+)(\s*:\s*)(.+?)(;?\s*)$/);
             if (m) {
                 const [, indent, prop, colon, val, semi] = m;
-                let valHtml;
-                // Direct hex color
-                const hexMatch = val.match(/^(#[0-9a-fA-F]{6,8})$/);
-                if (hexMatch) {
-                    valHtml = `<span class="css-color-swatch" style="background:${hexMatch[1]}"></span><span class="css-prop-val">${esc(val)}</span>`;
-                }
-                // var() or color-mix() reference — resolve and show swatch if it's a color
-                else if (val.includes('var(') || val.includes('color-mix(')) {
-                    const resolved = resolveColor(val);
-                    const swatch = resolved ? `<span class="css-color-swatch" style="background:${resolved}"></span>` : '';
-                    valHtml = swatch + esc(val).replace(/var\((--[\w-]+)\)/g, m =>
-                        `<span class="css-var-ref">${m}</span>`
-                    );
-                }
-                else {
-                    // Could be a hex with alpha suffix (e.g. #0D47A17A) — try swatch
-                    const partialHex = val.match(/(#[0-9a-fA-F]{6,8})/);
-                    if (partialHex) {
-                        valHtml = `<span class="css-color-swatch" style="background:${partialHex[1]}"></span><span class="css-prop-val">${esc(val)}</span>`;
-                    } else {
-                        valHtml = `<span class="css-prop-val">${esc(val)}</span>`;
+                // Token-based rendering: add swatches to every hex color and var() reference found anywhere in the value
+                // First, show a swatch for the whole resolved value (the result color)
+                const wholeResolved = resolveColor(val);
+                const wholeSwatch = wholeResolved ? `<span class="css-color-swatch" style="background:${wholeResolved}"></span>` : '';
+                // Tokenize value: split into hex colors, var() refs, and plain text segments
+                const tokenRe = /(#[0-9a-fA-F]{6,8}|var\(--[\w-]+\))/g;
+                let valHtml = '';
+                let lastIdx = 0;
+                let match;
+                const escValSrc = val;
+                while ((match = tokenRe.exec(escValSrc)) !== null) {
+                    // Add plain text before this token
+                    if (match.index > lastIdx) {
+                        valHtml += `<span class="css-prop-val">${esc(escValSrc.slice(lastIdx, match.index))}</span>`;
                     }
+                    const token = match[0];
+                    if (token.startsWith('#')) {
+                        valHtml += `<span class="css-color-swatch" style="background:${token}"></span><span class="css-prop-val">${esc(token)}</span>`;
+                    } else {
+                        // var(--name) - resolve and swatch
+                        const vName = token.match(/var\((--[\w-]+)\)/)[1];
+                        const refColor = resolveColor(`var(${vName})`);
+                        const refSwatch = refColor ? `<span class="css-color-swatch" style="background:${refColor}"></span>` : '';
+                        valHtml += `${refSwatch}<span class="css-var-ref">${esc(token)}</span>`;
+                    }
+                    lastIdx = match.index + token.length;
                 }
-                return `${esc(indent)}<span class="css-prop-name">${esc(prop)}</span><span class="css-punct">${esc(colon)}</span>${valHtml}<span class="css-punct">${esc(semi)}</span>`;
+                // Remaining plain text after last token
+                if (lastIdx < escValSrc.length) {
+                    valHtml += `<span class="css-prop-val">${esc(escValSrc.slice(lastIdx))}</span>`;
+                }
+                // If value has functions (color-mix etc.) prepend the whole-resolved swatch
+                const hasFn = val.includes('(') && !val.match(/^var\(--[\w-]+\)$/);
+                const prefix = (hasFn && wholeSwatch) ? wholeSwatch : (!valHtml.includes('css-color-swatch') && wholeSwatch ? wholeSwatch : '');
+                return `${esc(indent)}<span class="css-prop-name">${esc(prop)}</span><span class="css-punct">${esc(colon)}</span>${prefix}${valHtml}<span class="css-punct">${esc(semi)}</span>`;
             }
             return esc(line);
         });
@@ -4851,7 +5003,7 @@
         const container = document.getElementById('color-scheme-presets');
         if (!container) return;
         let html = `
-            <div class="color-scheme-btn" onclick="window.app.removeColorScheme()" title="Default - remove custom CSS">
+            <div class="color-scheme-btn active" onclick="window.app.removeColorScheme()" title="Default - remove custom CSS">
                 <i class="bi bi-x-circle" style="font-size:0.85rem;color:var(--insign-text-muted)"></i>
                 <span style="font-size:0.7rem">Default</span>
             </div>`;
@@ -4938,6 +5090,9 @@
     }
 
     function applyBrandingCSS() {
+        // Only inject CSS when a non-default color scheme is explicitly selected
+        const activeSchemeBtn = document.querySelector('.color-scheme-btn.active');
+        if (!activeSchemeBtn || activeSchemeBtn === document.querySelector('.color-scheme-btn:first-child')) return;
         const css = document.getElementById('brand-css-preview')?.value;
         if (!css || !state.editors['create-session']) return;
         const body = getEditorValue('create-session');
@@ -4946,6 +5101,18 @@
         // Collapse to single line - the API field expects no linebreaks
         body.externalPropertiesURL = css.replace(/\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
         setEditorValue('create-session', body);
+    }
+
+    /** Return the display value for a logo URL: placeholder for data URLs, URL as-is otherwise */
+    function logoDisplayValue(slot, url) {
+        if (!url) return null;
+        if (url.startsWith('data:')) {
+            state.brandLogoData[slot] = url;
+            var placeholders = { icon: '<logo:icon>', mail: '<logo:mail>', login: '<logo:login>' };
+            return placeholders[slot] || url;
+        }
+        delete state.brandLogoData[slot];
+        return url;
     }
 
     function applyBrandingLogos() {
@@ -4957,9 +5124,9 @@
         var body = getEditorValue('create-session');
         if (typeof body !== 'object') return;
         if (!body.guiProperties) body.guiProperties = {};
-        if (iconUrl) body.guiProperties['message.start.logo.url.editor.desktop'] = iconUrl;
-        if (mailUrl) body.guiProperties['message.mt.header.image'] = mailUrl;
-        if (loginUrl) body.logoExtern = loginUrl;
+        if (iconUrl) body.guiProperties['message.start.logo.url.editor.desktop'] = logoDisplayValue('icon', iconUrl);
+        if (mailUrl) body.guiProperties['message.mt.header.image'] = logoDisplayValue('mail', mailUrl);
+        if (loginUrl) body.logoExtern = logoDisplayValue('login', loginUrl);
         setEditorValue('create-session', body);
     }
 
@@ -5071,6 +5238,9 @@
         // Highlight active card (index+1 because first card is Default)
         document.querySelectorAll('.logo-set-card').forEach((c, j) => c.classList.toggle('active', j === index + 1));
 
+        // Clear stored data URLs - logo sets use real URLs
+        state.brandLogoData = {};
+
         const iconUrl = buildAbsoluteUrl(getLogoSrc(set, 'icon'));
         const mailUrl = buildAbsoluteUrl(getLogoSrc(set, 'mail'));
         const loginUrl = buildAbsoluteUrl(getLogoSrc(set, 'login'));
@@ -5125,9 +5295,9 @@
         }
         if (saved.brandLogos) {
             const l = saved.brandLogos;
-            if (l.icon)  { $('#brand-app-icon').val(l.icon);           showPreview('brand-app-icon-preview', l.icon); }
-            if (l.mail)  { $('#brand-mail-header-image').val(l.mail);   showPreview('brand-mail-header-preview', l.mail); }
-            if (l.login) { $('#brand-logo-extern').val(l.login);        showPreview('brand-logo-extern-preview', l.login); }
+            if (l.icon)  { $('#brand-app-icon').val(l.icon);           showPreview('brand-app-icon-preview', l.icon); if (l.icon.startsWith('data:'))  state.brandLogoData.icon  = l.icon; }
+            if (l.mail)  { $('#brand-mail-header-image').val(l.mail);   showPreview('brand-mail-header-preview', l.mail); if (l.mail.startsWith('data:'))  state.brandLogoData.mail  = l.mail; }
+            if (l.login) { $('#brand-logo-extern').val(l.login);        showPreview('brand-logo-extern-preview', l.login); if (l.login.startsWith('data:')) state.brandLogoData.login = l.login; }
         }
     }
 
@@ -5135,6 +5305,9 @@
     function resetLogos() {
         // Highlight Default card (first one)
         document.querySelectorAll('.logo-set-card').forEach((c, j) => c.classList.toggle('active', j === 0));
+
+        // Clear stored logo data
+        state.brandLogoData = {};
 
         if (!state.editors['create-session']) return;
         const body = getEditorValue('create-session');
@@ -5169,20 +5342,30 @@
         if (typeof body !== 'object') return;
         if (!body.guiProperties) body.guiProperties = {};
 
-        const dataUrl = url ? await toBase64DataUrl(url) : null;
         const config = {
-            icon:  { key: 'message.start.logo.url.editor.desktop', path: 'guiProperties', input: 'brand-app-icon', preview: 'brand-app-icon-preview' },
-            mail:  { key: 'message.mt.header.image',       path: 'guiProperties', input: 'brand-mail-header-image', preview: 'brand-mail-header-preview' },
-            login: { key: 'logoExtern',                    path: 'root',          input: 'brand-logo-extern', preview: 'brand-logo-extern-preview' }
+            icon:  { key: 'message.start.logo.url.editor.desktop', path: 'guiProperties', input: 'brand-app-icon', preview: 'brand-app-icon-preview', placeholder: '<logo:icon>' },
+            mail:  { key: 'message.mt.header.image',       path: 'guiProperties', input: 'brand-mail-header-image', preview: 'brand-mail-header-preview', placeholder: '<logo:mail>' },
+            login: { key: 'logoExtern',                    path: 'root',          input: 'brand-logo-extern', preview: 'brand-logo-extern-preview', placeholder: '<logo:login>' }
         }[slot];
         if (!config) return;
 
-        if (dataUrl) {
-            if (config.path === 'guiProperties') body.guiProperties[config.key] = dataUrl;
-            else body[config.key] = dataUrl;
-            document.getElementById(config.input).value = dataUrl;
-            showPreview(config.preview, dataUrl);
+        if (url) {
+            const isDataUrl = url.startsWith('data:');
+            // For data URLs (uploaded files), store data separately and use placeholder in JSON
+            if (isDataUrl) {
+                state.brandLogoData[slot] = url;
+                if (config.path === 'guiProperties') body.guiProperties[config.key] = config.placeholder;
+                else body[config.key] = config.placeholder;
+            } else {
+                // Normal URL - put directly in JSON, clear any stored data
+                delete state.brandLogoData[slot];
+                if (config.path === 'guiProperties') body.guiProperties[config.key] = url;
+                else body[config.key] = url;
+            }
+            document.getElementById(config.input).value = url;
+            showPreview(config.preview, url);
         } else {
+            delete state.brandLogoData[slot];
             if (config.path === 'guiProperties') delete body.guiProperties[config.key];
             else delete body[config.key];
         }
@@ -5540,7 +5723,8 @@
         executeFreeRequest,
         executeExtern,
         executeDownload,
-        executeDocumentSingle,
+        downloadDocumentSingle,
+        previewDocumentSingle,
         toggleIncludeBiodata,
         uploadDocument,
         discoverFieldsAndRoles,
