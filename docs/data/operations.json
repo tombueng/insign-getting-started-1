@@ -109,6 +109,13 @@
         "schemaKey": null,
         "accept": "text/plain"
     },
+    "usersessions": {
+        "method": "POST",
+        "path": "/get/usersessions",
+        "bodyFn": "getUserSessionsBody",
+        "schemaKey": null,
+        "queryParams": true
+    },
     "version": {
         "method": "GET",
         "path": "/version",
