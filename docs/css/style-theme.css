@@ -470,8 +470,9 @@ code {
     border: 1px solid var(--insign-border);
     border-radius: var(--insign-radius-input);
     font-family: 'Roboto Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--insign-gray);
+    line-height: 1.5;
 }
 
 .headers-display .header-name {
@@ -533,6 +534,11 @@ code {
     color: var(--insign-blue);
     border-bottom-color: var(--insign-blue);
     background: transparent;
+}
+
+/* Session/ForUser bar in navbar */
+.navbar-session-bar {
+    color: var(--insign-text-muted);
 }
 
 /* === Code Snippets ====================================================== */
@@ -618,6 +624,10 @@ code {
     background: #f8f8f8;
 }
 [data-theme="dark"] .doc-header-thumb { background: #2a2d31; }
+
+.doc-header-doc-title {
+    color: var(--insign-text);
+}
 
 /* Group labels */
 .doc-dd-group-label {
@@ -1400,6 +1410,13 @@ code {
 .feature-desc.pinned {
     box-shadow: none;
     background: rgba(0,0,0,0.025);
+}
+
+#feature-float-tooltip {
+    color: var(--insign-text-muted, #666);
+    background: var(--insign-card-bg, #fff);
+    border-left: 3px solid var(--insign-blue, #0d6efd);
+    box-shadow: var(--insign-shadow-lg, 0 4px 20px rgba(0,0,0,0.12));
 }
 
 .feature-toggle .feature-label {

@@ -784,8 +784,43 @@
         }
         $container.html(html);
 
+        // Floating tooltip on hover (follows mouse, ignores pinned)
+        _initFeatureFloatTooltip();
+
         // Apply saved non-default values to the JSON editor
         applyFeatureSettingsToEditor();
+    }
+
+    function _initFeatureFloatTooltip() {
+        const tooltip = document.getElementById('feature-float-tooltip');
+        if (!tooltip) return;
+
+        $('#feature-toggles').on('mouseenter', '.feature-toggle', function(e) {
+            const $desc = $(this).children('.feature-desc');
+            if (!$desc.length || $desc.hasClass('pinned')) return;
+            tooltip.innerHTML = $desc.html();
+            tooltip.style.display = 'block';
+            _positionFloatTooltip(e, tooltip);
+        }).on('mousemove', '.feature-toggle', function(e) {
+            if (tooltip.style.display === 'none') return;
+            _positionFloatTooltip(e, tooltip);
+        }).on('mouseleave', '.feature-toggle', function() {
+            tooltip.style.display = 'none';
+        });
+    }
+
+    function _positionFloatTooltip(e, tooltip) {
+        const x = e.clientX + 20;
+        const y = e.clientY + 20;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const tw = tooltip.offsetWidth;
+        const th = tooltip.offsetHeight;
+        // Keep within viewport
+        const finalX = (x + tw > vw) ? Math.max(8, e.clientX - tw - 20) : x;
+        const finalY = (y + th > vh) ? Math.max(8, e.clientY - th - 10) : y;
+        tooltip.style.left = finalX + 'px';
+        tooltip.style.top = finalY + 'px';
     }
 
     /** Apply all non-default feature settings to the JSON editor */
@@ -2239,16 +2274,17 @@
         $('#active-session-id').text(sessionId);
         $('#manual-session-id').val(sessionId);
 
-        // Update navbar session bar
+        // Update session bar below operation tabs
         $('#navbar-session').removeClass('d-none').addClass('d-flex');
         $('#navbar-session-id').val(sessionId);
-        $('#navbar-btn-open').toggleClass('d-none', !accessURL);
+        // Show foruser in the bar
+        const foruserVal = ($('#cfg-foruser').val() || '').trim() || state.userId || '';
+        $('#navbar-foruser-id').val(foruserVal);
 
         // Show buttons whenever a session ID exists (tokens are renewed on click via /persistence/loadsession)
         const hasSession = !!sessionId;
-        $('#btn-open-insign').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
         $('#navbar-btn-open').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
-        $('#btn-open-session-manager').toggleClass('d-none', !hasSession)
+        $('#navbar-btn-session-mgr').toggleClass('d-none', !hasSession)
             .attr('title', state.accessURLProcessManagement || '');
         $('#btn-goto-step2, #btn-floating-goto-step2').removeClass('d-none');
 
@@ -2530,7 +2566,7 @@
         try {
             const jwt = await getSSOJwt();
             if (jwt) {
-                postToNewTab(baseUrl + '/load', { jwt: jwt });
+                postToNewTab(baseUrl + '/start/gallery', { jwt: jwt });
                 return;
             }
         } catch (e) { /* fallback to stored URL */ }
@@ -2607,12 +2643,11 @@
             const resp = typeof result.body === 'object' ? result.body : {};
             if (resp.accessURL) {
                 state.accessURL = resp.accessURL;
-                $('#btn-open-insign').removeClass('d-none').attr('title', resp.accessURL);
                 $('#navbar-btn-open').removeClass('d-none').attr('title', resp.accessURL);
             }
             if (resp.accessURLProcessManagement) {
                 state.accessURLProcessManagement = resp.accessURLProcessManagement;
-                $('#btn-open-session-manager').removeClass('d-none').attr('title', resp.accessURLProcessManagement);
+                $('#navbar-btn-session-mgr').removeClass('d-none').attr('title', resp.accessURLProcessManagement);
             }
         }
 
@@ -3425,6 +3460,7 @@
         // --- Uploaded files first (own docs) ---
         if (uploads.length > 0) {
             html += `<div class="doc-dd-group-label"><i class="bi bi-cloud-arrow-up me-1"></i>Your Uploads <span class="doc-dd-count">${uploads.length}</span></div>`;
+            html += `<div class="doc-dd-grid">`;
             for (const up of uploads) {
                 const upKey = 'upload:' + up.id;
                 const label = _docLabel(upKey, null) || up.name.replace(/\.pdf$/i, '');
@@ -3445,12 +3481,14 @@
                     </div>`;
                 totalItems++;
             }
+            html += `</div>`;
             html += `<div class="doc-dd-divider"></div>`;
         }
 
         // --- Branded contracts ---
         const visibleBrand = brandKeys.filter(k => !_docHidden(k));
         html += `<div class="doc-dd-group-label">Branded Contracts <span class="doc-dd-count">${visibleBrand.length}</span></div>`;
+        html += `<div class="doc-dd-grid">`;
         for (const key of brandKeys) {
             if (_docHidden(key)) continue;
             const doc = DOCUMENTS[key];
@@ -3478,6 +3516,7 @@
                 </div>`;
             totalItems++;
         }
+        html += `</div>`;
 
         // --- Drag-drop hint ---
         html += `
@@ -3492,6 +3531,7 @@
         if (hiddenKeys.length > 0) {
             html += `<div class="doc-dd-divider"></div>`;
             html += `<div class="doc-dd-group-label">Hidden <span class="doc-dd-count">${hiddenKeys.length}</span></div>`;
+            html += `<div class="doc-dd-grid">`;
             for (const key of hiddenKeys) {
                 const doc = DOCUMENTS[key];
                 if (!doc) continue;
@@ -3504,16 +3544,10 @@
                         </div>
                     </div>`;
             }
+            html += `</div>`;
         }
 
         $container.html(html);
-
-        // Add scrollable class only when >10 items
-        if (totalItems > 10) {
-            $container.addClass('doc-list-scrollable');
-        } else {
-            $container.removeClass('doc-list-scrollable');
-        }
 
         // Lazy-load thumbnails
         _lazyLoadVisibleThumbs();
@@ -3537,14 +3571,14 @@
             const up = uploads.find(u => u.id === upId);
             docName = _docLabel(selectedKey, null) || (up ? up.name : 'Uploaded File');
             subtitle = 'Your uploaded PDF. Drag-and-drop another to replace.';
-            logoHtml = '<img src="favicon.png" style="width:20px;height:20px;border-radius:3px;vertical-align:middle;margin-right:4px" alt="">';
+            logoHtml = '<img src="favicon.png" style="width:26px;height:26px;border-radius:3px;vertical-align:middle;margin-right:6px" alt="">';
             thumbSource = 'upload:' + upId;
         } else if (selectedKey && DOCUMENTS[selectedKey]) {
             const doc = DOCUMENTS[selectedKey];
             docName = _docLabel(selectedKey, doc);
             subtitle = doc.desc || `${doc.pages} pages - ${doc.roles.length} roles`;
             if (doc.logo) {
-                logoHtml = `<img src="${doc.logo}" style="width:20px;height:20px;border-radius:3px;vertical-align:middle;margin-right:4px" alt="">`;
+                logoHtml = `<img src="${doc.logo}" style="width:26px;height:26px;border-radius:3px;vertical-align:middle;margin-right:6px" alt="">`;
             }
             if (doc.local) thumbSource = doc.local;
         }
@@ -3561,7 +3595,7 @@
             if (thumbSource.startsWith('upload:')) {
                 _renderUploadThumb(thumbSource.substring(7), headerCanvas).then(clearSkeleton, clearSkeleton);
             } else {
-                renderPdfThumbnail(thumbSource, headerCanvas, 80).then(clearSkeleton, clearSkeleton);
+                renderPdfThumbnail(thumbSource, headerCanvas, 64).then(clearSkeleton, clearSkeleton);
             }
         }
     }
@@ -3571,8 +3605,7 @@
         const container = document.getElementById('doc-selector');
         if (!container) return;
 
-        // Use the scrollable container as root if it scrolls, otherwise null (viewport)
-        const root = container.classList.contains('doc-list-scrollable') ? container : null;
+        const root = null; // use viewport for intersection
 
         // Predefined docs (loaded by URL)
         $('#doc-selector canvas.doc-dd-thumb[data-pdf]').each(function() {
@@ -3652,7 +3685,9 @@
             } catch { /* fallback: customFileData may already be set */ }
         }
 
-        // Rebuild list to reflect new selection
+        // Collapse the panel and rebuild list to reflect new selection
+        const panel = document.getElementById('doc-selector-panel');
+        if (panel) bootstrap.Collapse.getOrCreateInstance(panel).hide();
         buildDocumentSelector();
 
         // Update displayname input to match selected document
@@ -5237,6 +5272,32 @@
         }
     }
 
+    /** Reset all feature toggles back to default */
+    function resetAllFeatures() {
+        saveFeatureSettings({});
+        // Reset all toggle radios to "default"
+        $('input[type="radio"][id$="-default"]').prop('checked', true);
+        // Reset all text/select inputs
+        $('.feature-input').val('');
+        // Remove feature keys from JSON body
+        if (state.editors['create-session']) {
+            const body = getEditorValue('create-session');
+            if (typeof body === 'object') {
+                delete body.guiProperties;
+                delete body.signConfig;
+                delete body.deliveryConfig;
+                setEditorValue('create-session', body);
+            }
+        }
+        _updateFeatureChangedCount();
+    }
+
+    /** Reset all branding (colors + logos) to defaults */
+    function resetBrandingAll() {
+        removeColorScheme();
+        resetLogos();
+    }
+
     /** Update the branding header summary with color dots and logo icon */
     function _updateBrandingHeaderSummary() {
         const el = document.getElementById('branding-header-summary');
@@ -5323,6 +5384,8 @@
         updateBrandColor,
         applyBrandingCSS,
         resetBranding,
+        resetBrandingAll,
+        resetAllFeatures,
         selectLogoSet,
         resetLogos,
         updateBrandLogo,
