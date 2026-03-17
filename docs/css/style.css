@@ -1286,7 +1286,7 @@ code {
 /* Rich CSS Editor with color swatches */
 .css-rich-editor {
     line-height: 1.65;
-    padding: 10px 14px;
+    padding: 8px 18px;
     max-height: 120px;
     overflow-y: auto;
     white-space: pre;

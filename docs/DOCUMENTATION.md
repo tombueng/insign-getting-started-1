@@ -290,7 +290,7 @@ After creating a session, use Step 3 to execute API operations and inspect their
 | Finish | `/configure/fertig` | POST | Mark session complete |
 | Restart | `/configure/restartsession` | POST | Reset session to signing state |
 | Reject | `/configure/ablehnen` | POST | Reject and delete documents |
-| Delete Session | `/configure/deletesession` | POST | Completely remove session |
+| Delete Session | `/persistence/delete` | DELETE | Completely remove session |
 | Audit | `/get/audit` | POST | Audit trail of session activities |
 | SSO Token | `/configure/createSSOForApiuser` | POST | Create SSO session for API user |
 | Version | `/version` | GET | Server version info |
@@ -499,7 +499,7 @@ http://your-worker.workers.dev/?https://your-insign.com/api/path
 | `POST` | `/configure/fertig` | Mark session as complete |
 | `POST` | `/configure/restartsession` | Restart session (reset to signing state) |
 | `POST` | `/configure/ablehnen` | Reject session and delete documents |
-| `POST` | `/configure/deletesession` | Permanently delete a session |
+| `DELETE` | `/persistence/delete` | Permanently delete a session |
 | `POST` | `/persistence/loadsession` | Load/reactivate a previously saved session |
 
 ### External Signing
@@ -616,7 +616,7 @@ docs/
     style-theme.css             # Theme variables and dark/light mode
   codegen-templates/            # 8 language templates (curl, java, python, etc.)
   data/
-    demo-data.json              # Sample test data
+    names.json                  # 100 EU names with unicode chars for user generation
     branded-contracts.json      # 12 branded sample contracts
     feature-descriptions.json   # Feature metadata and descriptions
     cf-webhook-worker.js        # Cloudflare Worker source

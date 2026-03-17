@@ -79,12 +79,10 @@
         "responseSchemaKey": "sessionStatus"
     },
     "delete-session": {
-        "method": "POST",
-        "path": "/configure/deletesession",
-        "accept": "*/*",
+        "method": "DELETE",
+        "path": "/persistence/delete",
         "bodyFn": "getSessionIdBody",
-        "schemaKey": "sessionIDInput",
-        "formParams": true
+        "schemaKey": "sessionIDInput"
     },
     "audit": {
         "method": "POST",
