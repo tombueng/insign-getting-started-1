@@ -71,6 +71,15 @@ async function init() {
         }
     }
 
+    // Show Session Manager button and populate navbar foruser early (only needs a foruser, not a session)
+    {
+        const foruser = ($('#cfg-foruser').val() || '').trim() || state.userId || '';
+        if (foruser) {
+            $('#navbar-btn-session-mgr').removeClass('d-none');
+            $('#navbar-foruser-id').val(foruser);
+        }
+    }
+
     // Build document selector, feature toggles, and branding presets
     buildDocumentSelector();
     // Re-trigger thumbnail lazy-loading when the doc list section is expanded
@@ -366,7 +375,11 @@ async function init() {
     };
     ['cfg-foruser', 'cfg-userfullname', 'cfg-userEmail'].forEach(id => {
         const $el = $('#' + id);
-        if ($el.length) $el.on('input', () => { ownerRefresh(); saveAppState(); });
+        if ($el.length) $el.on('input', () => {
+            ownerRefresh();
+            if (id === 'cfg-foruser') $('#navbar-foruser-id').val($el.val());
+            saveAppState();
+        });
     });
     const $dnEl = $('#cfg-displayname');
     if ($dnEl.length) $dnEl.on('input', () => { displaynameRefresh(); saveAppState(); });
@@ -378,6 +391,7 @@ async function init() {
         $('#cfg-userfullname').val(user.userFullName);
         $('#cfg-userEmail').val(user.userEmail);
         state.userId = user.foruser;
+        $('#navbar-foruser-id').val(user.foruser);
         ownerRefresh();
         saveAppState();
     });
@@ -401,10 +415,12 @@ async function init() {
     state.webhookViewer.onUrlCreated = handleWebhookReady;
     state.webhookViewer.onError = handleWebhookError;
 
-    // Create webhook endpoint and start listening
-    state.webhookViewer.createEndpoint().then(url => {
-        if (url) state.webhookViewer.startPolling();
-    });
+    // Only create endpoint and start polling if webhook relay is enabled
+    if ($('#cfg-webhooks').is(':checked')) {
+        state.webhookViewer.createEndpoint().then(url => {
+            if (url) state.webhookViewer.startPolling();
+        });
+    }
 
     // Webhooks toggle in step 1 - sync with sidebar toggle and session JSON
     const $webhooksToggle = $('#cfg-webhooks');
@@ -490,7 +506,6 @@ function handleHashNavigation() {
             }
             // Focus navbar session ID input if navigating to step 3 with no session
             if (step === 3 && !state.sessionId) {
-                $('#navbar-session').removeClass('d-none').addClass('d-flex');
                 setTimeout(() => $('#navbar-session-id').focus(), 300);
             }
         }

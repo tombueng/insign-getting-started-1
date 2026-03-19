@@ -81,8 +81,8 @@
             </ul>
         </div>
     </div>
-    <!-- Second row: Session ID + ForUser (hidden until session exists) -->
-    <div class="d-none align-items-center justify-content-center gap-2 navbar-session-bar" id="navbar-session" style="font-size:0.62rem;padding:1px 8px;width:100%">
+    <!-- Second row: Session ID + ForUser (always visible - foruser is editable) -->
+    <div class="d-flex align-items-center justify-content-center gap-2 navbar-session-bar" id="navbar-session" style="font-size:0.62rem;padding:1px 8px;width:100%">
         <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
         <input type="text" class="form-control form-control-sm" id="navbar-session-id" name="navbar-session-id"
                placeholder="No session"
@@ -93,8 +93,9 @@
         </button>
         <span style="color:var(--insign-muted);white-space:nowrap;margin-left:4px">ForUser:</span>
         <input type="text" class="form-control form-control-sm" id="navbar-foruser-id" name="navbar-foruser-id"
-               placeholder="-" readonly
-               style="width:160px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px">
+               placeholder="-"
+               style="width:160px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px"
+               onchange="window.app.applyNavbarForuser()">
     </div>
 </nav>
 
@@ -310,7 +311,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-2" id="webhook-provider-group">
+                        <div class="mb-2" id="webhook-provider-group" style="display:none">
                             <label class="form-label">
                                 Webhook Provider
                                 <span class="text-muted-sm" style="font-size:0.66rem;font-weight:400"> - 3rd party services, data passes through external servers</span>

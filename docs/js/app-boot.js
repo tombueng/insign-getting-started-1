@@ -379,6 +379,7 @@ window.app = {
     buildDocumentSelector,
     applyManualSessionId,
     applyNavbarSessionId,
+    applyNavbarForuser,
     resetRequestBody,
     toggleDarkMode,
     setWebhookProvider,

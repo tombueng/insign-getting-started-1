@@ -1,0 +1,479 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1400" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0e27"/>
+      <stop offset="40%" stop-color="#0d1333"/>
+      <stop offset="100%" stop-color="#111940"/>
+    </linearGradient>
+    <linearGradient id="brokerGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a6dd4"/>
+      <stop offset="100%" stop-color="#0e4a8f"/>
+    </linearGradient>
+    <linearGradient id="insignGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e48803"/>
+      <stop offset="100%" stop-color="#b86c02"/>
+    </linearGradient>
+    <linearGradient id="signerGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a8765"/>
+      <stop offset="100%" stop-color="#066b4f"/>
+    </linearGradient>
+    <linearGradient id="emailGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="smsGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#be185d"/>
+    </linearGradient>
+    <linearGradient id="webhookGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(26,109,212,0.15)"/>
+      <stop offset="100%" stop-color="rgba(26,109,212,0.02)"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(228,136,3,0.15)"/>
+      <stop offset="100%" stop-color="rgba(228,136,3,0.02)"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(10,135,101,0.15)"/>
+      <stop offset="100%" stop-color="rgba(10,135,101,0.02)"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(139,92,246,0.15)"/>
+      <stop offset="100%" stop-color="rgba(139,92,246,0.02)"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad5" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(236,72,153,0.15)"/>
+      <stop offset="100%" stop-color="rgba(236,72,153,0.02)"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad6" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(245,158,11,0.12)"/>
+      <stop offset="100%" stop-color="rgba(245,158,11,0.02)"/>
+    </linearGradient>
+    <!-- Glow filters -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowStrong">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="shadowSmall">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <!-- Arrow markers -->
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e48803"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+    </marker>
+    <marker id="arrowPink" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ec4899"/>
+    </marker>
+    <marker id="arrowYellow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrowWhite" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+    <!-- Patterns -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+    </pattern>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1400" fill="url(#bgGrad)"/>
+  <rect width="1920" height="1400" fill="url(#grid)"/>
+  <rect width="1920" height="1400" fill="url(#dots)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="150" cy="200" r="300" fill="rgba(26,109,212,0.03)" stroke="none"/>
+  <circle cx="1750" cy="400" r="250" fill="rgba(228,136,3,0.03)" stroke="none"/>
+  <circle cx="960" cy="1200" r="350" fill="rgba(10,135,101,0.03)" stroke="none"/>
+
+  <!-- ==================== TITLE ==================== -->
+  <text x="960" y="52" text-anchor="middle" fill="#fff" font-size="28" font-weight="700" letter-spacing="2">
+    inSign Electronic Signature - Complete Integration Flow
+  </text>
+  <text x="960" y="76" text-anchor="middle" fill="#64748b" font-size="13" letter-spacing="1">
+    SESSION LIFECYCLE - PARTICIPANTS - COMMUNICATIONS - API INTERACTIONS
+  </text>
+  <line x1="300" y1="88" x2="1620" y2="88" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+  <!-- ==================== PARTICIPANT COLUMNS ==================== -->
+  <!-- Column headers -->
+  <!-- Your App / Broker -->
+  <rect x="60" y="100" width="340" height="52" rx="8" fill="url(#brokerGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="230" y="131" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">YOUR APPLICATION (Broker)</text>
+  <text x="230" y="146" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Session Owner - API Controller</text>
+
+  <!-- inSign Server -->
+  <rect x="560" y="100" width="380" height="52" rx="8" fill="url(#insignGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="750" y="131" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">inSign SERVER</text>
+  <text x="750" y="146" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Signing Platform - Document Management</text>
+
+  <!-- Communication channels -->
+  <rect x="1060" y="100" width="260" height="52" rx="8" fill="url(#emailGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="1190" y="131" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">CHANNELS</text>
+  <text x="1190" y="146" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Email - SMS - Direct Link</text>
+
+  <!-- External Signers -->
+  <rect x="1440" y="100" width="420" height="52" rx="8" fill="url(#signerGrad)" filter="url(#shadow)" opacity="0.95"/>
+  <text x="1650" y="131" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">EXTERNAL SIGNERS (Participants)</text>
+  <text x="1650" y="146" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Buyer - Seller - Witness - Manager</text>
+
+  <!-- Column lines (subtle) -->
+  <line x1="230" y1="160" x2="230" y2="1360" stroke="rgba(26,109,212,0.12)" stroke-width="1" stroke-dasharray="4 8"/>
+  <line x1="750" y1="160" x2="750" y2="1360" stroke="rgba(228,136,3,0.12)" stroke-width="1" stroke-dasharray="4 8"/>
+  <line x1="1190" y1="160" x2="1190" y2="1360" stroke="rgba(139,92,246,0.12)" stroke-width="1" stroke-dasharray="4 8"/>
+  <line x1="1650" y1="160" x2="1650" y2="1360" stroke="rgba(10,135,101,0.12)" stroke-width="1" stroke-dasharray="4 8"/>
+
+
+  <!-- ==================== PHASE 1: AUTHENTICATION ==================== -->
+  <rect x="20" y="168" width="1880" height="120" rx="6" fill="url(#phaseGrad1)" stroke="rgba(26,109,212,0.2)" stroke-width="1"/>
+  <text x="40" y="186" fill="#4a9eff" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 1</text>
+  <text x="100" y="186" fill="#94a3b8" font-size="11" font-weight="600">AUTHENTICATION</text>
+
+  <!-- Auth box at broker -->
+  <rect x="100" y="198" width="260" height="78" rx="6" fill="rgba(26,109,212,0.12)" stroke="rgba(26,109,212,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="218" fill="#4a9eff" font-size="12" font-weight="700">Authenticate as Controller</text>
+  <text x="120" y="236" fill="#94a3b8" font-size="10">Option A: Basic Auth</text>
+  <text x="120" y="249" fill="#64748b" font-size="9" font-family="monospace">Authorization: Basic base64(u:p)</text>
+  <text x="120" y="265" fill="#94a3b8" font-size="10">Option B: OAuth2 Client Credentials</text>
+
+  <!-- Arrow to inSign -->
+  <line x1="360" y1="220" x2="560" y2="220" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrowBlue)" opacity="0.8"/>
+  <rect x="390" y="208" width="140" height="24" rx="4" fill="rgba(26,109,212,0.2)" stroke="rgba(26,109,212,0.3)" stroke-width="0.5"/>
+  <text x="460" y="224" text-anchor="middle" fill="#4a9eff" font-size="9" font-family="monospace">POST /oauth2/token</text>
+
+  <!-- Token response -->
+  <rect x="580" y="198" width="340" height="78" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="218" fill="#e48803" font-size="12" font-weight="700">Token Validation</text>
+  <text x="600" y="236" fill="#94a3b8" font-size="10">Validates credentials against user store</text>
+  <text x="600" y="249" fill="#64748b" font-size="9" font-family="monospace">{"access_token":"...","expires_in":1800}</text>
+  <text x="600" y="265" fill="#94a3b8" font-size="10">Bearer token valid ~30 min, auto-refresh</text>
+
+  <!-- Return arrow -->
+  <line x1="560" y1="250" x2="360" y2="250" stroke="#e48803" stroke-width="1.5" marker-end="url(#arrowOrange)" stroke-dasharray="6 3" opacity="0.7"/>
+
+
+  <!-- ==================== PHASE 2: SESSION CREATION ==================== -->
+  <rect x="20" y="298" width="1880" height="208" rx="6" fill="url(#phaseGrad2)" stroke="rgba(228,136,3,0.2)" stroke-width="1"/>
+  <text x="40" y="316" fill="#e48803" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 2</text>
+  <text x="100" y="316" fill="#94a3b8" font-size="11" font-weight="600">SESSION CREATION &amp; DOCUMENT UPLOAD</text>
+
+  <!-- Create session box -->
+  <rect x="100" y="328" width="260" height="166" rx="6" fill="rgba(26,109,212,0.12)" stroke="rgba(26,109,212,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="348" fill="#4a9eff" font-size="12" font-weight="700">Create Signing Session</text>
+  <text x="120" y="366" fill="#94a3b8" font-size="9.5">Sends to inSign:</text>
+  <text x="128" y="380" fill="#cbd5e1" font-size="9">- PDF documents (base64 / URL / upload)</text>
+  <text x="128" y="393" fill="#cbd5e1" font-size="9">- foruser, displayname, description</text>
+  <text x="128" y="406" fill="#cbd5e1" font-size="9">- userEmail, userFullName</text>
+  <text x="128" y="419" fill="#cbd5e1" font-size="9">- callbackURL (client redirect)</text>
+  <text x="128" y="432" fill="#cbd5e1" font-size="9">- serverSidecallbackURL (webhook)</text>
+  <text x="128" y="445" fill="#cbd5e1" font-size="9">- CSS branding, logos, guiProperties</text>
+  <text x="128" y="458" fill="#cbd5e1" font-size="9">- scanSigTags, allowFormEditing</text>
+  <text x="128" y="475" fill="#64748b" font-size="8" font-style="italic">3 upload modes: base64 embed / fileURL / multipart</text>
+
+  <!-- Arrow: create session -->
+  <line x1="360" y1="360" x2="560" y2="360" stroke="#4a9eff" stroke-width="2" marker-end="url(#arrowBlue)" filter="url(#glow)"/>
+  <rect x="380" y="342" width="160" height="36" rx="4" fill="rgba(26,109,212,0.25)" stroke="rgba(26,109,212,0.4)" stroke-width="0.5"/>
+  <text x="460" y="357" text-anchor="middle" fill="#4a9eff" font-size="9" font-weight="600" font-family="monospace">POST</text>
+  <text x="460" y="371" text-anchor="middle" fill="#4a9eff" font-size="9" font-family="monospace">/configure/session</text>
+
+  <!-- inSign processes -->
+  <rect x="580" y="328" width="340" height="166" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="348" fill="#e48803" font-size="12" font-weight="700">Session Engine</text>
+  <text x="600" y="366" fill="#94a3b8" font-size="9.5">Processes request:</text>
+  <text x="608" y="380" fill="#cbd5e1" font-size="9">1. Validates credentials &amp; permissions</text>
+  <text x="608" y="393" fill="#cbd5e1" font-size="9">2. Creates unique sessionid</text>
+  <text x="608" y="406" fill="#cbd5e1" font-size="9">3. Stores documents, scans SIG-tags</text>
+  <text x="608" y="419" fill="#cbd5e1" font-size="9">4. Identifies signature fields &amp; roles</text>
+  <text x="608" y="432" fill="#cbd5e1" font-size="9">5. Registers callback URLs</text>
+  <text x="608" y="445" fill="#cbd5e1" font-size="9">6. Applies branding (CSS + logos)</text>
+  <text x="600" y="464" fill="#94a3b8" font-size="9.5">Returns:</text>
+  <text x="608" y="478" fill="#64748b" font-size="8.5" font-family="monospace">sessionid, accessURL, accessURLProcessMgmt</text>
+  <text x="608" y="490" fill="#64748b" font-size="8.5" font-family="monospace">status: "ACTIVE"</text>
+
+  <!-- Response arrow -->
+  <line x1="560" y1="420" x2="360" y2="420" stroke="#e48803" stroke-width="1.5" marker-end="url(#arrowOrange)" stroke-dasharray="6 3" opacity="0.7"/>
+  <rect x="400" y="408" width="120" height="24" rx="4" fill="rgba(228,136,3,0.15)" stroke="rgba(228,136,3,0.3)" stroke-width="0.5"/>
+  <text x="460" y="424" text-anchor="middle" fill="#e48803" font-size="9" font-family="monospace">JSON Response</text>
+
+  <!-- Optional: Session owner signs -->
+  <rect x="100" y="500" width="260" height="32" rx="4" fill="rgba(26,109,212,0.08)" stroke="rgba(26,109,212,0.2)" stroke-width="0.5" stroke-dasharray="4 2"/>
+  <text x="230" y="520" text-anchor="middle" fill="#64748b" font-size="9" font-style="italic">Optional: Broker opens accessURL to co-sign</text>
+
+
+  <!-- ==================== PHASE 3: INVITE EXTERNAL SIGNERS ==================== -->
+  <rect x="20" y="518" width="1880" height="208" rx="6" fill="url(#phaseGrad3)" stroke="rgba(10,135,101,0.2)" stroke-width="1"/>
+  <text x="40" y="536" fill="#10b981" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 3</text>
+  <text x="100" y="536" fill="#94a3b8" font-size="11" font-weight="600">DISTRIBUTE SIGNING INVITATIONS</text>
+
+  <!-- Begin multi box -->
+  <rect x="100" y="548" width="260" height="166" rx="6" fill="rgba(26,109,212,0.12)" stroke="rgba(26,109,212,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="568" fill="#4a9eff" font-size="12" font-weight="700">Invite Signers</text>
+  <text x="120" y="586" fill="#94a3b8" font-size="9.5">Request body:</text>
+  <text x="128" y="600" fill="#cbd5e1" font-size="9">- sessionid</text>
+  <text x="128" y="613" fill="#cbd5e1" font-size="9">- externUsers[] array:</text>
+  <text x="136" y="626" fill="#a3e635" font-size="8.5" font-family="monospace">recipient: "signer@example.test"</text>
+  <text x="136" y="638" fill="#a3e635" font-size="8.5" font-family="monospace">realName, roles[], mobileNumber</text>
+  <text x="136" y="650" fill="#a3e635" font-size="8.5" font-family="monospace">sendEmails: true/false</text>
+  <text x="136" y="662" fill="#a3e635" font-size="8.5" font-family="monospace">sendSMS: true/false</text>
+  <text x="136" y="674" fill="#a3e635" font-size="8.5" font-family="monospace">singleSignOnEnabled: bool</text>
+  <text x="128" y="690" fill="#cbd5e1" font-size="9">- inOrder: false (parallel) / true (seq.)</text>
+  <text x="128" y="706" fill="#64748b" font-size="8" font-style="italic">Roles: buyer, seller, witness, manager...</text>
+
+  <!-- Arrow: begin multi -->
+  <line x1="360" y1="580" x2="560" y2="580" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)" filter="url(#glow)"/>
+  <rect x="375" y="562" width="170" height="36" rx="4" fill="rgba(10,135,101,0.25)" stroke="rgba(10,135,101,0.4)" stroke-width="0.5"/>
+  <text x="460" y="577" text-anchor="middle" fill="#10b981" font-size="9" font-weight="600" font-family="monospace">POST</text>
+  <text x="460" y="591" text-anchor="middle" fill="#10b981" font-size="9" font-family="monospace">/extern/beginmulti</text>
+
+  <!-- inSign generates links -->
+  <rect x="580" y="548" width="340" height="166" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="568" fill="#e48803" font-size="12" font-weight="700">Link Generator &amp; Dispatcher</text>
+  <text x="600" y="586" fill="#94a3b8" font-size="9.5">For each external user:</text>
+  <text x="608" y="600" fill="#cbd5e1" font-size="9">1. Generates unique externAccessLink</text>
+  <text x="608" y="613" fill="#cbd5e1" font-size="9">2. Maps user to signing role(s)</text>
+  <text x="608" y="626" fill="#cbd5e1" font-size="9">3. Sets auth mode (password / SSO)</text>
+  <text x="608" y="642" fill="#94a3b8" font-size="9.5">Dispatches invitations:</text>
+  <text x="608" y="656" fill="#8b5cf6" font-size="9" font-weight="600">sendEmails=true --> Email with link</text>
+  <text x="608" y="669" fill="#ec4899" font-size="9" font-weight="600">sendSMS=true --> SMS with link/PIN</text>
+  <text x="608" y="685" fill="#94a3b8" font-size="9.5">Returns to broker:</text>
+  <text x="608" y="699" fill="#64748b" font-size="8.5" font-family="monospace">externAccessLink per user, status: PENDING</text>
+
+  <!-- Response with links -->
+  <line x1="560" y1="660" x2="360" y2="660" stroke="#e48803" stroke-width="1.5" marker-end="url(#arrowOrange)" stroke-dasharray="6 3" opacity="0.7"/>
+
+  <!-- EMAIL channel arrow -->
+  <line x1="920" y1="600" x2="1060" y2="590" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrowPurple)" filter="url(#glow)"/>
+
+  <!-- SMS channel arrow -->
+  <line x1="920" y1="630" x2="1060" y2="640" stroke="#ec4899" stroke-width="2" marker-end="url(#arrowPink)" filter="url(#glow)"/>
+
+  <!-- Channel boxes -->
+  <rect x="1070" y="560" width="240" height="52" rx="6" fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="1090" y="580" fill="#8b5cf6" font-size="11" font-weight="700">Email Invitation</text>
+  <text x="1090" y="596" fill="#94a3b8" font-size="9">Branded email with signing link</text>
+  <text x="1090" y="607" fill="#64748b" font-size="8">Custom logo header, signer name, doc info</text>
+
+  <rect x="1070" y="622" width="240" height="52" rx="6" fill="rgba(236,72,153,0.15)" stroke="rgba(236,72,153,0.4)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="1090" y="642" fill="#ec4899" font-size="11" font-weight="700">SMS Notification</text>
+  <text x="1090" y="658" fill="#94a3b8" font-size="9">Shortened link or PIN code</text>
+  <text x="1090" y="669" fill="#64748b" font-size="8">Requires valid mobileNumber</text>
+
+  <rect x="1070" y="684" width="240" height="32" rx="6" fill="rgba(148,163,184,0.1)" stroke="rgba(148,163,184,0.3)" stroke-width="1" stroke-dasharray="4 2"/>
+  <text x="1090" y="704" fill="#94a3b8" font-size="10">Direct Link (broker distributes)</text>
+
+  <!-- Arrows from channels to signers -->
+  <line x1="1310" y1="586" x2="1440" y2="580" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#arrowPurple)" opacity="0.7"/>
+  <line x1="1310" y1="648" x2="1440" y2="630" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrowPink)" opacity="0.7"/>
+  <line x1="1310" y1="700" x2="1440" y2="680" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowWhite)" opacity="0.5" stroke-dasharray="4 2"/>
+
+  <!-- Signer receives -->
+  <rect x="1450" y="548" width="400" height="166" rx="6" fill="rgba(10,135,101,0.12)" stroke="rgba(10,135,101,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="1470" y="568" fill="#10b981" font-size="12" font-weight="700">Signers Receive Invitation</text>
+  <text x="1470" y="588" fill="#94a3b8" font-size="9.5">Each signer gets:</text>
+  <text x="1478" y="604" fill="#cbd5e1" font-size="9">- Unique externAccessLink (one-time token)</text>
+  <text x="1478" y="617" fill="#cbd5e1" font-size="9">- Personalized with their name &amp; role</text>
+  <text x="1478" y="630" fill="#cbd5e1" font-size="9">- Branded with your company logo/colors</text>
+  <text x="1470" y="650" fill="#94a3b8" font-size="9.5">Delivery channels (configurable per user):</text>
+  <text x="1478" y="664" fill="#8b5cf6" font-size="9">Email: Full invitation with document info</text>
+  <text x="1478" y="677" fill="#ec4899" font-size="9">SMS: Short link to mobile number</text>
+  <text x="1478" y="690" fill="#64748b" font-size="9">Direct: Broker sends link via own channel</text>
+  <text x="1478" y="706" fill="#64748b" font-size="8" font-style="italic">Links expire after configurable TTL</text>
+
+
+  <!-- ==================== PHASE 4: SIGNING PROCESS ==================== -->
+  <rect x="20" y="738" width="1880" height="178" rx="6" fill="url(#phaseGrad4)" stroke="rgba(139,92,246,0.2)" stroke-width="1"/>
+  <text x="40" y="756" fill="#8b5cf6" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 4</text>
+  <text x="100" y="756" fill="#94a3b8" font-size="11" font-weight="600">EXTERNAL SIGNING PROCESS</text>
+
+  <!-- Signer action -->
+  <rect x="1450" y="770" width="400" height="134" rx="6" fill="rgba(10,135,101,0.12)" stroke="rgba(10,135,101,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="1470" y="790" fill="#10b981" font-size="12" font-weight="700">Signer Opens Link &amp; Signs</text>
+  <text x="1470" y="808" fill="#94a3b8" font-size="9.5">Step-by-step:</text>
+  <text x="1478" y="822" fill="#cbd5e1" font-size="9">1. Click externAccessLink in email/SMS</text>
+  <text x="1478" y="835" fill="#cbd5e1" font-size="9">2. Authenticate (password or SSO)</text>
+  <text x="1478" y="848" fill="#cbd5e1" font-size="9">3. Review document(s) in branded UI</text>
+  <text x="1478" y="861" fill="#cbd5e1" font-size="9">4. Place signature(s) for assigned role(s)</text>
+  <text x="1478" y="874" fill="#cbd5e1" font-size="9">5. Confirm and submit</text>
+  <text x="1478" y="892" fill="#64748b" font-size="8" font-style="italic">Works on desktop &amp; mobile browsers</text>
+
+  <!-- Signer communicates to inSign -->
+  <line x1="1450" y1="830" x2="920" y2="830" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)" filter="url(#glow)"/>
+  <rect x="1060" y="816" width="260" height="28" rx="4" fill="rgba(10,135,101,0.2)" stroke="rgba(10,135,101,0.3)" stroke-width="0.5"/>
+  <text x="1190" y="835" text-anchor="middle" fill="#10b981" font-size="9" font-family="monospace">HTTPS - Signing data submitted to server</text>
+
+  <!-- inSign processes signature -->
+  <rect x="580" y="770" width="340" height="134" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="790" fill="#e48803" font-size="12" font-weight="700">Signature Processing</text>
+  <text x="608" y="808" fill="#cbd5e1" font-size="9">1. Validates signer identity &amp; token</text>
+  <text x="608" y="821" fill="#cbd5e1" font-size="9">2. Applies digital signature to PDF</text>
+  <text x="608" y="834" fill="#cbd5e1" font-size="9">3. Updates signatureFieldsStatusList</text>
+  <text x="608" y="847" fill="#cbd5e1" font-size="9">4. Records audit trail entry (timestamp)</text>
+  <text x="608" y="860" fill="#cbd5e1" font-size="9">5. Updates extern user status: SIGNED</text>
+  <text x="608" y="876" fill="#94a3b8" font-size="9">Triggers:</text>
+  <text x="608" y="889" fill="#f59e0b" font-size="9" font-weight="600">--> Webhook to serverSidecallbackURL</text>
+  <text x="608" y="900" fill="#94a3b8" font-size="9">--> Status update visible in polling</text>
+
+
+  <!-- ==================== PHASE 5: MONITORING ==================== -->
+  <rect x="20" y="928" width="1880" height="196" rx="6" fill="url(#phaseGrad5)" stroke="rgba(236,72,153,0.2)" stroke-width="1"/>
+  <text x="40" y="946" fill="#ec4899" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 5</text>
+  <text x="100" y="946" fill="#94a3b8" font-size="11" font-weight="600">STATUS MONITORING (3 Strategies)</text>
+
+  <!-- Strategy A: Polling -->
+  <rect x="100" y="960" width="260" height="76" rx="6" fill="rgba(26,109,212,0.12)" stroke="rgba(26,109,212,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="980" fill="#4a9eff" font-size="11" font-weight="700">A: Polling (pull)</text>
+  <text x="120" y="996" fill="#94a3b8" font-size="9">Interval: 3-30 seconds</text>
+  <text x="120" y="1009" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/status {sessionid}</text>
+  <text x="120" y="1022" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/checkstatus (lightweight)</text>
+  <text x="120" y="1032" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/externInfos (per-user)</text>
+
+  <line x1="360" y1="990" x2="560" y2="990" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrowBlue)" opacity="0.8"/>
+  <line x1="560" y1="1005" x2="360" y2="1005" stroke="#e48803" stroke-width="1.5" marker-end="url(#arrowOrange)" stroke-dasharray="6 3" opacity="0.6"/>
+
+  <!-- Polling detail at inSign -->
+  <rect x="580" y="960" width="340" height="76" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="980" fill="#e48803" font-size="11" font-weight="700">Status Response</text>
+  <text x="608" y="996" fill="#cbd5e1" font-size="9">status: ACTIVE / SIGNING / COMPLETE</text>
+  <text x="608" y="1009" fill="#cbd5e1" font-size="9">signatureFieldsStatusList: signed per field</text>
+  <text x="608" y="1022" fill="#cbd5e1" font-size="9">externUsers: per-signer progress</text>
+  <text x="608" y="1032" fill="#64748b" font-size="8" font-style="italic">Full JSON diff for change detection</text>
+
+  <!-- Strategy B: Webhook -->
+  <rect x="100" y="1046" width="260" height="68" rx="6" fill="rgba(245,158,11,0.12)" stroke="rgba(245,158,11,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="1066" fill="#f59e0b" font-size="11" font-weight="700">B: Server Webhook (push)</text>
+  <text x="120" y="1082" fill="#94a3b8" font-size="9">Real-time, no polling needed</text>
+  <text x="120" y="1095" fill="#64748b" font-size="8.5">Fires on: signed, completed, opened, rejected</text>
+  <text x="120" y="1108" fill="#64748b" font-size="8.5">Content-type: JSON or form-urlencoded</text>
+
+  <line x1="560" y1="1075" x2="360" y2="1075" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowYellow)" filter="url(#glow)"/>
+  <rect x="390" y="1058" width="150" height="34" rx="4" fill="rgba(245,158,11,0.2)" stroke="rgba(245,158,11,0.4)" stroke-width="0.5"/>
+  <text x="465" y="1072" text-anchor="middle" fill="#f59e0b" font-size="8" font-weight="600">inSign pushes to</text>
+  <text x="465" y="1085" text-anchor="middle" fill="#f59e0b" font-size="8" font-family="monospace">serverSidecallbackURL</text>
+
+  <!-- Webhook from inSign -->
+  <rect x="580" y="1046" width="340" height="68" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="1066" fill="#e48803" font-size="11" font-weight="700">Webhook Engine</text>
+  <text x="608" y="1082" fill="#cbd5e1" font-size="9">POST to your serverSidecallbackURL</text>
+  <text x="608" y="1095" fill="#cbd5e1" font-size="9">Headers: X-inSign-Event, X-inSign-SessionId</text>
+  <text x="608" y="1108" fill="#cbd5e1" font-size="9">Payload: full session status JSON</text>
+
+  <!-- Strategy C: Hybrid note -->
+  <rect x="960" y="1046" width="360" height="68" rx="6" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.2)" stroke-width="1" stroke-dasharray="4 2"/>
+  <text x="980" y="1066" fill="#94a3b8" font-size="11" font-weight="600">C: Hybrid (recommended)</text>
+  <text x="980" y="1082" fill="#64748b" font-size="9">Webhooks for real-time notification</text>
+  <text x="980" y="1095" fill="#64748b" font-size="9">+ Polling as fallback for reliability</text>
+  <text x="980" y="1108" fill="#64748b" font-size="9">Webhook relay: smee.io / ntfy.sh / Cloudflare</text>
+
+
+  <!-- ==================== PHASE 6: COMPLETION & RETRIEVAL ==================== -->
+  <rect x="20" y="1136" width="1880" height="170" rx="6" fill="url(#phaseGrad6)" stroke="rgba(245,158,11,0.2)" stroke-width="1"/>
+  <text x="40" y="1154" fill="#f59e0b" font-size="11" font-weight="700" letter-spacing="1.5">PHASE 6</text>
+  <text x="100" y="1154" fill="#94a3b8" font-size="11" font-weight="600">SESSION COMPLETION &amp; DOCUMENT RETRIEVAL</text>
+
+  <!-- All signed -->
+  <rect x="580" y="1168" width="340" height="126" rx="6" fill="rgba(228,136,3,0.12)" stroke="rgba(228,136,3,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="600" y="1188" fill="#e48803" font-size="12" font-weight="700">Session Complete</text>
+  <text x="608" y="1206" fill="#cbd5e1" font-size="9">All mandatory fields signed</text>
+  <text x="608" y="1219" fill="#cbd5e1" font-size="9">status: "COMPLETE"</text>
+  <text x="600" y="1238" fill="#94a3b8" font-size="9.5">Automatic actions:</text>
+  <text x="608" y="1252" fill="#8b5cf6" font-size="9">- Completion email to all signers</text>
+  <text x="608" y="1265" fill="#f59e0b" font-size="9">- Final webhook to serverSidecallbackURL</text>
+  <text x="608" y="1278" fill="#4a9eff" font-size="9">- Session owner redirected to callbackURL</text>
+  <text x="608" y="1291" fill="#64748b" font-size="8" font-style="italic">Or broker calls POST /configure/fertig</text>
+
+  <!-- Completion notification to signers -->
+  <line x1="920" y1="1210" x2="1060" y2="1200" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#arrowPurple)" opacity="0.7"/>
+  <rect x="1070" y="1180" width="240" height="40" rx="6" fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" stroke-width="1"/>
+  <text x="1090" y="1198" fill="#8b5cf6" font-size="10" font-weight="600">Completion Email</text>
+  <text x="1090" y="1212" fill="#64748b" font-size="8.5">Sent to all signers (optional: attach PDF)</text>
+  <line x1="1310" y1="1200" x2="1440" y2="1200" stroke="#8b5cf6" stroke-width="1" marker-end="url(#arrowPurple)" opacity="0.5"/>
+  <rect x="1450" y="1180" width="400" height="40" rx="6" fill="rgba(10,135,101,0.08)" stroke="rgba(10,135,101,0.2)" stroke-width="0.5"/>
+  <text x="1650" y="1204" text-anchor="middle" fill="#10b981" font-size="10">Signers receive confirmation + signed docs</text>
+
+  <!-- Broker retrieves documents -->
+  <rect x="100" y="1168" width="260" height="126" rx="6" fill="rgba(26,109,212,0.12)" stroke="rgba(26,109,212,0.3)" stroke-width="1" filter="url(#shadowSmall)"/>
+  <text x="120" y="1188" fill="#4a9eff" font-size="12" font-weight="700">Retrieve Signed Documents</text>
+  <text x="120" y="1208" fill="#94a3b8" font-size="9.5">API calls:</text>
+  <text x="128" y="1222" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/documents/download  (ZIP)</text>
+  <text x="128" y="1235" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/document (single PDF)</text>
+  <text x="128" y="1248" fill="#64748b" font-size="8.5" font-family="monospace">POST /get/audit  (audit trail)</text>
+  <text x="120" y="1268" fill="#94a3b8" font-size="9.5">Post-signing actions:</text>
+  <text x="128" y="1282" fill="#cbd5e1" font-size="9">Archive, forward, trigger workflows</text>
+  <text x="128" y="1295" fill="#64748b" font-size="8" font-style="italic">callbackURL redirect brings broker back</text>
+
+  <line x1="360" y1="1230" x2="560" y2="1230" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrowBlue)" opacity="0.8"/>
+  <line x1="560" y1="1245" x2="360" y2="1245" stroke="#e48803" stroke-width="1.5" marker-end="url(#arrowOrange)" stroke-dasharray="6 3" opacity="0.7"/>
+  <rect x="410" y="1232" width="100" height="16" rx="3" fill="rgba(228,136,3,0.15)"/>
+  <text x="460" y="1244" text-anchor="middle" fill="#e48803" font-size="8" font-family="monospace">Signed PDFs</text>
+
+  <!-- Client redirect arrow -->
+  <path d="M 700 1290 Q 700 1310 500 1310 Q 300 1310 300 1295" fill="none" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrowBlue)" stroke-dasharray="6 3" opacity="0.6"/>
+  <text x="500" y="1324" text-anchor="middle" fill="#4a9eff" font-size="8">callbackURL redirect (browser)</text>
+
+
+  <!-- ==================== LEGEND ==================== -->
+  <rect x="20" y="1328" width="1880" height="60" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <text x="50" y="1348" fill="#64748b" font-size="10" font-weight="700" letter-spacing="1">LEGEND</text>
+
+  <!-- Arrow types -->
+  <line x1="110" y1="1345" x2="160" y2="1345" stroke="#4a9eff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <text x="170" y="1349" fill="#94a3b8" font-size="9">API Request (Broker to inSign)</text>
+
+  <line x1="330" y1="1345" x2="380" y2="1345" stroke="#e48803" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arrowOrange)"/>
+  <text x="390" y="1349" fill="#94a3b8" font-size="9">API Response (inSign to Broker)</text>
+
+  <line x1="570" y1="1345" x2="620" y2="1345" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="630" y="1349" fill="#94a3b8" font-size="9">Signer Action</text>
+
+  <line x1="730" y1="1345" x2="780" y2="1345" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <text x="790" y="1349" fill="#94a3b8" font-size="9">Email</text>
+
+  <line x1="840" y1="1345" x2="890" y2="1345" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrowPink)"/>
+  <text x="900" y="1349" fill="#94a3b8" font-size="9">SMS</text>
+
+  <line x1="940" y1="1345" x2="990" y2="1345" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowYellow)"/>
+  <text x="1000" y="1349" fill="#94a3b8" font-size="9">Webhook (server push)</text>
+
+  <line x1="1140" y1="1345" x2="1190" y2="1345" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowWhite)"/>
+  <text x="1200" y="1349" fill="#94a3b8" font-size="9">Optional / Manual</text>
+
+  <!-- Color coded participants -->
+  <rect x="1340" y="1338" width="12" height="12" rx="2" fill="url(#brokerGrad)"/>
+  <text x="1358" y="1349" fill="#94a3b8" font-size="9">Your App</text>
+  <rect x="1420" y="1338" width="12" height="12" rx="2" fill="url(#insignGrad)"/>
+  <text x="1438" y="1349" fill="#94a3b8" font-size="9">inSign Server</text>
+  <rect x="1530" y="1338" width="12" height="12" rx="2" fill="url(#signerGrad)"/>
+  <text x="1548" y="1349" fill="#94a3b8" font-size="9">External Signers</text>
+  <rect x="1650" y="1338" width="12" height="12" rx="2" fill="url(#emailGrad)"/>
+  <text x="1668" y="1349" fill="#94a3b8" font-size="9">Communication Channels</text>
+
+  <!-- Reminder flow annotation -->
+  <text x="50" y="1374" fill="#64748b" font-size="8.5" letter-spacing="0.5">
+    Additional APIs: POST /load/sendManualReminder (resend invitation) - POST /configure/restartsession (reset) - POST /persistence/delete (cleanup) - POST /configure/ablehnen (reject) - GET /version (health check)
+  </text>
+
+</svg>

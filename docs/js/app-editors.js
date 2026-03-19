@@ -343,17 +343,17 @@ function setSessionId(sessionId, accessURL, fromCreateSession, accessURLProcessM
     $('#active-session-id').text(sessionId);
     $('#manual-session-id').val(sessionId);
 
-    // Update session bar below operation tabs
-    $('#navbar-session').removeClass('d-none').addClass('d-flex');
+    // Update session bar
     $('#navbar-session-id').val(sessionId);
     // Show foruser in the bar
     const foruserVal = ($('#cfg-foruser').val() || '').trim() || state.userId || '';
     $('#navbar-foruser-id').val(foruserVal);
 
-    // Show buttons whenever a session ID exists (tokens are renewed on click via /persistence/loadsession)
+    // Open in inSign requires a session ID; Session Manager only needs a foruser
     const hasSession = !!sessionId;
     $('#navbar-btn-open').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
-    $('#navbar-btn-session-mgr').toggleClass('d-none', !hasSession)
+    const hasForuser = !!(state.lastForuser || ($('#cfg-foruser').val() || '').trim() || state.userId);
+    $('#navbar-btn-session-mgr').toggleClass('d-none', !(hasSession || hasForuser))
         .attr('title', state.accessURLProcessManagement || '');
     $('#btn-goto-step2, #btn-floating-goto-step2').removeClass('d-none');
 
@@ -426,4 +426,14 @@ function applyNavbarSessionId() {
     const id = $input.val().trim();
     if (!id) return;
     setSessionId(id, null);
+}
+
+/** Apply foruser from navbar input - syncs back to cfg-foruser and state */
+function applyNavbarForuser() {
+    const val = ($('#navbar-foruser-id').val() || '').trim();
+    if (!val) return;
+    $('#cfg-foruser').val(val);
+    state.lastForuser = val;
+    state.userId = val;
+    saveAppState();
 }

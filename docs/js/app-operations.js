@@ -192,7 +192,7 @@ function showCreateSessionError(message) {
 
 /** Get a SSO JWT for the current foruser via /configure/createSSOForApiuser */
 async function getSSOJwt() {
-    const foruser = state.lastForuser;
+    const foruser = state.lastForuser || ($('#cfg-foruser').val() || '').trim() || state.userId;
     if (!foruser) return '';
     // Endpoint returns text/plain - must set Accept header accordingly
     const result = await state.apiClient.call('POST', '/configure/createSSOForApiuser', {
@@ -260,12 +260,11 @@ async function openInSign() {
 }
 
 async function openSessionManager() {
-    if (!state.sessionId) return;
     const baseUrl = state.apiClient.baseUrl || $('#cfg-base-url').val();
     try {
         const jwt = await getSSOJwt();
         if (jwt) {
-            postToNewTab(baseUrl + '/start/gallery', { jwt: jwt });
+            postToNewTab(baseUrl + '/start', { jwt: jwt });
             return;
         }
     } catch (e) { /* fallback to stored URL */ }

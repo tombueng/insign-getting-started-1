@@ -305,16 +305,17 @@ code {
 .webhook-entry {
     padding: 0.75rem 1rem;
     margin-bottom: 0.5rem;
-    overflow-x: auto;
+    overflow: hidden;
 }
 
-/* Webhook detail panels - no wrap, no inner scrollbars; outer box scrolls */
+/* Webhook detail panels - wrap long lines to stay within the sidebar */
 .wh-pre {
     line-height: 1.5;
     margin: 0;
     padding: 8px 10px;
-    white-space: pre;
-    overflow: visible;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow: hidden;
 }
 
 .wh-section-toggle {
@@ -331,6 +332,7 @@ code {
     align-items: center;
     gap: 8px;
     padding: 0.3rem 0.75rem;
+    overflow: hidden;
 }
 
 /* Session/ForUser bar - second row in navbar */
@@ -340,11 +342,13 @@ code {
 
 .webhook-url-display input {
     flex: 1;
+    min-width: 0;
     border: none;
     background: transparent;
     outline: none;
     padding: 2px 6px;
     height: 28px;
+    text-overflow: ellipsis;
 }
 
 /* === Document Selector (Dropdown) ======================================= */
