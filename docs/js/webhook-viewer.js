@@ -760,22 +760,18 @@ window.WebhookViewer = class WebhookViewer {
             'custom':         { name: 'custom',            mode: '',      cls: 'bg-secondary' },
         };
         const info = LABELS[this._provider] || LABELS.custom;
-        const badge = info.mode
-            ? `<span class="badge ${info.cls}" style="font-size:0.65rem;vertical-align:middle">${info.mode}</span>`
-            : '';
 
-        $urlSection.html(`
-            <div class="webhook-url-display">
-                <i class="bi bi-broadcast text-muted"></i>
-                <input type="text" readonly value="${this.escapeHtml(this.channelUrl || '')}" id="webhook-url-input" name="webhook-url">
-                <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.webhookViewer.copyUrl()" title="Copy URL">
-                    <i class="bi bi-clipboard"></i>
-                </button>
-            </div>
-            <div class="text-muted-sm mt-1">
-                Use as <code>serverSidecallbackURL</code>. Provider: <strong>${info.name}</strong> ${badge}
-            </div>
-        `);
+        const el = document.getElementById('tpl-webhook-url').content.cloneNode(true).firstElementChild;
+        el.querySelector('#webhook-url-input').value = this.channelUrl || '';
+        el.querySelector('[data-slot="provider"]').textContent = info.name;
+        if (info.mode) {
+            const badgeEl = el.querySelector('[data-slot="badge"]');
+            badgeEl.classList.remove('d-none');
+            badgeEl.className = 'badge ' + info.cls;
+            badgeEl.style.cssText = 'font-size:0.65rem;vertical-align:middle';
+            badgeEl.textContent = info.mode;
+        }
+        $urlSection.empty().append(el);
     }
 
     renderRequests() {
@@ -787,7 +783,10 @@ window.WebhookViewer = class WebhookViewer {
             return;
         }
 
-        $list.html(this.requests.map((req, idx) => {
+        const frag = document.createDocumentFragment();
+        const now = Date.now();
+
+        this.requests.forEach((req, idx) => {
             let bodyDisplay = '';
             if (req.body) {
                 if (typeof req.body === 'string') {
@@ -800,46 +799,48 @@ window.WebhookViewer = class WebhookViewer {
 
             const time = req.timestamp instanceof Date ? req.timestamp.toLocaleTimeString() : new Date().toLocaleTimeString();
             const method = req.method || 'POST';
-
             const hasHeaders = req.headers && Object.keys(req.headers).length > 0;
-            const headersHtml = hasHeaders
-                ? Object.entries(req.headers).map(([k, v]) =>
-                    `<span class="wh-header-name">${this.escapeHtml(k)}:</span> ${this.escapeHtml(String(v))}`
-                ).join('\n')
-                : '';
 
-            const detailsId = 'wh-det-' + idx + '-' + Date.now();
-            const headersId = 'wh-hdr-' + idx + '-' + Date.now();
+            const detailsId = 'wh-det-' + idx + '-' + now;
+            const headersId = 'wh-hdr-' + idx + '-' + now;
 
-            return `
-                <div class="webhook-entry">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span>
-                            <span class="webhook-method">${method}</span>
-                            <span class="webhook-time ms-2">${time}</span>
-                        </span>
-                        <button class="btn btn-insign btn-insign-sm btn-insign-outline"
-                                data-bs-toggle="collapse" data-bs-target="#${detailsId}">
-                            <i class="bi bi-chevron-down"></i> Details
-                        </button>
-                    </div>
-                    <div class="collapse" id="${detailsId}">
-                        ${hasHeaders ? `
-                            <div class="wh-section-toggle text-muted-sm mt-1" data-bs-toggle="collapse" data-bs-target="#${headersId}" style="cursor:pointer;user-select:none">
-                                <i class="bi bi-chevron-right wh-chevron"></i> Headers <span class="badge bg-secondary" style="font-size:0.6rem">${Object.keys(req.headers).length}</span>
-                            </div>
-                            <div class="collapse" id="${headersId}">
-                                <pre class="wh-pre wh-headers">${headersHtml}</pre>
-                            </div>
-                        ` : ''}
-                        ${bodyDisplay ? `
-                            <div class="text-muted-sm mt-2 mb-1"><i class="bi bi-braces"></i> Body</div>
-                            <pre class="wh-pre wh-body">${this.escapeHtml(bodyDisplay)}</pre>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }).join(''));
+            const el = document.getElementById('tpl-webhook-entry').content.cloneNode(true).firstElementChild;
+            el.querySelector('.webhook-method').textContent = method;
+            el.querySelector('.webhook-time').textContent = time;
+
+            const detailsToggle = el.querySelector('[data-slot="details-toggle"]');
+            detailsToggle.dataset.bsToggle = 'collapse';
+            detailsToggle.dataset.bsTarget = '#' + detailsId;
+
+            const detailsPanel = el.querySelector('[data-slot="details"]');
+            detailsPanel.id = detailsId;
+
+            if (hasHeaders) {
+                const headerToggle = el.querySelector('[data-slot="headers-toggle"]');
+                headerToggle.classList.remove('d-none');
+                headerToggle.dataset.bsToggle = 'collapse';
+                headerToggle.dataset.bsTarget = '#' + headersId;
+                headerToggle.querySelector('[data-slot="headers-count"]').textContent = Object.keys(req.headers).length;
+
+                const headerPanel = el.querySelector('[data-slot="headers-panel"]');
+                headerPanel.classList.remove('d-none');
+                headerPanel.id = headersId;
+
+                // Build header text
+                const headerLines = Object.entries(req.headers).map(([k, v]) => k + ': ' + String(v)).join('\n');
+                headerPanel.querySelector('.wh-headers').textContent = headerLines;
+            }
+
+            if (bodyDisplay) {
+                const bodySection = el.querySelector('[data-slot="body-section"]');
+                bodySection.classList.remove('d-none');
+                bodySection.querySelector('.wh-body').textContent = bodyDisplay;
+            }
+
+            frag.appendChild(el);
+        });
+
+        $list.empty().append(frag);
 
         // Rotate chevron on headers collapse toggle
         $list.find('.wh-section-toggle').each(function () {
@@ -853,15 +854,25 @@ window.WebhookViewer = class WebhookViewer {
     renderError(message, suggestCorsProxy) {
         const $urlSection = this.$container.find('.webhook-url-section');
         if ($urlSection.length > 0) {
-            const corsHint = suggestCorsProxy
-                ? '<br><a href="#" onclick="document.getElementById(\'step-1-panel\').scrollIntoView({behavior:\'smooth\'});document.getElementById(\'cors-proxy-toggle-wrap\').classList.add(\'highlight-flash\');setTimeout(function(){document.getElementById(\'cors-proxy-toggle-wrap\').classList.remove(\'highlight-flash\')},2000);return false;">Enable the CORS proxy</a> on the Connection Settings page to fix this.'
-                : '';
-            $urlSection.html(`
-                <div class="alert alert-warning alert-insign" role="alert">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <div><strong>Webhook service unavailable</strong><br>${message}${corsHint}</div>
-                </div>
-            `);
+            const el = document.getElementById('tpl-webhook-error').content.cloneNode(true).firstElementChild;
+            const msgSlot = el.querySelector('[data-slot="message"]');
+            msgSlot.textContent = message;
+            if (suggestCorsProxy) {
+                msgSlot.appendChild(document.createElement('br'));
+                const link = document.createElement('a');
+                link.href = '#';
+                link.textContent = 'Enable the CORS proxy';
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    document.getElementById('step-1-panel').scrollIntoView({ behavior: 'smooth' });
+                    const wrap = document.getElementById('cors-proxy-toggle-wrap');
+                    wrap.classList.add('highlight-flash');
+                    setTimeout(() => wrap.classList.remove('highlight-flash'), 2000);
+                });
+                msgSlot.appendChild(link);
+                msgSlot.appendChild(document.createTextNode(' on the Connection Settings page to fix this.'));
+            }
+            $urlSection.empty().append(el);
         }
         // Notify app of the failure
         if (this.onError) this.onError(message);
