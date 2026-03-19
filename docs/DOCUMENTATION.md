@@ -20,9 +20,13 @@ An interactive, browser-based sandbox for the inSign electronic signature API. N
   - [Logo Sets](#logo-sets)
   - [Document Selection & File Delivery](#document-selection--file-delivery)
   - [Request Body Editor](#request-body-editor)
+    - [Autocomplete](#autocomplete)
+    - [Hover Tooltips](#hover-tooltips)
 - [Step 3 - Operate & Trace](#step-3---operate--trace)
   - [API Operations](#api-operations)
-  - [API Trace Sidebar](#api-trace-sidebar)
+  - [Sidebar: Webhooks](#sidebar-webhooks)
+  - [Sidebar: Status Polling](#sidebar-status-polling)
+  - [Sidebar: API Trace](#sidebar-api-trace)
 - [Step 4 - Live Code Snippets](#step-4---live-code-snippets)
   - [Supported Languages](#supported-languages)
   - [Template Variables](#template-variables)
@@ -235,13 +239,17 @@ Click a logo set card to apply all three logos at once. Use the **Individual Log
 
 ### Document Selection & File Delivery
 
-Select from **12 branded sample contracts** (pre-generated PDFs with matching company branding) or upload your own PDF.
+![Document Selector](screenshots/08-document-selector.png)
 
-Each sample contract includes:
-- Company-branded header with logo
-- Multi-party signature fields (2-3 signing roles)
-- Realistic contract text with sections and clauses
-- Role labels displayed as tags on the document card
+Select from **12 branded sample contracts** (pre-generated PDFs with matching company branding) or upload your own PDF. Documents are displayed as cards in a grid with lazy-loaded PDF thumbnail previews.
+
+Each sample contract card shows:
+- PDF thumbnail of the first page
+- Company logo and contract title
+- Page count, signature tag count, and file size
+- Signing role badges (e.g., "Manager", "Client", "Witness")
+
+You can also **drag and drop** your own PDF anywhere on the page to upload it.
 
 **File Delivery Options:**
 
@@ -256,17 +264,28 @@ Each sample contract includes:
 ![Request Body Editor](screenshots/09-request-editor.png)
 
 The JSON request body is editable in a **Monaco Editor** instance with:
-- Syntax highlighting
-- Auto-indentation
-- `Ctrl+Space` autocomplete for session properties
-- Hover tooltips showing property documentation (from the OpenAPI schema)
+- Syntax highlighting and auto-indentation
+- `Ctrl+Space` **autocomplete** for all session properties, populated from the OpenAPI schema
+- **Hover tooltips** showing property documentation, type info, enum values, and deprecation warnings
 - Automatic updates when toggling features, selecting documents, or changing branding
+
+#### Autocomplete
+
+![Editor Autocomplete](screenshots/17-editor-autocomplete.png)
+
+Press `Ctrl+Space` anywhere in the JSON editor to see available properties with their types and descriptions. The autocomplete list is generated from the server's OpenAPI specification and includes all session configuration properties.
+
+#### Hover Tooltips
+
+![Editor Hover Tooltip](screenshots/18-editor-hover-tooltip.png)
+
+Hover over any JSON key to see its full documentation inline - including the property type, allowed values, and a description from the API schema. These tooltips work in the request body editor, the trace sidebar, and the status polling panel.
 
 ---
 
 ## Step 3 - Operate & Trace
 
-After creating a session, use Step 3 to execute API operations and inspect their results.
+After creating a session, use Step 3 to execute API operations and inspect their results. The main panel shows operation tabs on the left, while the right sidebar provides three collapsible sections: **Webhooks**, **Status Polling**, and **API Trace**.
 
 ![Operate & Trace](screenshots/10-operate-trace.png)
 
@@ -304,14 +323,61 @@ Each operation tab shows:
 - A **Send** button
 - Response panel with status badge (green for 2xx, red for errors)
 
-### API Trace Sidebar
+### Sidebar: Webhooks
 
-The right sidebar records every API call made during the session:
-- HTTP method (color-coded: POST green, GET blue, DELETE red)
-- Endpoint path
-- HTTP status code
-- Response time in milliseconds
-- Expandable details: request headers, request body, response headers, response body
+![Webhooks Sidebar](screenshots/16-sidebar-webhooks.png)
+
+The Webhooks section displays real-time callbacks received from the inSign server. Each incoming webhook is shown as a card with:
+- HTTP method badge and timestamp
+- Expandable **Details** panel with:
+  - **Headers** - collapsible list of HTTP headers (e.g., `X-inSign-Event`, `X-inSign-SessionId`)
+  - **Body** - full JSON payload with syntax highlighting
+- The webhook endpoint URL is shown at the top with a copy button
+- Provider badge (e.g., "SSE" for smee.io, "poll" for webhook.site) indicates the transport mode
+
+Incoming requests are de-duplicated by ID to prevent double processing during reconnections.
+
+### Sidebar: Status Polling
+
+![Status Polling](screenshots/19-sidebar-polling.png)
+
+The Status Polling section automatically polls a selected endpoint at a configurable interval and **highlights what changed** between consecutive responses using a color-coded diff view.
+
+**Configuration:**
+- **Endpoint selector** - choose which endpoint to poll (`/get/status`, `/get/checkstatus`, `/get/externInfos`, or `/get/audit`)
+- **Interval slider** - set the polling interval from 3 to 30 seconds
+- **Polling / Poll Now** buttons - start continuous polling or trigger a single poll
+
+**Diff Display:**
+
+The first poll shows the full response body as an "initial" card. Subsequent polls compare the new response against the previous one and display only the differences:
+
+| Indicator | Color | Meaning |
+|-----------|-------|---------|
+| `~` (tilde) | Blue | Property value **changed** - shows old value (strikethrough) and new value |
+| `+` (plus) | Green | Property was **added** - shows the new value |
+| `-` (minus) | Red | Property was **removed** - shows the old value (strikethrough) |
+
+Each diff row shows the JSON path (e.g., `externUsers[0].status`) and the value change. This makes it easy to monitor signing progress in real-time - for example, seeing a signer's status change from `"PENDING"` to `"SIGNED"`.
+
+### Sidebar: API Trace
+
+![API Trace](screenshots/20-sidebar-trace.png)
+
+The API Trace section records every API call made during the session, providing a chronological log of all requests and responses:
+
+- **Method badge** - color-coded: POST green, GET blue, DELETE red
+- **Endpoint path** and HTTP **status code**
+- **Response time** in milliseconds
+- **Expandable details** for each entry:
+  - Request headers (with truncated Authorization values)
+  - Request body (with schema-aware JSON tooltips when OpenAPI spec is loaded)
+  - Response headers
+  - Response body (with schema-aware JSON tooltips)
+- **Entry count badge** in the section header
+- **Clear** button to reset the trace log
+
+JSON keys in the trace bodies display hover tooltips with property documentation from the OpenAPI schema, making it easy to understand the meaning of each field without leaving the trace view.
 
 ---
 
@@ -363,7 +429,7 @@ The API Explorer includes a built-in **webhook viewer** that receives and displa
 
 Since this app runs in the browser and cannot receive HTTP requests directly, it uses **relay services** to bridge the gap.
 
-![Webhook Sidebar](screenshots/16-webhook-sidebar.png)
+![Webhook Sidebar](screenshots/16-sidebar-webhooks.png)
 
 ### Supported Webhook Providers
 
