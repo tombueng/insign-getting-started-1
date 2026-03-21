@@ -297,13 +297,6 @@ code {
     padding: 8px 14px;
 }
 
-.response-body {
-    padding: 1rem;
-    max-height: 400px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
 
 /* === Operation Tabs ===================================================== */
 

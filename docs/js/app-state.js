@@ -128,9 +128,20 @@ function getOrCreateUserId() {
 }
 
 /** Build the callbackURL pointing back to this page at #step2 */
+/** Generate a callback URL with a unique key; stores session ID for the callback page to look up */
 function getCallbackUrl() {
     const loc = window.location;
-    return loc.origin + loc.pathname + '#step2';
+    const base = loc.origin + loc.pathname.replace(/[^/]*$/, '');
+    const cbKey = 'cb-' + Math.random().toString(16).slice(2, 10);
+    state._callbackKey = cbKey;
+    return base + 'signed.html?cbkey=' + cbKey;
+}
+
+/** Save session ID to localStorage so the callback page can retrieve it */
+function saveCallbackSession() {
+    if (state._callbackKey && state.sessionId) {
+        try { localStorage.setItem('insign-cb-' + state._callbackKey, state.sessionId); } catch (_) {}
+    }
 }
 
 /** Webhook provider and document catalogs - loaded from JSON at init */

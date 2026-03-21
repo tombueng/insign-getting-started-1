@@ -325,9 +325,8 @@ async function executeOperation(opKey) {
         `);
     }
 
-    // Try response editor first, fall back to pre
+    // Show response in Monaco editor
     const $responseEditorContainer = $('#editor-' + editorId + '-response');
-    const $responsePre = $(`pre.response-body[data-op="${opKey}"]`);
 
     // Look up response schema from OpenAPI spec, fall back to operations.json hint
     const respSchemaKey = (state.schemaLoader
@@ -335,10 +334,7 @@ async function executeOperation(opKey) {
         : null) || opDef.responseSchemaKey || null;
 
     if ($responseEditorContainer.length) {
-        showResponseEditor(editorId, result.body, respSchemaKey);
-    } else if ($responsePre.length) {
-        const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
-        $responsePre.text(content);
+        showResponseEditor(editorId, result.body || result.raw, respSchemaKey);
     }
 
     // If load returned an accessURL, update state so "Open in inSign" works
@@ -758,8 +754,6 @@ async function executeDownload() {
         `);
     }
 
-    const $responsePre = $('pre.response-body[data-op="download"]');
-
     if (result.ok && result.blob) {
         // Trigger download
         const url = URL.createObjectURL(result.blob);
@@ -772,10 +766,7 @@ async function executeDownload() {
 
         const sizeStr = result.blob.size < 1024 ? result.blob.size + ' B' :
             (result.blob.size / 1024).toFixed(1) + ' KB';
-        if ($responsePre.length) {
-            $responsePre.html(`Downloaded ${sizeStr} (${result.blob.type})` +
-                (isPdf && state.pdfViewer ? ` &mdash; <a href="#" onclick="window.app.previewLastDownload();return false" style="color:var(--insign-blue)">Preview</a>` : ''));
-        }
+        showResponseEditor('op-download', `Downloaded ${sizeStr} (${result.blob.type})`);
 
         // Auto-preview PDFs
         if (isPdf && state.pdfViewer) {
@@ -783,10 +774,7 @@ async function executeDownload() {
             previewBlob(result.blob, 'Signed Document');
         }
     } else {
-        if ($responsePre.length) {
-            const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
-            $responsePre.text(content);
-        }
+        showResponseEditor('op-download', result.body || result.raw);
     }
 }
 
@@ -811,19 +799,12 @@ async function fetchDocumentSingle() {
         `);
     }
 
-    const $responsePre = $('pre.response-body[data-op="document-single"]');
-
     if (!result.ok || !result.blob) {
-        if ($responsePre.length) {
-            const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
-            $responsePre.text(content);
-        }
+        showResponseEditor('op-document-single', result.body || result.raw);
     } else {
         const sizeStr = result.blob.size < 1024 ? result.blob.size + ' B' :
             (result.blob.size / 1024).toFixed(1) + ' KB';
-        if ($responsePre.length) {
-            $responsePre.text(`Received ${sizeStr} (${result.blob.type})`);
-        }
+        showResponseEditor('op-document-single', `Received ${sizeStr} (${result.blob.type})`);
         state._lastDownloadBlob = result.blob;
         state._lastDownloadName = (obj.docid || 'document') + '.pdf';
     }
@@ -875,11 +856,7 @@ async function uploadDocument() {
         $statusEl.html(`<strong>${result.status}</strong> ${result.statusText}`);
     }
 
-    const $responsePre = $('pre.response-body[data-op="upload"]');
-    if ($responsePre.length) {
-        const content = typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.raw;
-        $responsePre.text(content);
-    }
+    showResponseEditor('op-upload', result.body || result.raw);
 }
 
 function updateOperationEditors() {

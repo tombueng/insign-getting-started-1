@@ -25,8 +25,8 @@
 
     <style>
         /* Readme-specific overrides */
-        .readme-hero { text-align: center; padding: 2rem 0 1rem; }
-        .readme-hero h1 { font-size: 1.6rem; font-weight: 500; margin-top: 1rem; margin-bottom: 0.25rem; }
+        .readme-hero { text-align: center; padding: 0.5rem 0 1rem; }
+        .readme-hero h1 { font-size: 1.6rem; font-weight: 500; margin-top: 0; margin-bottom: 0.25rem; }
         .readme-hero .lead { font-size: 0.95rem; color: var(--insign-text); }
         .readme-hero .sub { font-size: 0.82rem; color: var(--insign-text-muted); }
         .readme-hero .hero-links { margin-top: 0.75rem; }
@@ -39,13 +39,25 @@
             position: relative;
         }
 
+        .card-insign .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--insign-card-bg);
+            border-radius: 0;
+            box-shadow: none;
+            transition: box-shadow 0.2s;
+        }
+        .card-insign .card-header.stuck {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
         .card-insign .card-header .endpoint-path {
             font-family: 'Roboto Mono', monospace;
             font-size: 0.85rem;
             color: var(--insign-gray);
         }
 
-        .resources-section { max-width: 960px; margin: 0 auto; }
+        .resources-section { max-width: 960px; margin: 6rem auto 0; }
         .resources-section h5 {
             font-size: 0.9rem;
             font-weight: 500;
@@ -58,6 +70,8 @@
         }
         .resources-section a { color: var(--insign-blue); }
         .resources-section a:hover { color: var(--insign-blue-hover); }
+        .resources-section .btn-insign-cta { color: #fff; }
+        .resources-section .btn-insign-cta:hover { color: #fff; }
         .resources-section pre {
             background: var(--insign-code-bg);
             border: 1px solid var(--insign-border);
@@ -416,12 +430,381 @@
             90%     { opacity: 0.4; transform: scale(0.8) translateY(-2px); }
             100%    { opacity: 0; transform: scale(0.5) translateY(0); }
         }
+
+        /* ============================================================
+           SCROLL REVEAL ANIMATIONS
+           ============================================================ */
+        .scroll-reveal {
+            opacity: 0;
+            transition: opacity 0.7s cubic-bezier(0.2, 0.6, 0.3, 1),
+                        transform 0.7s cubic-bezier(0.2, 0.6, 0.3, 1);
+            will-change: opacity, transform;
+        }
+
+        /* Different entry effects */
+        .scroll-reveal.reveal-up { transform: translateY(60px); }
+        .scroll-reveal.reveal-down { transform: translateY(-60px); }
+        .scroll-reveal.reveal-left { transform: translateX(-80px); }
+        .scroll-reveal.reveal-right { transform: translateX(80px); }
+        .scroll-reveal.reveal-scale { transform: scale(0.85); }
+        .scroll-reveal.reveal-rotate { transform: rotate(-4deg) translateY(40px); }
+        .scroll-reveal.reveal-flip { transform: perspective(800px) rotateX(15deg) translateY(40px); }
+
+        /* Stagger delays for children */
+        .scroll-reveal.stagger-1 { transition-delay: 0.1s; }
+        .scroll-reveal.stagger-2 { transition-delay: 0.2s; }
+        .scroll-reveal.stagger-3 { transition-delay: 0.3s; }
+        .scroll-reveal.stagger-4 { transition-delay: 0.4s; }
+
+        /* Active state - element is visible */
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* Exit animations - element scrolled past */
+        .scroll-reveal.reveal-exit-up {
+            opacity: 0;
+            transform: translateY(-40px) scale(0.95);
+        }
+        .scroll-reveal.reveal-exit-down {
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+        }
+        .scroll-reveal.reveal-exit-fade {
+            opacity: 0;
+        }
+
+        /* Parallax float for decorative elements */
+        .scroll-parallax {
+            transition: transform 0.1s linear;
+            will-change: transform;
+        }
+
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            .scroll-reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
+
+        /* ============================================================
+           FLOATING SESSION STATUS CARD (left sidebar)
+           ============================================================ */
+        /* Session sidebar - fixed left overlay, does not shift content */
+        .session-sidebar {
+            position: fixed;
+            left: 12px;
+            top: 60px;
+            width: 260px;
+            z-index: 900;
+            display: none;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+        .session-sidebar.visible {
+            display: block;
+            animation: sidebarSlideIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+        }
+
+        @keyframes sidebarSlideIn {
+            from { opacity: 0; transform: translateX(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        /* Small screens: fixed bottom bar */
+        @media (max-width: 1100px) {
+            .session-sidebar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                width: 100%;
+                max-height: 45vh;
+                border-radius: 12px 12px 0 0;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+                animation-name: sidebarSlideUp;
+            }
+            .session-sidebar .sc-card {
+                border-radius: 12px 12px 0 0;
+                border: none;
+                border-top: 1px solid var(--insign-border);
+            }
+            /* Collapse toggle for mobile */
+            .session-sidebar .sc-mobile-collapse {
+                display: block;
+            }
+        }
+        @media (min-width: 1101px) {
+            .session-sidebar .sc-mobile-collapse {
+                display: none;
+            }
+        }
+
+        @keyframes sidebarSlideUp {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sc-card {
+            background: var(--insign-card-bg);
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-input);
+            overflow: hidden;
+            font-size: 0.78rem;
+        }
+        .sc-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--insign-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sc-header-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .sc-header-icon.sc-completed { background: rgba(40,167,69,0.15); color: #28a745; }
+        .sc-header-icon.sc-active    { background: rgba(1,101,188,0.12); color: #0165bc; }
+        .sc-header-icon.sc-pending   { background: rgba(248,169,9,0.12); color: #b47a00; }
+
+        .sc-header-text { flex: 1; min-width: 0; }
+        .sc-header-text h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--insign-text);
+        }
+        .sc-header-text .sc-sid {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--insign-text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sc-body { padding: 10px 14px; }
+
+        .sc-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(128,128,128,0.08);
+        }
+        .sc-info-row:last-child { border-bottom: none; }
+        .sc-info-label {
+            font-size: 0.66rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--insign-text-muted);
+        }
+        .sc-info-value {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--insign-text);
+            text-align: right;
+        }
+
+        .sc-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .sc-badge-completed { background: rgba(40,167,69,0.1); color: #1a7a34; }
+        .sc-badge-active { background: rgba(1,101,188,0.1); color: #0165bc; }
+        .sc-badge-pending { background: rgba(248,169,9,0.1); color: #b47a00; }
+        .sc-badge .sc-pulse {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: currentColor;
+            animation: scPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes scPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Signature field list */
+        .sc-sig-list { margin-top: 6px; }
+        .sc-sig-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+        }
+        .sc-sig-item i { font-size: 0.75rem; }
+        .sc-sig-item i.sc-signed { color: #28a745; }
+        .sc-sig-item i.sc-unsigned { color: var(--insign-text-muted); }
+        .sc-sig-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .sc-sig-role { font-size: 0.72rem; }
+        .sc-sig-name { font-size: 0.62rem; color: var(--insign-text-muted); }
+        .sc-sig-status {
+            font-size: 0.62rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .sc-sig-status.sc-is-signed { color: #1a7a34; }
+        .sc-sig-status.sc-is-unsigned { color: var(--insign-text-muted); }
+
+        /* Progress */
+        .sc-progress { margin-top: 6px; }
+        .sc-progress-bar {
+            height: 4px;
+            background: var(--insign-border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .sc-progress-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.6s ease-out;
+        }
+        .sc-progress-text {
+            font-size: 0.62rem;
+            color: var(--insign-text-muted);
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        .sc-refresh-btn {
+            display: block;
+            width: 100%;
+            border: none;
+            background: none;
+            padding: 6px 14px;
+            border-top: 1px solid var(--insign-border);
+            font-size: 0.68rem;
+            color: var(--insign-blue);
+            cursor: pointer;
+            text-align: center;
+        }
+        .sc-refresh-btn:hover { background: rgba(1,101,188,0.05); }
+
+        .sc-updated {
+            font-size: 0.58rem;
+            color: var(--insign-text-muted);
+            text-align: center;
+            padding: 2px 14px 6px;
+        }
+
+        /* ============================================================
+           FEATURE SHOWCASE - side-by-side list + screenshot
+           ============================================================ */
+        .feature-showcase {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin: 1rem 0;
+        }
+        .feature-list {
+            flex: 1;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .feature-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            color: var(--insign-text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            margin-bottom: 4px;
+        }
+        .feature-item:hover {
+            background: rgba(1,101,188,0.04);
+        }
+        .feature-item.active {
+            color: var(--insign-text);
+            border-left-color: var(--insign-blue);
+            background: rgba(1,101,188,0.06);
+        }
+        .feature-item.active strong {
+            color: var(--insign-blue);
+            font-size: 0.92rem;
+        }
+        .feature-item strong {
+            transition: font-size 0.3s, color 0.3s;
+        }
+
+        .feature-preview {
+            width: 340px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 80px;
+            /* Allow overflow to the right */
+            overflow: visible;
+            margin-right: -120px;
+            z-index: 5;
+        }
+        .feature-preview-inner {
+            position: relative;
+            width: 420px;
+        }
+        .feature-preview-inner img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.45s ease;
+        }
+        .feature-preview-inner img.fp-active {
+            opacity: 1;
+            position: relative;
+        }
+        .feature-preview-inner img:hover {
+            box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 800px) {
+            .feature-showcase { flex-direction: column; }
+            .feature-preview { width: 100%; position: static; margin-right: 0; }
+            .feature-preview-inner { width: 100%; }
+        }
+
+        /* Mobile bottom bar: add drag handle */
+        .sc-mobile-collapse {
+            width: 36px;
+            height: 4px;
+            background: var(--insign-text-muted);
+            opacity: 0.3;
+            border-radius: 2px;
+            margin: 6px auto 2px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
 <!-- Confetti overlay -->
 <canvas id="confetti-canvas"></canvas>
+
 
 <!-- Fake magnetic cursor -->
 <div id="fake-cursor">
@@ -465,12 +848,12 @@
 
     <!-- Hero -->
     <div class="readme-hero">
-        <h1>inSign API - Getting Started</h1>
-        <p class="lead"><strong>Integrate electronic signatures into your application in minutes.</strong></p>
-        <p class="sub">This guide is for developers and anyone interested in exploring the inSign API.<br>
+        <h1 class="scroll-reveal reveal-down">inSign API - Getting Started</h1>
+        <p class="lead scroll-reveal reveal-up stagger-1"><strong>Integrate electronic signatures into your application in minutes.</strong></p>
+        <p class="sub scroll-reveal reveal-up stagger-2">This guide is for developers and anyone interested in exploring the inSign API.<br>
             Try it out right here - completely free, no registration needed.</p>
-        <p class="sub">Not looking for technical details? Visit <a href="https://www.getinsign.com/" style="color:var(--insign-blue)">www.getinsign.com</a> for product information.</p>
-        <div class="hero-links d-flex justify-content-center gap-2 flex-wrap">
+        <p class="sub scroll-reveal reveal-up stagger-3">Not looking for technical details? Visit <a href="https://www.getinsign.com/" style="color:var(--insign-blue)">www.getinsign.com</a> for product information.</p>
+        <div class="hero-links d-flex justify-content-center gap-2 flex-wrap scroll-reveal reveal-scale stagger-4">
             <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" class="btn btn-insign btn-insign-sm btn-insign-outline"><i class="bi bi-book me-1"></i>Swagger API Docs</a>
             <a href="index.html" class="btn btn-insign btn-insign-sm btn-insign-cta"><i class="bi bi-play-circle me-1"></i>Full API Explorer</a>
             <a href="https://www.getinsign.com/" class="btn btn-insign btn-insign-sm btn-insign-outline"><i class="bi bi-globe me-1"></i>getinsign.com</a>
@@ -480,10 +863,29 @@
     <!-- ============================================================
          STEP TAB CONTENT
          ============================================================ -->
+    <!-- Session status sidebar (fixed overlay, hidden until session created) -->
+    <div class="session-sidebar" id="session-sidebar">
+        <div class="sc-card">
+            <div class="sc-mobile-collapse" onclick="toggleMobileSidebar()"></div>
+            <div class="sc-header">
+                <div class="sc-header-icon sc-pending" id="sc-icon"><i class="bi bi-clock"></i></div>
+                <div class="sc-header-text">
+                    <h4>Status of your current session</h4>
+                    <div class="sc-sid" id="sc-sid">-</div>
+                </div>
+            </div>
+            <div class="sc-body" id="sc-body">
+                <div class="sc-info-row"><span class="sc-info-label">Loading...</span></div>
+            </div>
+            <button class="sc-refresh-btn" onclick="refreshSessionStatus()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+            <div class="sc-updated" id="sc-updated"></div>
+        </div>
+    </div>
+
     <div id="step-content">
 
         <!-- ========== STEP 1 ========== -->
-        <div id="step1">
+        <div id="step1" class="scroll-reveal reveal-up">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">1</span>
@@ -520,11 +922,11 @@
         <div id="signing-celebration-slot"></div>
 
         <!-- ========== STEP 2 ========== -->
-        <div id="step2" style="display:none">
+        <div id="step2" style="display:none" class="scroll-reveal reveal-left">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">2</span>
-                    <h5 class="ms-0 mb-0" style="font-size:0.9rem">Begin Signing</h5>
+                    <h5 class="ms-0 mb-0" style="font-size:0.9rem">Invite Others to Sign</h5>
                     <span class="badge badge-method badge-method-post">POST</span>
                     <span class="endpoint-path">/extern/beginmulti</span>
                 </div>
@@ -558,7 +960,7 @@
         <div id="step2-success-slot"></div>
 
         <!-- ========== STEP 3 ========== -->
-        <div id="step3" style="display:none">
+        <div id="step3" style="display:none" class="scroll-reveal reveal-right">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">3</span>
@@ -587,7 +989,7 @@
         </div>
 
         <!-- ========== STEP 4 ========== -->
-        <div id="step4" style="display:none">
+        <div id="step4" style="display:none" class="scroll-reveal reveal-flip">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">4</span>
@@ -620,7 +1022,7 @@
     <!-- ============================================================
          ADDITIONAL RESOURCES
          ============================================================ -->
-    <div class="resources-section mt-4">
+    <div class="resources-section mt-4 scroll-reveal reveal-scale">
         <div class="card-insign">
             <div class="card-header">
                 <i class="bi bi-journal-bookmark" style="font-size:1.1rem"></i>
@@ -629,10 +1031,27 @@
             <div class="card-body">
 
                 <h5><i class="bi bi-play-circle me-1"></i>Full API Explorer</h5>
-                <p>Want to go deeper? The <a href="index.html"><strong>inSign API Explorer</strong></a> gives you a complete interactive playground -
-                    all endpoints, live request/response editing with autocomplete, code generation in 8 languages,
-                    12 branded test contracts, drag-and-drop PDF upload, webhook testing, and more.
-                    <a href="index.html" class="btn btn-insign btn-insign-sm btn-insign-cta ms-2" style="vertical-align:middle"><i class="bi bi-play-circle me-1"></i>Open API Explorer</a>
+                <p>Want to go deeper? The <a href="index.html"><strong>inSign API Explorer</strong></a> gives you a complete interactive playground.</p>
+                <div class="feature-showcase" id="feature-showcase">
+                    <ul class="feature-list">
+                        <li class="feature-item active" data-screenshot="screenshots/17-editor-autocomplete.png"><strong>JSON autocomplete and validation</strong> - schema-aware editor with inline suggestions, hover docs, and real-time error highlighting powered by the live OpenAPI spec</li>
+                        <li class="feature-item" data-screenshot="screenshots/12-code-snippets.png"><strong>Code generation</strong> - instantly generate ready-to-run code snippets in 8 languages (cURL, Python, Java, C#, JavaScript, PHP, Go, Ruby)</li>
+                        <li class="feature-item" data-screenshot="screenshots/10-operate-trace.png"><strong>API call tracing</strong> - full request/response trace log with timing, headers, and status codes for every call you make</li>
+                        <li class="feature-item" data-screenshot="screenshots/16-sidebar-webhooks.png"><strong>Webhook visualization</strong> - built-in webhook viewer that catches and displays real-time callback events as they arrive from the server</li>
+                        <li class="feature-item" data-screenshot="screenshots/08-document-selector.png"><strong>12 branded test contracts</strong> - professionally designed PDFs with unique company branding, logos, and color schemes - or drag-and-drop your own PDF</li>
+                        <li class="feature-item" data-screenshot="screenshots/06-feature-configurator.png"><strong>Feature selector</strong> - toggle inSign features like biometric signatures, timestamps, and document options directly from the UI</li>
+                        <li class="feature-item" data-screenshot="screenshots/07-branding-css.png"><strong>CSS customizer</strong> - live theme editor to preview how the inSign signing UI looks with your brand colors</li>
+                        <li class="feature-item" data-screenshot="screenshots/01-overview.png"><strong>Dark mode</strong> - full light/dark theme support across the entire explorer</li>
+                    </ul>
+                    <div class="feature-preview">
+                        <div class="feature-preview-inner" id="feature-preview-inner">
+                            <img class="fp-active" src="screenshots/17-editor-autocomplete.png" alt="Feature preview" loading="lazy">
+                            <img src="" alt="Feature preview" loading="lazy">
+                        </div>
+                    </div>
+                </div>
+                <p>
+                    <a href="index.html" class="btn btn-insign btn-insign-sm btn-insign-cta"><i class="bi bi-play-circle me-1"></i>Open API Explorer</a>
                 </p>
 
                 <h5 class="mt-3"><i class="bi bi-book me-1"></i>Swagger / OpenAPI</h5>
@@ -673,7 +1092,7 @@ tools/                       PDF generator scripts</code></pre>
     </div>
 
     <!-- Footer -->
-    <div class="footer-bar">
+    <div class="footer-bar scroll-reveal reveal-up">
         <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Electronic Signature Solutions
     </div>
 
@@ -767,11 +1186,18 @@ const DEMO_NAMES = [
 const DEMO_NAME = DEMO_NAMES[Math.floor(Math.random() * DEMO_NAMES.length)];
 const DEMO_USER_ID = DEMO_NAME.toLowerCase().replace(/\s+/g, '.') + '-' + shortUuid();
 
+var CALLBACK_KEY = 'cb-' + shortUuid();
+var CALLBACK_URL = (function () {
+    var loc = window.location;
+    return loc.origin + loc.pathname.replace(/[^/]*$/, '') + 'signed.html?cbkey=' + CALLBACK_KEY;
+})();
+
 const STEP_DEFAULTS = {
     1: JSON.stringify({
         foruser: DEMO_USER_ID,
         userfullname: DEMO_NAME,
         displayname: 'Getting Started Demo',
+        callbackURL: CALLBACK_URL,
         documents: [{
             id: 'doc-1',
             displayname: 'Sample Contract',
@@ -1031,10 +1457,16 @@ async function sendStep(step) {
         if (step === 1 && result.ok && data && data.sessionid) {
             sessionId = data.sessionid;
             accessURL = data.accessURL || null;
+            // Save session ID for callback page lookup
+            try {
+                localStorage.setItem('insign-cb-' + CALLBACK_KEY, sessionId);
+                localStorage.setItem('insign-cb-latest', sessionId);
+            } catch (_) {}
             propagateSessionId();
             fetchStatusAndBuildExternUsers();
             // Celebrate and show proceed button
             showSessionSuccessBanner(data.sessionid, accessURL);
+            showSessionSidebar();
             if (!hasSeenConfetti()) {
                 launchConfetti();
                 markConfettiSeen();
@@ -1291,11 +1723,9 @@ function launchConfetti(multiplier) {
 
 function showSessionSuccessBanner(sid, ownerUrl) {
     var slot = document.getElementById('step1-success-slot');
-    var ownerBtn = ownerUrl
-        ? '<a href="' + ownerUrl + '" target="_blank" rel="noopener" class="btn btn-insign btn-insign-cta" onclick="startSignatureWatch()">' +
+    var ownerBtn = '<button class="btn btn-insign btn-insign-cta" onclick="openAsOwner(this)">' +
               '<i class="bi bi-box-arrow-up-right me-1"></i>Open Session Now as Owner' +
-          '</a>'
-        : '';
+          '</button>';
     slot.innerHTML =
         '<div class="step-success-banner banner-session">' +
             '<h3><i class="bi bi-check-circle-fill me-2"></i>Great! You created your first session!</h3>' +
@@ -1466,7 +1896,9 @@ var SIGNER_NAMES = [
 
 /** Generate an email from a display name: "Maria Hoffmann" -> "maria.hoffmann@company.invalid" */
 function emailFromName(name) {
-    return name.trim().toLowerCase().replace(/\s+/g, '.') + '@company.invalid';
+    // Strip academic/professional titles before generating email
+    var clean = name.replace(/^(Prof\.\s*Dr\.|Prof\.|Dr\.|Ing\.|Dipl\.-\w+\.)\s*/i, '');
+    return clean.trim().toLowerCase().replace(/\s+/g, '.') + '@company.invalid';
 }
 
 /** Check if a string looks like an email address */
@@ -1542,6 +1974,47 @@ function openInInsign() {
     }
 }
 
+/**
+ * Load a fresh accessURL via /persistence/loadsession and open as owner.
+ * The initial accessURL from /configure/session is single-use,
+ * so subsequent opens must call /persistence/loadsession first.
+ */
+async function openAsOwner(btn) {
+    if (!sessionId) return;
+    var origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Loading...';
+    try {
+        var result = await apiClient.call('POST', '/persistence/loadsession', {
+            body: { sessionid: sessionId }
+        });
+        if (result.ok && result.body && result.body.accessURL) {
+            accessURL = result.body.accessURL;
+            window.open(accessURL, '_blank');
+            startSignatureWatch();
+        } else if (accessURL) {
+            // Fallback to stored URL if load fails
+            window.open(accessURL, '_blank');
+            startSignatureWatch();
+        } else {
+            btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Failed to load session';
+            setTimeout(function () { btn.innerHTML = origHtml; btn.disabled = false; }, 2000);
+            return;
+        }
+    } catch (err) {
+        if (accessURL) {
+            window.open(accessURL, '_blank');
+            startSignatureWatch();
+        } else {
+            btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>' + err.message;
+            setTimeout(function () { btn.innerHTML = origHtml; btn.disabled = false; }, 2000);
+            return;
+        }
+    }
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+}
+
 /* ==========================================================================
    CTA BUTTON ATTENTION GRABBER + MAGNETIC CURSOR
    ========================================================================== */
@@ -1586,24 +2059,20 @@ function openInInsign() {
     function runMagnetGag(btn) {
         magnetDone = true;
         var cursor = document.getElementById('fake-cursor');
-        var rect = btn.getBoundingClientRect();
-        var targetX = rect.left + rect.width / 2 - 5;
-        var targetY = rect.top + rect.height / 2 - 3;
 
-        // Start from a random-ish position away from the button
-        var startX = targetX + (Math.random() > 0.5 ? 1 : -1) * (200 + Math.random() * 150);
-        var startY = targetY - 100 - Math.random() * 100;
+        // Capture initial offset from button to compute start position
+        var initRect = btn.getBoundingClientRect();
+        var offsetX = (Math.random() > 0.5 ? 1 : -1) * (200 + Math.random() * 150);
+        var offsetY = -100 - Math.random() * 100;
 
-        cursor.style.left = startX + 'px';
-        cursor.style.top = startY + 'px';
+        cursor.style.left = (initRect.left + initRect.width / 2 - 5 + offsetX) + 'px';
+        cursor.style.top = (initRect.top + initRect.height / 2 - 3 + offsetY) + 'px';
         cursor.style.opacity = '1';
 
-        // Animate toward button with easing and slight wobble
         var duration = 1200;
         var start = Date.now();
 
         function ease(t) {
-            // Ease-in-out with slight overshoot
             return t < 0.5
                 ? 4 * t * t * t
                 : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -1613,6 +2082,13 @@ function openInInsign() {
             var elapsed = Date.now() - start;
             var t = Math.min(1, elapsed / duration);
             var e = ease(t);
+
+            // Recalculate target every frame to track scrolling
+            var rect = btn.getBoundingClientRect();
+            var targetX = rect.left + rect.width / 2 - 5;
+            var targetY = rect.top + rect.height / 2 - 3;
+            var startX = targetX + offsetX;
+            var startY = targetY + offsetY;
 
             // Wobble: small sine wave perpendicular to path
             var wobbleX = Math.sin(t * Math.PI * 5) * (1 - t) * 12;
@@ -1672,8 +2148,13 @@ function cheatCreateSession() {
     var fakeId = 'fake-' + Math.random().toString(36).substring(2, 14);
     sessionId = fakeId;
     accessURL = SANDBOX.url + '/index?sessionid=' + fakeId;
+    try {
+        localStorage.setItem('insign-cb-' + CALLBACK_KEY, sessionId);
+        localStorage.setItem('insign-cb-latest', sessionId);
+    } catch (_) {}
     propagateSessionId();
     showSessionSuccessBanner(fakeId, accessURL);
+    showSessionSidebar();
     if (!hasSeenConfetti()) { launchConfetti(); markConfettiSeen(); }
     setTimeout(function () {
         var banner = document.getElementById('step1-success-slot');
@@ -1687,6 +2168,354 @@ function cheatSigned() {
     sigWatchFired = true;
     showSigningCelebration(1);
 }
+
+/* ==========================================================================
+   SIDEBAR SESSION STATUS CARD
+   ========================================================================== */
+
+var _scPollTimer = null;
+
+function toggleMobileSidebar() {
+    var sidebar = document.getElementById('session-sidebar');
+    var body = document.getElementById('sc-body');
+    var footer = sidebar.querySelector('.sc-refresh-btn');
+    var updated = document.getElementById('sc-updated');
+    if (body.style.display === 'none') {
+        body.style.display = '';
+        if (footer) footer.style.display = '';
+        if (updated) updated.style.display = '';
+    } else {
+        body.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+        if (updated) updated.style.display = 'none';
+    }
+}
+
+function showSessionSidebar() {
+    var sidebar = document.getElementById('session-sidebar');
+    if (sidebar) {
+        sidebar.classList.add('visible');
+        refreshSessionStatus();
+        // Auto-poll every 10s
+        if (_scPollTimer) clearInterval(_scPollTimer);
+        _scPollTimer = setInterval(refreshSessionStatus, 10000);
+    }
+}
+
+function refreshSessionStatus() {
+    if (!sessionId) return;
+    document.getElementById('sc-sid').textContent = sessionId;
+
+    apiClient.call('POST', '/get/status', { body: { sessionid: sessionId } })
+        .then(function (result) {
+            if (!result.ok || !result.body) return;
+            renderSidebarStatus(result.body);
+            pruneFullySignedRolesFromStep2(result.body);
+        })
+        .catch(function () {});
+}
+
+/**
+ * Remove externUsers from Step 2 JSON whose roles are already fully signed.
+ * A role is fully signed when all its signature fields have signed=true.
+ */
+function pruneFullySignedRolesFromStep2(statusData) {
+    if (!editors[2]) return;
+    var sigFields = statusData.signaturFieldsStatusList || [];
+    if (sigFields.length === 0) return;
+
+    // Build map: role -> { total, signed }
+    var roleCounts = {};
+    for (var i = 0; i < sigFields.length; i++) {
+        var role = sigFields[i].role || sigFields[i].quickInfoParsedRole || '';
+        if (!role) continue;
+        if (!roleCounts[role]) roleCounts[role] = { total: 0, signed: 0 };
+        roleCounts[role].total++;
+        if (sigFields[i].signed) roleCounts[role].signed++;
+    }
+
+    // Determine which roles are fully signed
+    var fullySigned = {};
+    for (var r in roleCounts) {
+        if (roleCounts[r].signed >= roleCounts[r].total) {
+            fullySigned[r] = true;
+        }
+    }
+    if (Object.keys(fullySigned).length === 0) return;
+
+    // Parse Step 2 editor JSON
+    var step2Val;
+    try { step2Val = JSON.parse(editors[2].getValue()); } catch (_) { return; }
+    if (!step2Val || !Array.isArray(step2Val.externUsers)) return;
+
+    var original = step2Val.externUsers.length;
+    step2Val.externUsers = step2Val.externUsers.filter(function (user) {
+        if (!Array.isArray(user.roles)) return true;
+        // Keep the user if they have at least one role that is NOT fully signed
+        return user.roles.some(function (role) { return !fullySigned[role]; });
+    });
+
+    // Only update editor if something was actually removed
+    if (step2Val.externUsers.length < original) {
+        editors[2].setValue(JSON.stringify(step2Val, null, 2));
+    }
+}
+
+function renderSidebarStatus(data) {
+    var completed = !!data.sucessfullyCompleted;
+    var docData = data.documentData || [];
+    var sigFields = data.signaturFieldsStatusList || [];
+    var totalSigs = 0;
+    for (var i = 0; i < docData.length; i++) {
+        totalSigs += (docData[i].numberOfSignatures || 0);
+    }
+    var signedFields = sigFields.filter(function (f) { return !!f.signed; });
+    var totalFields = sigFields.length;
+    var hasSigs = totalSigs > 0 || signedFields.length > 0;
+
+    // Header icon
+    var iconEl = document.getElementById('sc-icon');
+    if (completed) {
+        iconEl.className = 'sc-header-icon sc-completed';
+        iconEl.innerHTML = '<i class="bi bi-check-lg"></i>';
+    } else if (hasSigs) {
+        iconEl.className = 'sc-header-icon sc-active';
+        iconEl.innerHTML = '<i class="bi bi-pen"></i>';
+    } else {
+        iconEl.className = 'sc-header-icon sc-pending';
+        iconEl.innerHTML = '<i class="bi bi-clock"></i>';
+    }
+
+    // Body
+    var body = document.getElementById('sc-body');
+    var h = '';
+
+    // Status badge
+    var badgeCls = completed ? 'sc-badge-completed' : (hasSigs ? 'sc-badge-active' : 'sc-badge-pending');
+    var badgeLabel = completed ? 'Completed' : (hasSigs ? 'In Progress' : 'Pending');
+    var dot = completed ? '' : '<span class="sc-pulse"></span>';
+
+    h += '<div class="sc-info-row"><span class="sc-info-label">Status</span>'
+        + '<span class="sc-info-value"><span class="sc-badge ' + badgeCls + '">' + dot + badgeLabel + '</span></span></div>';
+
+    h += '<div class="sc-info-row"><span class="sc-info-label">Signatures</span>'
+        + '<span class="sc-info-value">' + totalSigs + '</span></div>';
+
+    h += '<div class="sc-info-row"><span class="sc-info-label">Completed</span>'
+        + '<span class="sc-info-value">' + (completed ? '<i class="bi bi-check-circle-fill" style="color:#28a745"></i>' : '<i class="bi bi-dash-circle" style="color:var(--insign-text-muted)"></i>') + '</span></div>';
+
+    // Documents
+    for (var d = 0; d < docData.length; d++) {
+        var doc = docData[d];
+        h += '<div class="sc-info-row"><span class="sc-info-label"><i class="bi bi-file-earmark-pdf" style="color:#dc3545"></i> ' + _escSc(doc.displayname || doc.docid) + '</span>'
+            + '<span class="sc-info-value">' + (doc.numberOfSignatures || 0) + ' sig' + ((doc.numberOfSignatures || 0) !== 1 ? 's' : '') + '</span></div>';
+    }
+
+    // Signature fields
+    if (totalFields > 0) {
+        h += '<div class="sc-sig-list">';
+        for (var s = 0; s < sigFields.length; s++) {
+            var f = sigFields[s];
+            var isSigned = !!f.signed;
+            var role = f.role || f.quickInfoParsedRole || f.fieldID || '';
+            var name = f.displayname || f.quickInfoParsedName || '';
+            h += '<div class="sc-sig-item">'
+                + '<i class="bi ' + (isSigned ? 'bi-check-circle-fill sc-signed' : 'bi-circle sc-unsigned') + '"></i>'
+                + '<div class="sc-sig-info"><span class="sc-sig-role">' + _escSc(role) + '</span>'
+                + (name ? ' <span class="sc-sig-name">' + _escSc(name) + '</span>' : '')
+                + '</div>'
+                + '<span class="sc-sig-status ' + (isSigned ? 'sc-is-signed' : 'sc-is-unsigned') + '">'
+                + (isSigned ? 'Signed' : 'Pending') + '</span>'
+                + '</div>';
+        }
+        h += '</div>';
+
+        // Progress bar
+        var pct = Math.round((signedFields.length / totalFields) * 100);
+        h += '<div class="sc-progress">'
+            + '<div class="sc-progress-bar"><div class="sc-progress-fill" style="width:' + pct + '%"></div></div>'
+            + '<div class="sc-progress-text">' + signedFields.length + '/' + totalFields + ' (' + pct + '%)</div>'
+            + '</div>';
+    }
+
+    body.innerHTML = h;
+
+    // Updated timestamp
+    var upd = document.getElementById('sc-updated');
+    if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+function _escSc(s) {
+    var d = document.createElement('span');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+/* ==========================================================================
+   STICKY CARD HEADERS - detect stuck state
+   ========================================================================== */
+
+(function () {
+    // Use scroll event to detect when sticky headers are stuck
+    function checkStuck() {
+        var headers = document.querySelectorAll('.card-insign .card-header');
+        for (var i = 0; i < headers.length; i++) {
+            var h = headers[i];
+            var rect = h.getBoundingClientRect();
+            // Stuck when top is at 0 (or very close) and parent card extends below
+            var cardRect = h.closest('.card-insign');
+            if (cardRect) {
+                var cr = cardRect.getBoundingClientRect();
+                var isStuck = rect.top <= 1 && cr.bottom > rect.bottom + 20;
+                if (isStuck) {
+                    h.classList.add('stuck');
+                } else {
+                    h.classList.remove('stuck');
+                }
+            }
+        }
+    }
+    window.addEventListener('scroll', function () {
+        requestAnimationFrame(checkStuck);
+    }, { passive: true });
+})();
+
+/* ==========================================================================
+   FEATURE SHOWCASE - scroll-linked highlight + screenshot swap
+   ========================================================================== */
+
+(function () {
+    var items = document.querySelectorAll('.feature-item');
+    var container = document.getElementById('feature-preview-inner');
+    if (!items.length || !container) return;
+
+    var imgs = container.querySelectorAll('img');
+    var frontIdx = 0; // which of the 2 imgs is currently visible
+    var currentIdx = 0;
+    var swapping = false;
+
+    function activateItem(idx) {
+        if (idx === currentIdx && items[idx].classList.contains('active')) return;
+        currentIdx = idx;
+        for (var i = 0; i < items.length; i++) {
+            items[i].classList.toggle('active', i === idx);
+        }
+        // Crossfade to new screenshot
+        var newSrc = items[idx].getAttribute('data-screenshot');
+        var front = imgs[frontIdx];
+        if (!newSrc || swapping || front.src.indexOf(newSrc) !== -1) return;
+
+        swapping = true;
+        var backIdx = 1 - frontIdx;
+        var back = imgs[backIdx];
+
+        // Preload new image in the hidden layer
+        back.src = newSrc;
+        back.onload = function () {
+            // Crossfade: bring back to front
+            back.classList.add('fp-active');
+            front.classList.remove('fp-active');
+            frontIdx = backIdx;
+            swapping = false;
+        };
+        // Fallback if onload doesn't fire (cached)
+        if (back.complete) {
+            back.classList.add('fp-active');
+            front.classList.remove('fp-active');
+            frontIdx = backIdx;
+            swapping = false;
+        }
+    }
+
+    // Click to select
+    for (var i = 0; i < items.length; i++) {
+        (function (idx) {
+            items[idx].addEventListener('click', function () { activateItem(idx); });
+        })(i);
+    }
+
+    // Scroll-linked: highlight the item closest to vertical center
+    var rafId = null;
+    window.addEventListener('scroll', function () {
+        if (rafId) return;
+        rafId = requestAnimationFrame(function () {
+            rafId = null;
+            var vh = window.innerHeight;
+            var center = vh * 0.45;
+            var bestIdx = 0;
+            var bestDist = Infinity;
+            for (var j = 0; j < items.length; j++) {
+                var r = items[j].getBoundingClientRect();
+                var mid = r.top + r.height / 2;
+                var dist = Math.abs(mid - center);
+                if (dist < bestDist) { bestDist = dist; bestIdx = j; }
+            }
+            activateItem(bestIdx);
+        });
+    }, { passive: true });
+
+    // Click screenshot -> open explorer
+    container.addEventListener('click', function () {
+        window.open('index.html', '_blank');
+    });
+})();
+
+/* ==========================================================================
+   SCROLL REVEAL - Intersection Observer
+   ========================================================================== */
+
+(function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            var el = entry.target;
+            if (entry.isIntersecting) {
+                // Element entering viewport
+                el.classList.add('revealed');
+                el.classList.remove('reveal-exit-up', 'reveal-exit-down', 'reveal-exit-fade');
+            } else if (el.classList.contains('revealed')) {
+                // Element leaving viewport - apply exit effect
+                var rect = entry.boundingClientRect;
+                if (rect.top < 0) {
+                    // Scrolled past (above viewport)
+                    el.classList.add('reveal-exit-up');
+                } else {
+                    // Scrolled below (below viewport)
+                    el.classList.add('reveal-exit-down');
+                }
+                el.classList.remove('revealed');
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+    });
+
+    // Observe on DOM ready
+    $(function () {
+        document.querySelectorAll('.scroll-reveal').forEach(function (el) {
+            observer.observe(el);
+        });
+    });
+
+    // Re-observe dynamically revealed steps (they start display:none)
+    var mutObs = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            if (m.type === 'attributes' && m.attributeName === 'style') {
+                var el = m.target;
+                if (el.classList.contains('scroll-reveal') && el.style.display !== 'none') {
+                    observer.observe(el);
+                }
+            }
+        });
+    });
+    $(function () {
+        document.querySelectorAll('.scroll-reveal[style*="display:none"]').forEach(function (el) {
+            mutObs.observe(el, { attributes: true, attributeFilter: ['style'] });
+        });
+    });
+})();
 
 /* ==========================================================================
    INIT
