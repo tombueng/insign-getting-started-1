@@ -1,32 +1,49 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
-name: Java CI with Maven
+name: Java CI - Build and Publish
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'src/java/**'
+      - '.github/workflows/maven.yml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'src/java/**'
+      - '.github/workflows/maven.yml'
   workflow_dispatch:
-    
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/java
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
         cache: maven
-    - name: Set up Maven
-      uses: s4u/maven-settings-action@v2.8.0
-      with:
-        servers: '[{"id": "mygithub", "username": "${{github.actor}}", "password": "${{secrets.GITHUB_TOKEN}}"}]'        
+        cache-dependency-path: src/java/pom.xml
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+
     - name: Build with Maven
-      run: cat ~/.m2/settings.xml & mvn -B clean package --file pom.xml
+      run: mvn -B clean package
+
+    - name: Publish to GitHub Packages
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      run: mvn -B deploy -DskipTests
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

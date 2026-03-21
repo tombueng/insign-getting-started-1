@@ -255,8 +255,15 @@ function showResponseEditor(id, response, schemaKey) {
     const container = $('#editor-' + editorId)[0];
     if (!container) return;
 
+    // Detect language: JSON for objects/arrays, plaintext for other strings
+    const isObject = typeof response === 'object' && response !== null;
+    let language = 'json';
+    if (!isObject && typeof response === 'string') {
+        try { JSON.parse(response); } catch { language = 'plaintext'; }
+    }
+
     if (!state.editors[editorId]) {
-        createReadOnlyEditor(editorId, '', 'json', { schemaKey: schemaKey || null });
+        createReadOnlyEditor(editorId, '', language, { schemaKey: schemaKey || null });
     } else if (schemaKey) {
         // If the editor already exists but didn't have a schema, re-associate
         // its model with the schema by updating the model URI
@@ -265,7 +272,7 @@ function showResponseEditor(id, response, schemaKey) {
         const expectedFilename = schemaKey + '.json';
         if (model && !model.uri.path.endsWith('/' + expectedFilename)) {
             // Dispose old model and create a new one with the correct URI
-            const content = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
+            const content = isObject ? JSON.stringify(response, null, 2) : response;
             const modelUri = monaco.Uri.parse('insign://models/' + editorId + '/' + expectedFilename);
             const newModel = monaco.editor.createModel(content, 'json', modelUri);
             editor.setModel(newModel);
@@ -274,8 +281,8 @@ function showResponseEditor(id, response, schemaKey) {
         }
     }
 
-    const content = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
-    setEditorValue(editorId, content);
+    const content = isObject ? JSON.stringify(response, null, 2) : response;
+    setEditorValue(editorId, content, language);
 }
 
 // =====================================================================
@@ -399,6 +406,8 @@ function setSessionId(sessionId, accessURL, fromCreateSession, accessURLProcessM
     state.sessionId = sessionId;
     state.accessURL = accessURL;
     if (accessURLProcessManagement) state.accessURLProcessManagement = accessURLProcessManagement;
+    // Save session ID for callback page lookup
+    if (typeof saveCallbackSession === 'function') saveCallbackSession();
 
     // Update session ID displays
     $('#active-session-id').text(sessionId);

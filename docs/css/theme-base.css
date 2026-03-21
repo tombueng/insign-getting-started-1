@@ -537,12 +537,6 @@ code {
     color: var(--insign-danger);
 }
 
-.response-body {
-    background: #1e1e1e;
-    color: #d4d4d4;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 0.8rem;
-}
 
 /* === Operation Tabs ===================================================== */
 

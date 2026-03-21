@@ -1,0 +1,21 @@
+[ {
+  "externUser" : "signer1@example.test",
+  "orderNumber" : 0,
+  "vorgangfertig" : null,
+  "dsgvoDeclined" : false,
+  "identReview" : null,
+  "rejected" : false,
+  "message" : null,
+  "userType" : null,
+  "signedAny" : false
+}, {
+  "externUser" : "signer2@example.test",
+  "orderNumber" : 0,
+  "vorgangfertig" : null,
+  "dsgvoDeclined" : false,
+  "identReview" : null,
+  "rejected" : false,
+  "message" : null,
+  "userType" : null,
+  "signedAny" : false
+} ]

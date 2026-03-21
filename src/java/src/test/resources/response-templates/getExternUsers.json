@@ -1,0 +1,21 @@
+{
+  "error" : 0,
+  "message" : "OK",
+  "externUsers" : [ {
+    "error" : 0,
+    "message" : "ok",
+    "externUser" : "signer1@example.test",
+    "token" : "e566eacb6d7d1d5a-1639e905-8d6c-4c3a-b025-1e682649949c",
+    "externAccessLink" : "https://sandbox.test.getinsign.show/extern/direktbearbeitung?direkttoken=e566eacb6d7d1d5a-1639e905-8d6c-4c3a-b025-1e682649949c",
+    "sendEmails" : false,
+    "orderNumber" : 0
+  }, {
+    "error" : 0,
+    "message" : "ok",
+    "externUser" : "signer2@example.test",
+    "token" : "198b36412ef0ffc7-bbf583c7-87ec-4e9a-90b6-9ff51bf85680",
+    "externAccessLink" : "https://sandbox.test.getinsign.show/extern/direktbearbeitung?direkttoken=198b36412ef0ffc7-bbf583c7-87ec-4e9a-90b6-9ff51bf85680",
+    "sendEmails" : false,
+    "orderNumber" : 0
+  } ]
+}

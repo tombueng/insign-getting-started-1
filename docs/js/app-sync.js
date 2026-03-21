@@ -152,7 +152,9 @@ function getDefaultCreateSessionBody() {
 
 /** Generate email from a display name: "Maria Hoffmann" -> "maria.hoffmann@company.invalid" */
 function _emailFromName(name) {
-    return name.trim().toLowerCase().replace(/\s+/g, '.') + '@company.invalid';
+    // Strip academic/professional titles before generating email
+    const clean = name.replace(/^(Prof\.\s*Dr\.|Prof\.|Dr\.|Ing\.|Dipl\.-\w+\.)\s*/i, '');
+    return clean.trim().toLowerCase().replace(/\s+/g, '.') + '@company.invalid';
 }
 
 /** Generate a random extern user entry for a given role, using discovered details if available */
