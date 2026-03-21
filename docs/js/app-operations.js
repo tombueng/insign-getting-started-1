@@ -430,12 +430,24 @@ async function discoverFieldsAndRoles() {
     const fields = [];
     const sigFields = body.signaturFieldsStatusList || [];
 
+    const roleDetails = {};  // role -> { displayname, email }
+
     for (const sig of sigFields) {
         const role = sig.role || sig.quickInfoParsedRole || sig.fieldID || '';
         const name = sig.displayname || sig.quickinfo || sig.fieldID || role;
         const required = sig.mandatory !== false;
         const signed = !!sig.signed;
-        if (role) roles.add(role);
+        if (role) {
+            roles.add(role);
+            // Capture first displayname/email we find per role
+            if (!roleDetails[role]) {
+                const externRole = sig.externRole || '';
+                roleDetails[role] = {
+                    displayname: sig.displayname || sig.quickInfoParsedName || '',
+                    email: sig.email || (externRole.indexOf('@') !== -1 ? externRole : '')
+                };
+            }
+        }
         fields.push({ role, name, required, signed });
     }
 
@@ -445,6 +457,7 @@ async function discoverFieldsAndRoles() {
         if (!f.signed && f.role) unsignedRoles.add(f.role);
     }
     state.discoveredRoles = Array.from(unsignedRoles);
+    state.discoveredRoleDetails = roleDetails;
     state.discoveredFields = fields;
 
     // Show summary
