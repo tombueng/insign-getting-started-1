@@ -170,7 +170,9 @@ window.InsignApiClient = class InsignApiClient {
                 responseBody = await response.blob();
                 rawText = `[Binary data: ${responseBody.size} bytes, type: ${responseBody.type}]`;
             } else {
-                rawText = await response.text();
+                // Force UTF-8 decoding (some servers omit charset header)
+                var buf = await response.arrayBuffer();
+                rawText = new TextDecoder('utf-8').decode(buf);
                 try {
                     responseBody = JSON.parse(rawText);
                 } catch {

@@ -150,12 +150,20 @@ function getDefaultCreateSessionBody() {
     return body;
 }
 
-/** Generate a random extern user entry for a given role */
+/** Generate email from a display name: "Maria Hoffmann" -> "maria.hoffmann@company.invalid" */
+function _emailFromName(name) {
+    return name.trim().toLowerCase().replace(/\s+/g, '.') + '@company.invalid';
+}
+
+/** Generate a random extern user entry for a given role, using discovered details if available */
 function _randomExternUser(role, opts) {
+    const details = (state.discoveredRoleDetails && state.discoveredRoleDetails[role]) || {};
     const rnd = generateRandomUser();
+    const realName = details.displayname || rnd.userFullName;
+    const email = details.email || _emailFromName(realName);
     return {
-        recipient: rnd.userEmail,
-        realName: rnd.userFullName,
+        recipient: email,
+        realName: realName,
         roles: [role],
         sendEmails: opts.sendEmails,
         sendSMS: opts.sendSMS,

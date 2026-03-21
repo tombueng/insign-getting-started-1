@@ -480,7 +480,7 @@ def generate_branded_pdf(brand_key, brand_data):
         # Place tag at bottom-left of dashed box; y offset shifts field up by its height
         tag_y = box_top - sig_box_h
         tag = "##SIG{" + ",".join(tag_parts) + "}"
-        c.setFont("Helvetica", 0.5)  # near-invisible — must not overlap adjacent columns
+        c.setFont("Lato-Regular", 0.5)  # TTF font for full Unicode support in SIG tags
         c.setFillColor(black)
         c.drawString(x, tag_y, tag)
         c.setFillColor(black)

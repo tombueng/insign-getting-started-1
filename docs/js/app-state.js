@@ -24,6 +24,7 @@ var state = {
     namesList: [],                // loaded from data/names.json - EU names with unicode
     brandLogoData: {},            // { icon, mail, login } data URLs for uploaded logos (resolved at send time)
     discoveredRoles: null,        // ['seller','buyer'] from /get/documents/full
+    discoveredRoleDetails: null,  // { role: { displayname, email } } from sig fields
     discoveredFields: null,       // [{role, name, required, signed}]
     pdfViewer: null,              // PdfViewer instance
     lastRequest: null,            // { method, path, body } for code generation
