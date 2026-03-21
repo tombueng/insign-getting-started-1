@@ -350,7 +350,7 @@ async function executeOperation(opKey) {
         }
         if (resp.accessURLProcessManagement) {
             state.accessURLProcessManagement = resp.accessURLProcessManagement;
-            $('#navbar-btn-session-mgr').removeClass('d-none').attr('title', resp.accessURLProcessManagement);
+            $('#navbar-btn-session-mgr').removeClass('d-none');
         }
     }
 
@@ -457,7 +457,10 @@ async function discoverFieldsAndRoles() {
             $summary.html('No signature fields found in the document. The document may use SIG-tags (detected at signing time).');
             // Fall back to document catalog info
             const selDoc = getSelectedDocument();
-            if (selDoc.roles && selDoc.roles.length > 0) {
+            if (selDoc.useExternRole && selDoc.externRoles) {
+                $summary.html($summary.html() + '<br>Document uses <strong>externRole</strong> (email matching): <strong>' + selDoc.externRoles.join(', ') + '</strong>');
+                state.discoveredRoles = selDoc.roles;
+            } else if (selDoc.roles && selDoc.roles.length > 0) {
                 $summary.html($summary.html() + '<br>Document catalog roles: <strong>' + selDoc.roles.join(', ') + '</strong>');
                 state.discoveredRoles = selDoc.roles;
             }

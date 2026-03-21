@@ -365,8 +365,14 @@ function initMonaco() {
         // Create Step 1 editor
         createEditor('create-session', getDefaultCreateSessionBody(), 'configureSession', { uncapped: true });
 
-        // Apply saved feature toggle settings to the editor
-        applyFeatureSettingsToEditor();
+        // Restore persisted editor content (overrides defaults if user had custom edits)
+        const savedState = loadAppState();
+        if (savedState && savedState.createSessionContent) {
+            setEditorValue('create-session', savedState.createSessionContent);
+        } else {
+            // Apply saved feature toggle settings to the editor (only when no full content was saved)
+            applyFeatureSettingsToEditor();
+        }
 
         // Apply branding (colors + logos) to the newly created editor
         applyBrandingCSS();

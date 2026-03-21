@@ -485,6 +485,45 @@
     margin-bottom: 2px;
 }
 
+/* === JSON copy button & ellipsis ========================================= */
+
+.btn-copy-json {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 5px;
+    font-size: 0.72rem;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+}
+.btn-copy-json:hover {
+    opacity: 1;
+}
+
+.btn-copy-editor {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 10;
+    font-size: 0.8rem;
+    padding: 3px 7px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.editor-container:hover .btn-copy-editor {
+    opacity: 0.5;
+}
+.btn-copy-editor:hover {
+    opacity: 1 !important;
+}
+
+.json-ellipsis {
+    opacity: 0.5;
+    font-style: italic;
+}
+
 /* === Polling toggle button states ======================================== */
 @keyframes polling-spin {
     to { transform: rotate(360deg); }

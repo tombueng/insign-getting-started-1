@@ -77,6 +77,7 @@ async function init() {
         if (foruser) {
             $('#navbar-btn-session-mgr').removeClass('d-none');
             $('#navbar-foruser-id').val(foruser);
+            _updateNavSub('navbar-foruser-id-display', foruser);
         }
     }
 
@@ -377,7 +378,7 @@ async function init() {
         const $el = $('#' + id);
         if ($el.length) $el.on('input', () => {
             ownerRefresh();
-            if (id === 'cfg-foruser') $('#navbar-foruser-id').val($el.val());
+            if (id === 'cfg-foruser') { $('#navbar-foruser-id').val($el.val()); _updateNavSub('navbar-foruser-id-display', $el.val()); }
             saveAppState();
         });
     });
@@ -392,6 +393,7 @@ async function init() {
         $('#cfg-userEmail').val(user.userEmail);
         state.userId = user.foruser;
         $('#navbar-foruser-id').val(user.foruser);
+        _updateNavSub('navbar-foruser-id-display', user.foruser);
         ownerRefresh();
         saveAppState();
     });
@@ -484,6 +486,9 @@ async function init() {
 
     // Dark mode
     initDarkMode();
+
+    // Persist state on page unload so editor content is not lost
+    window.addEventListener('beforeunload', () => saveAppState());
 }
 
 function handleHashNavigation() {

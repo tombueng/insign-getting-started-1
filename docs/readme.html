@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>inSign API - Getting Started</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+        /* Minimal layout styles - full CSS later */
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .monaco-box { height: 260px; border: 1px solid #dee2e6; border-radius: .375rem; overflow: visible; position: relative; }
+        .monaco-box-sm { height: 180px; }
+        pre { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: .375rem; padding: .75rem; margin: 0; overflow-x: auto; font-size: .84rem; }
+        .endpoint-badge { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; }
+        .sandbox-table th { width: 120px; white-space: nowrap; }
+        .step-header { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+        #btn-open-insign { display: none; }
+    </style>
+</head>
+<body>
+
+<!-- ================================================================
+     HEADER
+     ================================================================ -->
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <a href="https://www.getinsign.com/">
+            <img src="img/inSign_logo.svg" width="260" alt="inSign - Electronic Signature Solutions">
+        </a>
+        <h1 class="mt-3 mb-1">inSign API - Getting Started</h1>
+        <p class="lead mb-1"><strong>Integrate electronic signatures into your application in minutes.</strong></p>
+        <p class="text-body-secondary">Free sandbox. No registration. No credit card. Just code.</p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html" class="btn btn-sm btn-outline-primary"><i class="bi bi-book me-1"></i>Swagger API Docs</a>
+            <a href="https://tombueng.github.io/insign-getting-started-1/" class="btn btn-sm btn-outline-warning"><i class="bi bi-play-circle me-1"></i>Full API Explorer</a>
+            <a href="https://www.getinsign.com/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-globe me-1"></i>getinsign.com</a>
+        </div>
+    </div>
+
+    <input type="hidden" id="chk-cors-proxy">
+
+    <!-- ============================================================
+         STEP NAVIGATION
+         ============================================================ -->
+    <ul class="nav nav-pills mb-3" id="step-nav" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#step1" type="button">1 - Create Session</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#step2" type="button">2 - Begin Signing</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#step3" type="button">3 - Check Status</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#step4" type="button">4 - Download Doc</button></li>
+    </ul>
+
+    <!-- ============================================================
+         STEP TAB CONTENT
+         ============================================================ -->
+    <div class="tab-content" id="step-content">
+
+        <!-- ========== STEP 1 ========== -->
+        <div class="tab-pane fade show active" id="step1">
+            <div class="step-header mb-2">
+                <span class="badge text-bg-primary endpoint-badge">POST /configure/session</span>
+                <span>Upload a document and create a signing session. The response contains a <code>sessionid</code>.</span>
+            </div>
+
+            <!-- Interactive area -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Request Body</label>
+                    <div class="monaco-box" id="editor-step1"></div>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Response</label>
+                    <div class="monaco-box" id="response-step1"></div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="sendStep(1)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                    <span class="ms-2 text-body-secondary" id="status-step1"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STEP 2 ========== -->
+        <div class="tab-pane fade" id="step2">
+            <div class="step-header mb-2">
+                <span class="badge text-bg-primary endpoint-badge">POST /extern/beginmulti</span>
+                <span>Send signing invitations to external signers. Each signer gets a link to sign in their browser.</span>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Request Body</label>
+                    <div class="monaco-box" id="editor-step2"></div>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Response</label>
+                    <div class="monaco-box" id="response-step2"></div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="sendStep(2)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                    <button class="btn btn-success" id="btn-open-insign" onclick="openInInsign()"><i class="bi bi-box-arrow-up-right me-1"></i>Open in inSign</button>
+                    <span class="ms-2 text-body-secondary" id="status-step2"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STEP 3 ========== -->
+        <div class="tab-pane fade" id="step3">
+            <div class="step-header mb-2">
+                <span class="badge text-bg-primary endpoint-badge">POST /get/status</span>
+                <span>Poll the session status to see signing progress, document metadata, and signature field details.</span>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Request Body</label>
+                    <div class="monaco-box monaco-box-sm" id="editor-step3"></div>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Response</label>
+                    <div class="monaco-box" id="response-step3"></div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="sendStep(3)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                    <span class="ms-2 text-body-secondary" id="status-step3"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STEP 4 ========== -->
+        <div class="tab-pane fade" id="step4">
+            <div class="step-header mb-2">
+                <span class="badge text-bg-primary endpoint-badge">POST /get/document</span>
+                <span>Download the signed PDF. Parameters are passed as query string.</span>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Query Parameters (as JSON)</label>
+                    <div class="monaco-box monaco-box-sm" id="editor-step4"></div>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label fw-semibold">Response</label>
+                    <div class="monaco-box monaco-box-sm" id="response-step4"></div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="sendStep(4)"><i class="bi bi-download me-1"></i>Download from Sandbox</button>
+                    <span class="ms-2 text-body-secondary" id="status-step4"></span>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /tab-content -->
+
+    <hr>
+
+    <!-- ============================================================
+         ADDITIONAL RESOURCES
+         ============================================================ -->
+    <h2>Additional Resources</h2>
+
+    <h5>Swagger / OpenAPI</h5>
+    <p>Full API reference with request/response schemas:
+        <a href="https://sandbox.test.getinsign.show/docs/swagger-ui/index.html">sandbox.test.getinsign.show/docs</a>
+    </p>
+
+    <h5>Postman Collection</h5>
+    <p>Import the pre-built collection for quick API testing:</p>
+    <ul>
+        <li><a href="data/Getting%20started%20with%20inSign%20API%20Sandbox.postman_collection.json">Getting started with inSign API Sandbox</a> (collection)</li>
+        <li><a href="data/inSign%20environment%20sandbox.postman_environment.json">inSign Sandbox Environment</a> (environment)</li>
+    </ul>
+
+    <h5>Java API Library</h5>
+    <p>For Java projects, the <code>insign-java-api</code> library provides a typed client with builders and configuration helpers.</p>
+    <pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;com.getinsign&lt;/groupId&gt;
+  &lt;artifactId&gt;insign-java-api&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+    <p class="mt-2">Add the GitHub Package Registry to your Maven <code>settings.xml</code> -
+        see <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-apache-maven-registry">Working with the Apache Maven registry</a>.</p>
+
+    <h5>Test Documents</h5>
+    <p>12 branded test contracts are included in the API Explorer, each with unique company branding, logos, and color schemes.
+        You can also drag and drop your own PDF directly into the Explorer.</p>
+
+    <h5>Project Structure</h5>
+    <pre><code>docs/                        Interactive API Explorer (GitHub Pages)
+  index.html                 Main application
+  js/                        Application modules + code generator
+  codegen-templates/         Code snippet templates (8 languages)
+  data/                      Test PDFs, demo data, webhook/relay configs
+tools/                       PDF generator scripts</code></pre>
+
+    <hr>
+    <p class="text-center text-body-secondary">
+        <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Electronic Signature Solutions
+    </p>
+</div>
+
+<!-- ==================================================================
+     SCRIPTS
+     ================================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs/loader.js"></script>
+
+<!-- Reuse API Explorer libraries -->
+<script src="js/openapi-schema-loader.js"></script>
+<script src="js/api-client.js"></script>
+
+<script>
+'use strict';
+
+/* ==========================================================================
+   CONFIGURATION
+   ========================================================================== */
+
+const SANDBOX = {
+    url: 'https://sandbox.test.getinsign.show',
+    username: 'controller',
+    password: 'pwd.insign.sandbox.4561',
+    docUrl: location.origin + location.pathname.replace(/[^/]*$/, '') + 'data/sample.pdf'
+};
+
+/* ==========================================================================
+   SESSION STATE (JS vars only - no localStorage)
+   ========================================================================== */
+
+let sessionId = null;
+let signerLinks = [];
+let docId = null;
+
+/* ==========================================================================
+   API CLIENT (reuses docs/js/api-client.js)
+   ========================================================================== */
+
+const apiClient = new window.InsignApiClient(SANDBOX.url, SANDBOX.username, SANDBOX.password);
+apiClient.useCorsProxy = false;
+
+/* ==========================================================================
+   SCHEMA LOADER (reuses docs/js/openapi-schema-loader.js)
+   ========================================================================== */
+
+const schemaLoader = new window.OpenApiSchemaLoader();
+
+/* ==========================================================================
+   STEP DEFINITIONS
+   ========================================================================== */
+
+const STEPS = {
+    1: { method: 'POST', path: '/configure/session', bodyType: 'json' },
+    2: { method: 'POST', path: '/extern/beginmulti', bodyType: 'json' },
+    3: { method: 'POST', path: '/get/status', bodyType: 'json' },
+    4: { method: 'POST', path: '/get/document', bodyType: 'query' }
+};
+
+const STEP_DEFAULTS = {
+    1: JSON.stringify({
+        foruser: 'demo-user',
+        displayname: 'Getting Started Demo',
+        documents: [{
+            id: 'doc-1',
+            displayname: 'Sample Contract',
+            fileURL: SANDBOX.docUrl
+        }]
+    }, null, 2),
+
+    2: JSON.stringify({
+        sessionid: '',
+        externUsers: [
+            { recipient: 'signer1@example.test', realName: 'Alice Signer', roles: ['seller'], sendEmails: false },
+            { recipient: 'signer2@example.test', realName: 'Bob Signer', roles: ['buyer'], sendEmails: false }
+        ],
+        inOrder: false
+    }, null, 2),
+
+    3: JSON.stringify({
+        sessionid: ''
+    }, null, 2),
+
+    4: JSON.stringify({
+        sessionid: '',
+        docid: 'doc-1',
+        includeBiodata: true
+    }, null, 2)
+};
+
+/* ==========================================================================
+   MONACO EDITORS
+   ========================================================================== */
+
+const editors = {};
+const responseEditors = {};
+
+// Step -> API path mapping for schema resolution
+const STEP_PATHS = {
+    1: { path: '/configure/session', method: 'post' },
+    2: { path: '/extern/beginmulti', method: 'post' },
+    3: { path: '/get/status', method: 'post' },
+    4: { path: '/get/document', method: 'post' }
+};
+
+// Shared editor options matching API Explorer quality
+var EDITOR_OPTS = {
+    theme: 'vs-dark',
+    minimap: { enabled: false },
+    fontSize: 13,
+    lineNumbers: 'on',
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    tabSize: 2,
+    wordWrap: 'on',
+    formatOnPaste: true,
+    renderLineHighlight: 'none',
+    overviewRulerLanes: 0,
+    hideCursorInOverviewRuler: true,
+    fixedOverflowWidgets: true,
+    scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
+    suggest: {
+        showInlineDetails: true,
+        detailsVisible: true,
+        preview: true,
+        showStatusBar: true
+    },
+    quickSuggestions: {
+        other: true,
+        strings: true
+    }
+};
+
+/**
+ * Force the suggest details panel to always be expanded.
+ * Uses Monaco's fixedOverflowWidgets so the suggest widget renders in
+ * a fixed-position overlay (not clipped by the editor container), and
+ * a MutationObserver that force-expands the docs panel whenever the
+ * suggest widget becomes visible.
+ */
+function forceSuggestDetails(editor) {
+    var editorDom = editor.getDomNode();
+    if (!editorDom) return;
+
+    // The overflow widgets container is a sibling of the editor root,
+    // appended to document.body by Monaco when fixedOverflowWidgets=true.
+    // We observe it for the suggest widget appearing.
+    var tryExpand = function () {
+        // Find suggest widget in both the editor DOM and the overflow container
+        var containers = [editorDom];
+        var overflow = editorDom.querySelector('.overflow-guard');
+        if (overflow) containers.push(overflow);
+
+        for (var c = 0; c < containers.length; c++) {
+            var widget = containers[c].querySelector('.suggest-widget');
+            if (widget && widget.classList.contains('visible')) {
+                if (!widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
+                    try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch (_) {}
+                }
+                return;
+            }
+        }
+    };
+
+    var observer = new MutationObserver(tryExpand);
+    observer.observe(editorDom, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+}
+
+function initMonaco() {
+    require.config({
+        paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs' }
+    });
+
+    require(['vs/editor/editor.main'], function () {
+
+        // Create editor pairs for each step immediately (temporary URIs)
+        for (var i = 1; i <= 4; i++) {
+            var modelUri = monaco.Uri.parse('insign://models/step' + i + '/step' + i + '.json');
+            var model = monaco.editor.createModel(STEP_DEFAULTS[i], 'json', modelUri);
+
+            editors[i] = monaco.editor.create(
+                document.getElementById('editor-step' + i),
+                Object.assign({}, EDITOR_OPTS, { model: model })
+            );
+            forceSuggestDetails(editors[i]);
+
+            responseEditors[i] = monaco.editor.create(
+                document.getElementById('response-step' + i),
+                Object.assign({}, EDITOR_OPTS, {
+                    value: '',
+                    language: 'json',
+                    readOnly: true,
+                    lineNumbers: 'off'
+                })
+            );
+            forceSuggestDetails(responseEditors[i]);
+        }
+
+        // Load OpenAPI schemas, register, then swap model URIs to match fileMatch
+        schemaLoader.load(SANDBOX.url, null).then(function (ok) {
+            if (ok) {
+                schemaLoader.registerWithMonaco(monaco);
+                assignSchemaModels();
+            }
+        });
+    });
+}
+
+/**
+ * Re-create Monaco models with URIs whose filename matches the schema's
+ * fileMatch pattern, enabling autocomplete, validation, and hover tooltips.
+ */
+function assignSchemaModels() {
+    for (var i = 1; i <= 4; i++) {
+        var info = STEP_PATHS[i];
+
+        // Request editor
+        var schemaKey = schemaLoader.getRequestSchemaKey(info.path, info.method);
+        if (schemaKey && editors[i]) {
+            var currentValue = editors[i].getValue();
+            var oldModel = editors[i].getModel();
+            var newModel = monaco.editor.createModel(
+                currentValue, 'json',
+                monaco.Uri.parse('insign://models/step' + i + '/' + schemaKey + '.json')
+            );
+            editors[i].setModel(newModel);
+            if (oldModel) oldModel.dispose();
+        }
+
+        // Response editor
+        var respKey = schemaLoader.getResponseSchemaKey(info.path, info.method);
+        if (respKey && responseEditors[i]) {
+            var respValue = responseEditors[i].getValue();
+            var oldRespModel = responseEditors[i].getModel();
+            var newRespModel = monaco.editor.createModel(
+                respValue, 'json',
+                monaco.Uri.parse('insign://models/resp' + i + '/' + respKey + '.json')
+            );
+            responseEditors[i].setModel(newRespModel);
+            if (oldRespModel) oldRespModel.dispose();
+        }
+    }
+}
+
+/* ==========================================================================
+   API CALLS (using InsignApiClient from docs/js/api-client.js)
+   ========================================================================== */
+
+async function sendStep(step) {
+    var statusEl = document.getElementById('status-step' + step);
+    statusEl.textContent = 'Sending...';
+
+    // Sandbox has CORS enabled - no proxy needed
+
+    var editorValue;
+    try {
+        editorValue = JSON.parse(editors[step].getValue());
+    } catch (e) {
+        statusEl.textContent = 'Invalid JSON: ' + e.message;
+        return;
+    }
+
+    var stepDef = STEPS[step];
+
+    try {
+        var result;
+
+        if (stepDef.bodyType === 'query') {
+            // Step 4: query params, no JSON body
+            result = await apiClient.call(stepDef.method, stepDef.path, {
+                queryParams: editorValue,
+                blobResponse: true
+            });
+        } else {
+            result = await apiClient.call(stepDef.method, stepDef.path, {
+                body: editorValue
+            });
+        }
+
+        // Handle PDF download (step 4)
+        if (step === 4 && result.ok && result.blob) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(result.blob);
+            a.download = 'signed-document.pdf';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            responseEditors[step].setValue('// PDF downloaded (' + result.blob.size + ' bytes)');
+            statusEl.textContent = 'Downloaded (' + result.status + ')';
+            return;
+        }
+
+        // JSON response - result.body is already parsed, result.raw is text
+        var formatted = result.raw || '';
+        if (typeof result.body === 'object' && result.body !== null) {
+            formatted = JSON.stringify(result.body, null, 2);
+        }
+
+        responseEditors[step].setValue(formatted);
+        statusEl.textContent = result.ok
+            ? ('OK (' + result.status + ')')
+            : ('Error ' + result.status + (result.statusText ? ' - ' + result.statusText : ''));
+
+        // Extract session state from responses
+        var data = (typeof result.body === 'object') ? result.body : null;
+
+        if (step === 1 && result.ok && data && data.sessionid) {
+            sessionId = data.sessionid;
+            propagateSessionId();
+        }
+
+        if (step === 2 && result.ok && data) {
+            if (Array.isArray(data.externUsers)) {
+                signerLinks = data.externUsers
+                    .filter(function(u) { return u.url; })
+                    .map(function(u) { return u.url; });
+            }
+            if (signerLinks.length > 0) {
+                document.getElementById('btn-open-insign').style.display = '';
+            }
+        }
+
+        if (step === 3 && result.ok && data) {
+            if (data.documentData && data.documentData[0]) {
+                docId = data.documentData[0].docid;
+                updateStep4DocId();
+            }
+        }
+
+    } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+        responseEditors[step].setValue('// Network error\n// ' + err.message);
+    }
+}
+
+function propagateSessionId() {
+    for (var s = 2; s <= 4; s++) {
+        try {
+            var val = JSON.parse(editors[s].getValue());
+            val.sessionid = sessionId;
+            editors[s].setValue(JSON.stringify(val, null, 2));
+        } catch (_) {}
+    }
+}
+
+function updateStep4DocId() {
+    try {
+        var val = JSON.parse(editors[4].getValue());
+        val.docid = docId;
+        editors[4].setValue(JSON.stringify(val, null, 2));
+    } catch (_) {}
+}
+
+function openInInsign() {
+    if (signerLinks.length > 0) {
+        window.open(signerLinks[0], '_blank');
+    }
+}
+
+/* ==========================================================================
+   INIT
+   ========================================================================== */
+
+$(function () {
+    initMonaco();
+});
+</script>
+
+</body>
+</html>

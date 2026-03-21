@@ -32,6 +32,21 @@ function showTraceColumn() {
 }
 
 // =====================================================================
+// Copy to clipboard helper
+// =====================================================================
+
+/** Copy text to clipboard and show brief checkmark feedback on the button */
+function copyJsonToClipboard(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = 'bi bi-check2';
+            setTimeout(() => { icon.className = 'bi bi-clipboard'; }, 1500);
+        }
+    });
+}
+
+// =====================================================================
 // JSON Hover Tooltips - for trace & polling <pre> elements
 // =====================================================================
 
@@ -55,7 +70,15 @@ function renderJsonWithTooltips(obj, schemaKey, parentPath, indent) {
     if (obj === null) return '<span class="json-null">null</span>';
     if (typeof obj === 'boolean') return '<span class="json-bool">' + obj + '</span>';
     if (typeof obj === 'number') return '<span class="json-num">' + obj + '</span>';
-    if (typeof obj === 'string') return '<span class="json-str">"' + escapeHtml(obj) + '"</span>';
+    if (typeof obj === 'string') {
+        var MAX_STR = 120;
+        if (obj.length > MAX_STR) {
+            var truncated = escapeHtml(obj.substring(0, MAX_STR));
+            var full = escapeHtml(obj);
+            return '<span class="json-str" title="' + full.replace(/"/g, '&quot;') + '">"' + truncated + '<span class="json-ellipsis">...</span>"</span>';
+        }
+        return '<span class="json-str">"' + escapeHtml(obj) + '"</span>';
+    }
 
     if (Array.isArray(obj)) {
         if (obj.length === 0) return '[]';
@@ -229,6 +252,20 @@ function renderTraceEntry(entry) {
     el.querySelector('[data-slot="req-body"]').innerHTML = fmtBody(entry.requestBody, reqSchemaKey);
     el.querySelector('[data-slot="resp-headers"]').innerHTML = fmtHeaders(entry.responseHeaders);
     el.querySelector('[data-slot="resp-body"]').innerHTML = fmtBody(entry.responseBody, respSchemaKey);
+
+    // Wire up copy buttons with full (untruncated) JSON data
+    const copyBtns = el.querySelectorAll('.btn-copy-json');
+    const bodies = [entry.requestBody, entry.responseBody];
+    copyBtns.forEach((btn, i) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const data = bodies[i];
+            const text = (data === null || data === undefined) ? ''
+                : (typeof data === 'object') ? JSON.stringify(data, null, 2)
+                : String(data);
+            copyJsonToClipboard(btn, text);
+        });
+    });
 
     $container.prepend(el);
     const count = state.apiClient ? state.apiClient.getTraceLog().length : 0;

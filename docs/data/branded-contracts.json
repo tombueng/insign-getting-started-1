@@ -497,7 +497,8 @@
       "label": "Lato-Bold"
     },
     "signatureLevel": "QES",
-    "sigProvider": "ATrust"
+    "sigProvider": "ATrust",
+    "useExternRole": true
   },
   "aegis": {
     "name": "Aegis Life",
@@ -746,7 +747,8 @@
       "body": "Poppins-Regular",
       "label": "Poppins-Regular"
     },
-    "signatureLevel": "SES"
+    "signatureLevel": "SES",
+    "useExternRole": true
   },
   "prism": {
     "name": "Prism Digital",

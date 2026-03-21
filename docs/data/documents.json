@@ -89,7 +89,13 @@
         "required": 3,
         "optional": 0,
         "roles": ["insurer", "policyholder", "broker"],
-        "desc": "2 pages - 3 SIG-tags - roles: insurer, policyholder, broker",
+        "useExternRole": true,
+        "externRoles": [
+            "h\u00e9lmut.schildberg@example-sentinel.test",
+            "gy\u00f6rgy.eisenwerk@example-eisenwerk.test",
+            "p\u00e9tra.sch\u00fctzschild@example-schutzschild.test"
+        ],
+        "desc": "2 pages - 3 SIG-tags - externRole (email)",
         "brand": "sentinel",
         "brandName": "Sentinel Insurance",
         "logo": "img/sample-logos/sentinel-icon.svg",
@@ -137,7 +143,13 @@
         "required": 3,
         "optional": 0,
         "roles": ["underwriter", "insured", "witness"],
-        "desc": "2 pages - 3 SIG-tags - roles: underwriter, insured, witness",
+        "useExternRole": true,
+        "externRoles": [
+            "bernh\u00e0rd.gipfelmann@example-apex.test",
+            "c\u00e1rla.w\u00f6lkenreich@example-wolkenreich.test",
+            "ant\u00f3n.rechtsfeld@example-rechtsfeld.test"
+        ],
+        "desc": "2 pages - 3 SIG-tags - externRole (email)",
         "brand": "apex",
         "brandName": "Apex Assurance",
         "logo": "img/sample-logos/apex-icon.svg",
