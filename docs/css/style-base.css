@@ -47,16 +47,23 @@ code {
 .navbar-insign .navbar-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+}
+
+.navbar-brand-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
 }
 
 .navbar-insign .navbar-brand img {
-    height: 32px;
+    height: 16px;
 }
 
-.navbar-insign .badge-version {
-    padding: 3px 8px;
-    border-radius: 20px;
+.navbar-brand-sub {
+    font-size: 0.5rem;
+    line-height: 1;
+    opacity: 0.6;
 }
 
 /* === Sidebar =========================================================== */
@@ -211,6 +218,35 @@ code {
     max-height: none;
 }
 
+/* Monaco suggest details widget: bigger, non-scrolling tooltip */
+.monaco-editor .suggest-details-container {
+    max-height: none !important;
+    height: auto !important;
+}
+.monaco-editor .suggest-details {
+    max-height: none !important;
+    height: auto !important;
+}
+.monaco-editor .suggest-details .body {
+    max-height: none !important;
+    overflow: visible !important;
+}
+.monaco-editor .suggest-details .body .docs {
+    max-height: none !important;
+    overflow: visible !important;
+    white-space: pre-wrap;
+}
+.monaco-editor .suggest-widget.docs-side {
+    width: auto !important;
+    min-width: 660px;
+}
+.monaco-editor .suggest-widget.docs-side > .details {
+    min-width: 360px;
+    max-width: 500px;
+    max-height: none !important;
+    border-left: 1px solid var(--vscode-editorSuggestWidget-border, #454545);
+}
+
 /* === Floating Action Buttons ============================================ */
 
 .floating-actions {
@@ -335,9 +371,28 @@ code {
     overflow: hidden;
 }
 
-/* Session/ForUser bar - second row in navbar */
-.navbar-session-bar {
-    margin-top: 2px;
+/* Step action buttons with subtext */
+.step-indicator .step-action {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    line-height: 1.2;
+}
+.step-action-label {
+    white-space: nowrap;
+}
+.step-action-sub {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.5rem;
+    opacity: 0.75;
+    max-width: 20ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+.step-action-sub:empty {
+    display: none;
 }
 
 .webhook-url-display input {
@@ -525,5 +580,12 @@ code {
     display: inline-block;
     padding: 0 5px;
     border-radius: 3px;
+}
+.doc-dd-role-email {
+    font-size: 0.56rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 

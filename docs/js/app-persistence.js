@@ -18,8 +18,29 @@ function saveAppState() {
     }
     // Persist userId now that user has saved profiles
     try { localStorage.setItem('insign-explorer-userid', state.userId); } catch { /* ignore */ }
+    // Read previously saved state so that early saveAppState() calls
+    // (before Monaco or DOM fields are fully populated) don't overwrite
+    // values with empty strings.
+    let prev = null;
+    try { prev = JSON.parse(localStorage.getItem(STATE_STORE_KEY)); } catch { /* ignore */ }
+
+    // Editor content: use live editor if available, else preserve previous
+    let editorContent = null;
+    if (state.editors['create-session']) {
+        try { editorContent = state.editors['create-session'].getValue(); } catch { /* ignore */ }
+    } else if (prev) {
+        editorContent = prev.createSessionContent || null;
+    }
+
+    // Owner fields: use DOM value if non-empty, else preserve previous
+    const foruser = $('#cfg-foruser').val() || (prev && prev.foruser) || '';
+    const userfullname = $('#cfg-userfullname').val() || (prev && prev.userfullname) || '';
+    const userEmail = $('#cfg-userEmail').val() || (prev && prev.userEmail) || '';
+    const displayname = $('#cfg-displayname').val() || (prev && prev.displayname) || '';
+
     const data = {
         sessionId: state.sessionId,
+        createSessionContent: editorContent,
         lastForuser: state.lastForuser || '',
         accessURL: state.accessURL,
         webhookProvider: state.webhookProvider,
@@ -31,9 +52,10 @@ function saveAppState() {
         corsProxy: $('#cfg-cors-proxy').is(':checked'),
         corsProxyUrl: $('#cfg-cors-proxy-url').val() || '',
         webhooksEnabled: $('#cfg-webhooks').length ? $('#cfg-webhooks').is(':checked') : false,
-        displayname: $('#cfg-displayname').val() || '',
-        userfullname: $('#cfg-userfullname').val() || '',
-        userEmail: $('#cfg-userEmail').val() || '',
+        displayname: displayname,
+        foruser: foruser,
+        userfullname: userfullname,
+        userEmail: userEmail,
         pollingEnabled: $('#sidebar-polling-toggle').is(':checked'),
         baseUrl: $('#cfg-base-url').val() || '',
         username: $('#cfg-username').val() || '',
@@ -142,6 +164,10 @@ function restoreAppState() {
     // Restore owner fields
     if (saved.displayname) {
         $('#cfg-displayname').val(saved.displayname);
+    }
+    if (saved.foruser) {
+        $('#cfg-foruser').val(saved.foruser);
+        state.userId = saved.foruser;
     }
     if (saved.userfullname) {
         $('#cfg-userfullname').val(saved.userfullname);

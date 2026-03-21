@@ -9,8 +9,8 @@ brand — both sigtags and sigfields variants.
 SVG→PDF conversion uses cairosvg.svg2pdf() which produces VECTOR output (not rasterized).
 
 Usage:
-    python3 DEV/generate_branded_pdfs.py          # generate all brands
-    python3 DEV/generate_branded_pdfs.py acme      # generate one brand
+    python3 tools/generate_branded_pdfs.py          # generate all brands
+    python3 tools/generate_branded_pdfs.py acme      # generate one brand
 """
 
 import json
@@ -455,12 +455,21 @@ def generate_branded_pdf(brand_key, brand_data):
         # signatureLevel, id, stampType
         sig_role = party.get("sigRole", party["role"])
         display_name = party["name"]
+        use_extern_role = brand_data.get("useExternRole", False)
 
         # Convert box dimensions from pt to cm (1cm = 28.35pt)
         field_w_cm = round(sig_box_w / 28.35, 1)
         field_h_cm = round(sig_box_h / 28.35, 1)
+
+        # When useExternRole is set, identify signers by email via externRole
+        # instead of the role attribute
+        if use_extern_role:
+            role_attr = f"externRole:'{party['email']}'"
+        else:
+            role_attr = f"role:'{sig_role}'"
+
         tag_parts = [
-            f"role:'{sig_role}'",
+            role_attr,
             f"displayname:'{display_name}'",
             "required:true",
             f"w:'{field_w_cm}cm'",

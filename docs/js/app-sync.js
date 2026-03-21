@@ -22,11 +22,16 @@ function _doSyncEditorToUI() {
     try { body = JSON.parse(state.editors['create-session'].getValue()); } catch { return; }
     if (typeof body !== 'object') return;
 
-    // Sync owner fields
+    // Sync owner fields to sidebar inputs and navbar
     _syncInputFromJson('cfg-displayname', body.displayname);
     _syncInputFromJson('cfg-foruser', body.foruser);
     _syncInputFromJson('cfg-userfullname', body.userFullName);
     _syncInputFromJson('cfg-userEmail', body.userEmail);
+    // Keep navbar foruser in sync with JSON editor
+    if (body.foruser !== undefined) {
+        const navVal = $('#navbar-foruser-id').val() || '';
+        if (navVal !== String(body.foruser)) { $('#navbar-foruser-id').val(body.foruser); _updateNavSub('navbar-foruser-id-display', body.foruser); }
+    }
 
     // Sync feature toggles
     const saved = loadFeatureSettings();
@@ -68,6 +73,8 @@ function _doSyncEditorToUI() {
     }
     if (settingsChanged) saveFeatureSettings(saved);
     _updateFeatureChangedCount();
+    // Persist the full editor content so it survives page reloads
+    saveAppState();
 }
 
 function _syncInputFromJson(inputId, jsonVal) {
@@ -156,9 +163,22 @@ function _randomExternUser(role, opts) {
     };
 }
 
+/** Generate an extern user matched by externRole (email) instead of role name */
+function _externUserByEmail(email, opts) {
+    const rnd = generateRandomUser();
+    return {
+        recipient: email,
+        realName: rnd.userFullName,
+        sendEmails: opts.sendEmails,
+        sendSMS: opts.sendSMS,
+        singleSignOnEnabled: opts.singleSignOnEnabled
+    };
+}
+
 function getDefaultExternBody() {
     // Use discovered roles if available, else use document catalog, else demo defaults
-    const roles = state.discoveredRoles || getSelectedDocument().roles || ['seller', 'buyer'];
+    const doc = getSelectedDocument();
+    const roles = state.discoveredRoles || doc.roles || ['seller', 'buyer'];
 
     let savedOpts = { sendEmails: false, sendSMS: false, singleSignOnEnabled: true, inOrder: false };
     try {
@@ -166,7 +186,13 @@ function getDefaultExternBody() {
         if (stored) savedOpts = { ...savedOpts, ...stored };
     } catch { /* ignore */ }
 
-    const externUsers = roles.map(role => _randomExternUser(role, savedOpts));
+    let externUsers;
+    if (doc.useExternRole && doc.externRoles) {
+        // Match signers by email via externRole - no roles array needed
+        externUsers = doc.externRoles.map(email => _externUserByEmail(email, savedOpts));
+    } else {
+        externUsers = roles.map(role => _randomExternUser(role, savedOpts));
+    }
 
     return {
         sessionid: state.sessionId || '<session-id>',

@@ -5,17 +5,17 @@
    ========================================================================== */
 
 :root {
-    --insign-blue: #0165BC;
-    --insign-blue-hover: #0A7FCA;
-    --insign-blue-dark: #014A8C;
-    --insign-orange: #F8A909;
-    --insign-orange-hover: #E38E11;
+    --insign-blue: #014A8C;
+    --insign-blue-hover: #015BA6;
+    --insign-blue-dark: #013566;
+    --insign-orange: #7A5000;
+    --insign-orange-hover: #5C3C00;
     --insign-dark: #3E3F42;
     --insign-gray: #5E5E5E;
     --insign-light: #F0F3F6;
     --insign-border: #DDDDDD;
     --insign-success: #28a745;
-    --insign-danger: #dc3545;
+    --insign-danger: #8B1A25;
     --insign-radius-btn: 40px;
     --insign-radius-card: 12px;
     --insign-radius-input: 8px;
@@ -35,6 +35,12 @@
 /* === Dark Mode ======================================================== */
 
 [data-theme="dark"] {
+    --insign-blue: #4DA6E8;
+    --insign-blue-hover: #5CB8F5;
+    --insign-blue-dark: #3A8FD0;
+    --insign-orange: #D4A030;
+    --insign-orange-hover: #E0B040;
+    --insign-danger: #E05565;
     --insign-bg: #141618;
     --insign-card-bg: #1c1f23;
     --insign-sidebar-bg: #1c1f23;
@@ -279,30 +285,34 @@ code {
 
 .step-indicator .step {
     background: transparent;
-    border: 1px solid var(--insign-border);
+    border: 1px solid transparent;
     font-size: 0.78rem;
     font-weight: 500;
     color: var(--insign-gray);
+    border-radius: 0;
 }
 
-.step-indicator .step:first-child {
+.step-indicator .step[data-step="1"] {
     border-radius: var(--insign-radius-btn) 0 0 var(--insign-radius-btn);
 }
 
+/* The last visible item in the group gets the end radius */
 .step-indicator .step:last-child {
+    border-radius: 0 var(--insign-radius-btn) var(--insign-radius-btn) 0;
+}
+/* If both action buttons are hidden, step 4 is visually last */
+.step-indicator .step[data-step="4"]:has(~ .d-none):not(:has(~ .step:not(.d-none))) {
+    border-radius: 0 var(--insign-radius-btn) var(--insign-radius-btn) 0;
+}
+/* If only the CTA is visible (session-mgr hidden), CTA gets end radius */
+.step-indicator #navbar-btn-open:not(.d-none):has(+ .d-none) {
     border-radius: 0 var(--insign-radius-btn) var(--insign-radius-btn) 0;
 }
 
 .step-indicator .step.active {
-    background: var(--insign-blue);
-    border-color: var(--insign-blue);
+    background: #1a2a3a;
+    border-color: var(--insign-border);
     color: #fff;
-}
-
-.step-indicator .step.completed {
-    background: rgba(1, 101, 188, 0.1);
-    border-color: var(--insign-blue);
-    color: var(--insign-blue);
 }
 
 .step-indicator .step-number {
@@ -312,12 +322,34 @@ code {
 }
 
 .step.active .step-number {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.15);
 }
 
-.step.completed .step-number {
-    background: var(--insign-blue);
+/* Action buttons merged into step group */
+.step-indicator .step-action {
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.step-indicator .step-action-cta {
+    background: #2a2010;
+    border-color: #2a2010;
     color: #fff;
+}
+.step-indicator .step-action-cta:hover {
+    background: #352818;
+    border-color: #352818;
+}
+
+.step-indicator .step-action-outline {
+    background: transparent;
+    color: var(--insign-gray);
+}
+.step-indicator .step-action-outline:hover {
+    background: var(--insign-light);
+}
+[data-theme="dark"] .step-indicator .step-action-outline:hover {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* === Buttons ============================================================ */
@@ -694,5 +726,22 @@ code {
 }
 [data-theme="dark"] .doc-dd-role {
     background: rgba(1, 101, 188, 0.2);
+}
+.doc-dd-role-extern {
+    background: rgba(156, 39, 176, 0.1);
+    color: #7B1FA2;
+    font-weight: 600;
+}
+[data-theme="dark"] .doc-dd-role-extern {
+    background: rgba(156, 39, 176, 0.25);
+    color: #CE93D8;
+}
+.doc-dd-role-email {
+    background: rgba(156, 39, 176, 0.06);
+    color: #6A1B9A;
+}
+[data-theme="dark"] .doc-dd-role-email {
+    background: rgba(156, 39, 176, 0.15);
+    color: #BA68C8;
 }
 

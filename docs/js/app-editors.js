@@ -4,6 +4,14 @@
    Monaco Editor Utilities, Step Navigation, Session Management
    ========================================================================== */
 
+/** Update a navbar subtext display span (truncated to 20 chars) */
+function _updateNavSub(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const s = (val || '').trim();
+    el.textContent = s.length > 20 ? s.slice(0, 20) + '\u2026' : s;
+}
+
 
 /** Add word-wrap toggle hint (bottom-right) + Alt+Z keybinding to a Monaco editor */
 function setupEditorWrapToggle(editor, container) {
@@ -55,6 +63,44 @@ function autoResizeEditor(editor, container, uncapped) {
     resize();
 }
 
+/** Add a copy-to-clipboard button in the top-right corner of an editor container */
+function addEditorCopyButton(editor, container) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-copy-json btn-copy-editor';
+    btn.title = 'Copy to clipboard';
+    btn.innerHTML = '<i class="bi bi-clipboard"></i>';
+    btn.addEventListener('click', () => {
+        copyJsonToClipboard(btn, editor.getValue());
+    });
+    container.style.position = 'relative';
+    container.appendChild(btn);
+}
+
+/**
+ * Force the suggest details panel to always expand when suggestions appear.
+ * Monaco persists collapsed/expanded state internally and may override the
+ * detailsVisible editor option. This workaround ensures the docs panel is
+ * visible on the very first Ctrl+Space without requiring a second press.
+ */
+function forceSuggestDetails(editor) {
+    // Use a MutationObserver on the editor DOM to detect when the suggest
+    // widget appears and force-expand the details panel if it is collapsed.
+    const editorDom = editor.getDomNode();
+    if (!editorDom) return;
+
+    const observer = new MutationObserver(() => {
+        const widget = editorDom.querySelector('.suggest-widget');
+        if (!widget) return;
+
+        // If the widget is visible but details are not shown, expand them
+        if (widget.classList.contains('visible') && !widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
+            try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch {}
+        }
+    });
+
+    observer.observe(editorDom, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+}
+
 function createEditor(id, defaultValue, schemaKey, opts) {
     const container = $('#editor-' + id)[0];
     if (!container) return null;
@@ -87,7 +133,13 @@ function createEditor(id, defaultValue, schemaKey, opts) {
         scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
         suggest: {
             showInlineDetails: true,
-            detailsVisible: true
+            detailsVisible: true,
+            preview: true,
+            showStatusBar: true
+        },
+        quickSuggestions: {
+            other: true,
+            strings: true
         }
     };
 
@@ -99,6 +151,8 @@ function createEditor(id, defaultValue, schemaKey, opts) {
 
     const editor = monaco.editor.create(container, editorOpts);
 
+    forceSuggestDetails(editor);
+    addEditorCopyButton(editor, container);
     autoResizeEditor(editor, container, uncapped);
     state.editors[id] = editor;
     return editor;
@@ -137,7 +191,13 @@ function createReadOnlyEditor(id, content, language, opts) {
         scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
         suggest: {
             showInlineDetails: true,
-            detailsVisible: true
+            detailsVisible: true,
+            preview: true,
+            showStatusBar: true
+        },
+        quickSuggestions: {
+            other: true,
+            strings: true
         }
     };
 
@@ -154,6 +214,8 @@ function createReadOnlyEditor(id, content, language, opts) {
 
     const editor = monaco.editor.create(container, editorOpts);
 
+    forceSuggestDetails(editor);
+    addEditorCopyButton(editor, container);
     autoResizeEditor(editor, container, uncapped);
     state.editors[id] = editor;
     return editor;
@@ -244,9 +306,8 @@ function goToStep(step, skipHash) {
     $('.step-indicator .step').each(function () {
         const $el = $(this);
         const s = parseInt($el.data('step'));
-        $el.removeClass('active completed');
+        $el.removeClass('active');
         if (s === step) $el.addClass('active');
-        else if (s < step) $el.addClass('completed');
     });
 
     // Show/hide main panels (4 steps now)
@@ -343,18 +404,19 @@ function setSessionId(sessionId, accessURL, fromCreateSession, accessURLProcessM
     $('#active-session-id').text(sessionId);
     $('#manual-session-id').val(sessionId);
 
-    // Update session bar
+    // Update session bar (hidden inputs + display spans)
     $('#navbar-session-id').val(sessionId);
+    _updateNavSub('navbar-session-id-display', sessionId);
     // Show foruser in the bar
     const foruserVal = ($('#cfg-foruser').val() || '').trim() || state.userId || '';
     $('#navbar-foruser-id').val(foruserVal);
+    _updateNavSub('navbar-foruser-id-display', foruserVal);
 
     // Open in inSign requires a session ID; Session Manager only needs a foruser
     const hasSession = !!sessionId;
-    $('#navbar-btn-open').toggleClass('d-none', !hasSession).attr('title', accessURL || '');
+    $('#navbar-btn-open').toggleClass('d-none', !hasSession);
     const hasForuser = !!(state.lastForuser || ($('#cfg-foruser').val() || '').trim() || state.userId);
-    $('#navbar-btn-session-mgr').toggleClass('d-none', !(hasSession || hasForuser))
-        .attr('title', state.accessURLProcessManagement || '');
+    $('#navbar-btn-session-mgr').toggleClass('d-none', !(hasSession || hasForuser));
     $('#btn-goto-step2, #btn-floating-goto-step2').removeClass('d-none');
 
     // Reset histories and create new webhook URL for new sessions
@@ -428,12 +490,20 @@ function applyNavbarSessionId() {
     setSessionId(id, null);
 }
 
-/** Apply foruser from navbar input - syncs back to cfg-foruser and state */
+/** Apply foruser from navbar input - syncs back to cfg-foruser, JSON editor, and state */
 function applyNavbarForuser() {
     const val = ($('#navbar-foruser-id').val() || '').trim();
     if (!val) return;
     $('#cfg-foruser').val(val);
     state.lastForuser = val;
     state.userId = val;
+    // Sync to JSON editor
+    if (state.editors['create-session']) {
+        const body = getEditorValue('create-session');
+        if (typeof body === 'object') {
+            body.foruser = val;
+            setEditorValue('create-session', body);
+        }
+    }
     saveAppState();
 }

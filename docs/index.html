@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script>!function(){var d=!0;try{var s=localStorage.getItem('insign-dark-mode');if(s!==null)d=s==='true'}catch(e){}document.documentElement.setAttribute('data-theme',d?'dark':'light')}()</script>
-    <script>!function(){var m=location.hash.match(/^#step(\d)/);if(m){var s=parseInt(m[1]);if(s>=1&&s<=4){var css='';for(var i=1;i<=4;i++){if(i===s){css+='#step-'+i+'-panel{display:block!important}';css+='.step-indicator .step[data-step="'+i+'"]{background:var(--insign-blue)!important;border-color:var(--insign-blue)!important;color:#fff!important}';css+='.step[data-step="'+i+'"] .step-number{background:rgba(255,255,255,0.25)!important}'}else{css+='#step-'+i+'-panel{display:none!important}';if(i<s){css+='.step-indicator .step[data-step="'+i+'"]{background:rgba(1,101,188,0.1)!important;border-color:var(--insign-blue)!important;color:var(--insign-blue)!important}';css+='.step[data-step="'+i+'"] .step-number{background:var(--insign-blue)!important;color:#fff!important}'}}}var el=document.createElement('style');el.id='early-step-css';el.textContent=css;document.head.appendChild(el);window.__insign_init_step=s}}}()</script>
+    <script>!function(){var m=location.hash.match(/^#step(\d)/);if(m){var s=parseInt(m[1]);if(s>=1&&s<=4){var css='';for(var i=1;i<=4;i++){if(i===s){css+='#step-'+i+'-panel{display:block!important}';css+='.step-indicator .step[data-step="'+i+'"]{background:#1a2a3a!important;border-color:var(--insign-border)!important;color:#fff!important}';css+='.step[data-step="'+i+'"] .step-number{background:rgba(255,255,255,0.15)!important}'}else{css+='#step-'+i+'-panel{display:none!important}'}}var el=document.createElement('style');el.id='early-step-css';el.textContent=css;document.head.appendChild(el);window.__insign_init_step=s}}}()</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>inSign API Explorer - Interactive Getting Started</title>
     <link rel="icon" href="favicon.png" sizes="32x32">
@@ -34,9 +34,10 @@
 <nav class="navbar navbar-insign">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
-            <img src="https://www.getinsign.com/wp-content/uploads/inSign_blank-1.svg" alt="inSign" onerror="this.src='../DEV/inSign_logo.svg'">
-            <span>API Explorer</span>
-            <span class="badge-version">Sandbox</span>
+            <div class="navbar-brand-stack">
+                <img src="https://www.getinsign.com/wp-content/uploads/inSign_blank-1.svg" alt="inSign" onerror="this.src='img/inSign_logo.svg'">
+                <span class="navbar-brand-sub">API Explorer</span>
+            </div>
         </a>
 
         <!-- Step navigation + action buttons (centered together) -->
@@ -58,12 +59,14 @@
                 Live Code Snippets
             </div>
             <!-- Open in inSign button -->
-            <button class="btn btn-insign btn-insign-sm btn-insign-cta d-none" id="navbar-btn-open" onclick="window.app.openInSign()" title="Open in inSign" style="padding:2px 10px;height:28px;margin-left:4px">
-                <i class="bi bi-box-arrow-up-right"></i> Open in inSign
+            <button class="step step-action step-action-cta d-none" id="navbar-btn-open" onclick="window.app.openInSign()">
+                <span class="step-action-label"><i class="bi bi-box-arrow-up-right"></i> Open in inSign</span>
+                <span class="step-action-sub" id="navbar-session-id-display"></span>
             </button>
             <!-- Session Manager button -->
-            <button class="btn btn-insign btn-insign-sm btn-insign-outline d-none" id="navbar-btn-session-mgr" onclick="window.app.openSessionManager()" title="Session Manager" style="padding:2px 10px;height:28px">
-                <i class="bi bi-kanban"></i> Session Manager
+            <button class="step step-action step-action-outline d-none" id="navbar-btn-session-mgr" onclick="window.app.openSessionManager()">
+                <span class="step-action-label"><i class="bi bi-kanban"></i> Session Manager</span>
+                <span class="step-action-sub" id="navbar-foruser-id-display"></span>
             </button>
         </div>
 
@@ -81,22 +84,9 @@
             </ul>
         </div>
     </div>
-    <!-- Second row: Session ID + ForUser (always visible - foruser is editable) -->
-    <div class="d-flex align-items-center justify-content-center gap-2 navbar-session-bar" id="navbar-session" style="font-size:0.62rem;padding:1px 8px;width:100%">
-        <span style="color:var(--insign-muted);white-space:nowrap">Session:</span>
-        <input type="text" class="form-control form-control-sm" id="navbar-session-id" name="navbar-session-id"
-               placeholder="No session"
-               style="width:200px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px"
-               onchange="window.app.applyNavbarSessionId()">
-        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="window.app.copySessionId()" title="Copy session ID" style="padding:0px 4px;height:18px;font-size:0.6rem">
-            <i class="bi bi-clipboard"></i>
-        </button>
-        <span style="color:var(--insign-muted);white-space:nowrap;margin-left:4px">ForUser:</span>
-        <input type="text" class="form-control form-control-sm" id="navbar-foruser-id" name="navbar-foruser-id"
-               placeholder="-"
-               style="width:160px;font-family:'Roboto Mono',monospace;font-size:0.62rem;padding:0px 4px;height:18px"
-               onchange="window.app.applyNavbarForuser()">
-    </div>
+    <!-- Hidden inputs to preserve JS compatibility -->
+    <input type="hidden" id="navbar-session-id" name="navbar-session-id">
+    <input type="hidden" id="navbar-foruser-id" name="navbar-foruser-id">
 </nav>
 
 <!-- ====================================================================
@@ -2048,11 +2038,11 @@ node ~/Downloads/cors-proxy.js</code></pre>
             <div class="trace-url"></div>
             <div class="trace-section-label">Request Headers</div>
             <div class="trace-headers" data-slot="req-headers"></div>
-            <div class="trace-section-label">Request Body</div>
+            <div class="trace-section-label">Request Body <button class="btn-copy-json" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button></div>
             <div class="trace-body-preview" data-slot="req-body"></div>
             <div class="trace-section-label">Response Headers</div>
             <div class="trace-headers" data-slot="resp-headers"></div>
-            <div class="trace-section-label">Response Body</div>
+            <div class="trace-section-label">Response Body <button class="btn-copy-json" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button></div>
             <div class="trace-body-preview" data-slot="resp-body"></div>
         </div>
     </div>

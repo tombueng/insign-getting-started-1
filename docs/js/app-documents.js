@@ -363,11 +363,25 @@ function buildDocumentSelector() {
         }
 
         const rolesContainer = el.querySelector('.doc-dd-roles');
-        for (const r of doc.roles) {
-            const span = document.createElement('span');
-            span.className = 'doc-dd-role';
-            span.textContent = r;
-            rolesContainer.appendChild(span);
+        if (doc.useExternRole && doc.externRoles) {
+            // Show externRole label + emails instead of role names
+            const extLabel = document.createElement('span');
+            extLabel.className = 'doc-dd-role doc-dd-role-extern';
+            extLabel.textContent = 'externRole';
+            rolesContainer.appendChild(extLabel);
+            for (const email of doc.externRoles) {
+                const span = document.createElement('span');
+                span.className = 'doc-dd-role doc-dd-role-email';
+                span.textContent = email;
+                rolesContainer.appendChild(span);
+            }
+        } else {
+            for (const r of doc.roles) {
+                const span = document.createElement('span');
+                span.className = 'doc-dd-role';
+                span.textContent = r;
+                rolesContainer.appendChild(span);
+            }
         }
 
         el.appendChild(_docActions(key, label));
