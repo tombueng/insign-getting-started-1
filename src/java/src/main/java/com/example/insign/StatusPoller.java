@@ -1,6 +1,6 @@
 package com.example.insign;
 
-import tools.jackson.databind.JsonNode;
+import com.example.insign.model.InsignStatusResult;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -9,21 +9,21 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Polls session status when webhooks are not available.
- * Automatically activates for sessions that have not received any webhook callbacks.
+ * Background scheduled task that periodically polls the inSign API for status updates.
+ * Uses the common {@link InsignApiService} interface - works with both implementations.
  */
 @Component
 public class StatusPoller {
 
-    private final InsignApiClient apiClient;
+    private final InsignApiService apiService;
     private final SessionStatusTracker tracker;
     private final Set<String> watchedSessions = ConcurrentHashMap.newKeySet();
 
     @Value("${insign.polling.interval-seconds:5}")
     private int pollingIntervalSeconds;
 
-    public StatusPoller(InsignApiClient apiClient, SessionStatusTracker tracker) {
-        this.apiClient = apiClient;
+    public StatusPoller(InsignApiService apiService, SessionStatusTracker tracker) {
+        this.apiService = apiService;
         this.tracker = tracker;
     }
 
@@ -39,17 +39,14 @@ public class StatusPoller {
     @Scheduled(fixedDelayString = "${insign.polling.interval-seconds:5}000")
     public void poll() {
         for (String sessionId : watchedSessions) {
-            // Skip polling if we are receiving webhooks for this session
             if (tracker.hasWebhookSupport(sessionId)) {
                 continue;
             }
-
             try {
-                JsonNode status = apiClient.checkStatus(sessionId);
+                InsignStatusResult status = apiService.checkStatus(sessionId);
                 tracker.onPollResult(sessionId, status);
 
-                // Stop watching completed or deleted sessions
-                String sessionStatus = status.path("status").asText("");
+                String sessionStatus = status.getStatus();
                 if ("COMPLETED".equalsIgnoreCase(sessionStatus)
                         || "DELETED".equalsIgnoreCase(sessionStatus)) {
                     watchedSessions.remove(sessionId);

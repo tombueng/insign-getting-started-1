@@ -16,6 +16,7 @@ on:
 permissions:
   contents: read
   packages: write
+  checks: write
 
 jobs:
   build:
@@ -34,12 +35,41 @@ jobs:
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: src/java/pom.xml
-        server-id: github
-        server-username: GITHUB_ACTOR
-        server-password: GITHUB_TOKEN
 
-    - name: Build with Maven
-      run: mvn -B clean package
+    - name: Configure Maven settings.xml
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml <<'EOF'
+        <settings>
+          <servers>
+            <server>
+              <id>github</id>
+              <username>${env.GITHUB_ACTOR}</username>
+              <password>${env.GITHUB_TOKEN}</password>
+            </server>
+            <server>
+              <id>github-getinsign</id>
+              <username>${env.GITHUB_ACTOR}</username>
+              <password>${env.INSIGN_PACKAGES_TOKEN}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+
+    - name: Build and Test
+      run: mvn -B clean verify
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        INSIGN_PACKAGES_TOKEN: ${{ secrets.INSIGN_PACKAGES_TOKEN }}
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Test Results
+        path: src/java/target/surefire-reports/*.xml
+        reporter: java-junit
 
     - name: Publish to GitHub Packages
       if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -47,3 +77,4 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        INSIGN_PACKAGES_TOKEN: ${{ secrets.INSIGN_PACKAGES_TOKEN }}

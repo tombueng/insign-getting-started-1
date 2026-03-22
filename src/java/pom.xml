@@ -14,10 +14,16 @@
     <artifactId>insign-getting-started</artifactId>
     <version>1.0.0</version>
     <name>inSign Getting Started</name>
+    <description>inSign API sample app. Choose an implementation by uncommenting one of the submodule dependencies below.</description>
 
     <properties>
         <java.version>17</java.version>
     </properties>
+
+    <modules>
+        <module>spring-insign-api-client-impl</module>
+        <module>insign-client-api-impl</module>
+    </modules>
 
     <dependencies>
         <dependency>
@@ -25,20 +31,52 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>tools.jackson.core</groupId>
+            <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.7</version>
         </dependency>
+
+        <!-- ===== Choose ONE implementation ===== -->
+
+        <!-- Option A: Spring RestClient with direct JSON (no extra dependencies) -->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>spring-insign-api-client-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Option B: insign-java-api typed classes (requires GitHub Packages auth) -->
+        <!--
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>insign-client-api-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>github-getinsign</id>
+            <name>GitHub getinsign Packages</name>
+            <url>https://maven.pkg.github.com/getinsign/insign-java-api</url>
+        </repository>
+    </repositories>
 
     <distributionManagement>
         <repository>
@@ -53,18 +91,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

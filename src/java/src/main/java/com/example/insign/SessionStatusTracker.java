@@ -1,56 +1,57 @@
 package com.example.insign;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
+import com.example.insign.model.InsignSignatureFieldStatus;
+import com.example.insign.model.InsignStatusResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Tracks session status changes received via webhooks or polling.
- * Broadcasts changes to connected SSE clients.
+ * Tracks session status changes and broadcasts them to connected SSE clients.
+ * Uses the common {@link InsignStatusResult} POJO - works with both implementations.
  */
 @Component
 public class SessionStatusTracker {
 
-    private final Map<String, JsonNode> lastKnownStatus = new ConcurrentHashMap<>();
+    private final Map<String, InsignStatusResult> lastKnownStatus = new ConcurrentHashMap<>();
     private final Map<String, Boolean> webhookReceived = new ConcurrentHashMap<>();
-    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final SseEmitterManager sseManager = new SseEmitterManager();
     private final ObjectMapper mapper = new ObjectMapper();
 
     public SseEmitter registerEmitter() {
-        SseEmitter emitter = new SseEmitter(0L); // no timeout
-        emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError(e -> emitters.remove(emitter));
-        return emitter;
+        return sseManager.registerEmitter();
     }
 
-    public void onWebhookReceived(String sessionId, JsonNode status) {
-        lastKnownStatus.put(sessionId, status);
+    public void onWebhookReceived(String sessionId, Map<String, Object> eventData) {
         webhookReceived.put(sessionId, true);
-        broadcast("webhook", sessionId, status);
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("event", "webhook");
+        event.put("sessionId", sessionId);
+        event.put("status", eventData);
+        try {
+            sseManager.broadcast("webhook", mapper.writeValueAsString(event));
+        } catch (Exception e) {
+            // serialization failure
+        }
     }
 
-    public void onPollResult(String sessionId, JsonNode status) {
-        JsonNode previous = lastKnownStatus.get(sessionId);
+    public void onPollResult(String sessionId, InsignStatusResult status) {
+        InsignStatusResult previous = lastKnownStatus.get(sessionId);
         lastKnownStatus.put(sessionId, status);
 
         if (previous == null) {
             printStatusChange(sessionId, status, "Initial status");
-            broadcast("status-change", sessionId, status);
+            broadcastStatus("status-change", sessionId, status);
             return;
         }
 
         if (hasChanges(previous, status)) {
-            broadcast("status-change", sessionId, status);
+            broadcastStatus("status-change", sessionId, status);
         }
 
         detectChanges(sessionId, previous, status);
@@ -60,66 +61,53 @@ public class SessionStatusTracker {
         return webhookReceived.getOrDefault(sessionId, false);
     }
 
-    public JsonNode getLastStatus(String sessionId) {
+    public InsignStatusResult getLastStatus(String sessionId) {
         return lastKnownStatus.get(sessionId);
     }
 
-    private boolean hasChanges(JsonNode previous, JsonNode current) {
+    private boolean hasChanges(InsignStatusResult previous, InsignStatusResult current) {
         return countSignedFields(previous) != countSignedFields(current)
-                || previous.path("sucessfullyCompleted").asBoolean(false) != current.path("sucessfullyCompleted").asBoolean(false);
+                || previous.isSucessfullyCompleted() != current.isSucessfullyCompleted();
     }
 
-    private void broadcast(String eventType, String sessionId, JsonNode status) {
-        ObjectNode event = mapper.createObjectNode();
+    private void broadcastStatus(String eventType, String sessionId, InsignStatusResult status) {
+        Map<String, Object> event = new LinkedHashMap<>();
         event.put("event", eventType);
         event.put("sessionId", sessionId);
-        event.set("status", status);
-        String json;
+        event.put("status", status);
         try {
-            json = mapper.writeValueAsString(event);
+            sseManager.broadcast(eventType, mapper.writeValueAsString(event));
         } catch (Exception e) {
-            return;
-        }
-        for (SseEmitter emitter : emitters) {
-            try {
-                emitter.send(SseEmitter.event().name(eventType).data(json));
-            } catch (IOException e) {
-                emitters.remove(emitter);
-            }
+            // serialization failure
         }
     }
 
-    private void detectChanges(String sessionId, JsonNode previous, JsonNode current) {
+    private void detectChanges(String sessionId, InsignStatusResult previous, InsignStatusResult current) {
         int prevSigned = countSignedFields(previous);
         int currSigned = countSignedFields(current);
         if (currSigned != prevSigned) {
             printStatusChange(sessionId, current,
                     currSigned + " field(s) signed (was " + prevSigned + ")");
         }
-
-        boolean prevCompleted = previous.path("sucessfullyCompleted").asBoolean(false);
-        boolean currCompleted = current.path("sucessfullyCompleted").asBoolean(false);
-        if (!prevCompleted && currCompleted) {
+        if (!previous.isSucessfullyCompleted() && current.isSucessfullyCompleted()) {
             printStatusChange(sessionId, current, "SESSION SUCCESSFULLY COMPLETED");
         }
     }
 
-    private int countSignedFields(JsonNode status) {
+    private int countSignedFields(InsignStatusResult status) {
         int count = 0;
-        JsonNode sigFields = status.path("signaturFieldsStatusList");
-        if (sigFields.isArray()) {
-            for (JsonNode field : sigFields) {
-                if (field.path("signed").asBoolean(false)) {
-                    count++;
-                }
+        List<InsignSignatureFieldStatus> fields = status.getSignaturFieldsStatusList();
+        if (fields != null) {
+            for (InsignSignatureFieldStatus field : fields) {
+                if (field.isSigned()) count++;
             }
         }
         return count;
     }
 
-    private void printStatusChange(String sessionId, JsonNode status, String message) {
+    private void printStatusChange(String sessionId, InsignStatusResult status, String message) {
         System.out.println("\n--- [Poll] " + message + " ---");
         System.out.println("  Session: " + sessionId);
-        System.out.println("  Completed: " + status.path("sucessfullyCompleted").asBoolean(false));
+        System.out.println("  Completed: " + status.isSucessfullyCompleted());
     }
 }
