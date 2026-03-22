@@ -32,7 +32,7 @@ app.get('/api/session/:key/document/download', (req, res) => routes.getDocument(
 app.delete('/api/sessions/purge', routes.purgeSessions);
 
 // SPA fallback
-app.get('*', (req, res) => {
+app.get('{*path}', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '..', 'docs', 'index.html'));
   }
