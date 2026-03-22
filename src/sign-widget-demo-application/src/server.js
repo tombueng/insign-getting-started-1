@@ -29,6 +29,7 @@ app.post('/api/session', routes.createSession);
 app.get('/api/session/:key/status', routes.getStatus);
 app.get('/api/session/:key/document', (req, res) => routes.getDocument(req, res, 'inline'));
 app.get('/api/session/:key/document/download', (req, res) => routes.getDocument(req, res, 'attachment'));
+app.delete('/api/sessions/purge', routes.purgeSessions);
 
 // SPA fallback
 app.get('*', (req, res) => {
