@@ -1,6 +1,6 @@
 /**
- * UI Smoke Test - clicks through all visible buttons in the application
- * and watches the browser console for errors.
+ * UI Smoke Test - loads the application, clicks through visible interactive
+ * elements, and watches the browser console for errors.
  *
  * Usage:  node test/ui-smoke.test.js [--headed]
  *
@@ -19,11 +19,21 @@ const PORT = 9877;
 const BASE_URL = `http://localhost:${PORT}`;
 const HEADED = process.argv.includes('--headed');
 const SLOW_MO = HEADED ? 80 : 0;
+
 // Buttons that trigger destructive/external actions we want to skip
 const SKIP_BUTTON_SELECTORS = [
     '#btn-clear-all-storage',        // wipes localStorage
     '[onclick*="deleteSession"]',    // destructive
     'a[target="_blank"]',            // external links
+];
+
+// onclick handlers that call the real API (no backend in test)
+const SKIP_ONCLICK_PATTERNS = [
+    'sendStep',
+    'openInInsign',
+    'openAsOwner',
+    'refreshSessionStatus',
+    'copySessionId',
 ];
 
 // ---------------------------------------------------------------------------
@@ -51,12 +61,6 @@ async function waitForServer(url, timeoutMs = 15000) {
 /** Classify a console message */
 function isConsoleError(msg) {
     return msg.type() === 'error';
-}
-
-/** Check if a button matches any skip selector */
-function shouldSkip(selectors, btn) {
-    // We'll check this via page.evaluate instead
-    return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,171 +130,100 @@ function shouldSkip(selectors, btn) {
         console.log('[*] Page loaded:', await page.title());
 
         // Give the app time to initialize (Monaco editors, etc.)
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
 
-        // --- Walk through each step ---
-        const steps = [1, 2, 3, 4];
+        // -----------------------------------------------------------------
+        // Step 1 - visible on load
+        // -----------------------------------------------------------------
+        console.log('\n[Step 1] Checking initial page...');
+        const step1 = page.locator('#step1');
+        const step1Visible = await step1.isVisible();
+        console.log(`[Step 1] Visible: ${step1Visible}`);
 
-        for (const step of steps) {
-            console.log(`\n[Step ${step}] Navigating...`);
+        // Click safe buttons in step 1 (skip API-calling ones)
+        await clickSafeButtons(page, '#step1', results, 1);
 
-            // Click the step indicator in the navbar
-            const stepNav = page.locator(`.step-indicator .step[data-step="${step}"]`);
-            if (await stepNav.count() > 0) {
-                await stepNav.click();
-                await page.waitForTimeout(800);
-            }
+        // -----------------------------------------------------------------
+        // Navbar interactions
+        // -----------------------------------------------------------------
+        console.log('\n[*] Testing navbar...');
 
-            // Expand any collapsed sections on this step (click collapsible headers)
-            const collapseToggles = page.locator(`#step-${step}-panel [data-bs-toggle="collapse"]`);
-            const toggleCount = await collapseToggles.count();
-            for (let i = 0; i < toggleCount; i++) {
-                try {
-                    const toggle = collapseToggles.nth(i);
-                    if (await toggle.isVisible()) {
-                        await toggle.click();
-                        await page.waitForTimeout(300);
-                    }
-                } catch { /* some toggles may not be interactive */ }
-            }
+        // Dark mode toggle
+        const darkModeBtn = page.locator('#btn-dark-mode');
+        if (await darkModeBtn.isVisible()) {
+            await darkModeBtn.click();
+            await page.waitForTimeout(300);
+            results.clickedButtons.push('[Navbar] Dark mode toggle');
 
-            // --- Click through operation tabs on step 3 ---
-            if (step === 3) {
-                const opTabs = page.locator('#operation-tabs .nav-link');
-                const tabCount = await opTabs.count();
-                console.log(`[Step 3] Found ${tabCount} operation tabs`);
-                for (let i = 0; i < tabCount; i++) {
-                    try {
-                        const tab = opTabs.nth(i);
-                        if (await tab.isVisible()) {
-                            const tabText = (await tab.textContent()).trim();
-                            await tab.click();
-                            await page.waitForTimeout(300);
-                            console.log(`  [Tab] Clicked: ${tabText}`);
-                        }
-                    } catch (e) {
-                        // tab may have become detached
-                    }
-                }
-                // Go back to the first tab
-                const firstTab = opTabs.first();
-                if (await firstTab.count() > 0) await firstTab.click();
-            }
-
-            // --- Collect and click all buttons in the current step panel ---
-            // Also handle buttons that are in the general page (navbar, etc.) on step 1
-            const scopeSelector = step === 1
-                ? `#step-${step}-panel button, .navbar button:not([data-bs-toggle="dropdown"])`
-                : `#step-${step}-panel button`;
-            const buttons = page.locator(scopeSelector);
-            const btnCount = await buttons.count();
-            console.log(`[Step ${step}] Found ${btnCount} buttons`);
-
-            for (let i = 0; i < btnCount; i++) {
-                const btn = buttons.nth(i);
-                try {
-                    if (!(await btn.isVisible())) {
-                        continue;
-                    }
-
-                    // Get button info for logging
-                    const btnInfo = await btn.evaluate((el, skipSels) => {
-                        // Check skip selectors
-                        for (const sel of skipSels) {
-                            if (el.matches(sel)) return { skip: true, text: el.textContent.trim(), id: el.id };
-                        }
-                        return {
-                            skip: false,
-                            text: el.textContent.trim().substring(0, 60),
-                            id: el.id || '',
-                            className: el.className.substring(0, 80),
-                            tag: el.tagName,
-                        };
-                    }, SKIP_BUTTON_SELECTORS);
-
-                    if (btnInfo.skip) {
-                        results.skippedButtons.push(`[Step ${step}] ${btnInfo.text} (${btnInfo.id})`);
-                        continue;
-                    }
-
-                    // Skip buttons that would send API requests (we have no backend)
-                    const onclick = await btn.getAttribute('onclick') || '';
-                    if (onclick.includes('createSession') ||
-                        onclick.includes('executeOperation') ||
-                        onclick.includes('executeOAuth2') ||
-                        onclick.includes('openInSign') ||
-                        onclick.includes('openSessionManager') ||
-                        onclick.includes('copySessionId') ||
-                        onclick.includes('applyNavbarSessionId')) {
-                        results.skippedButtons.push(`[Step ${step}] API/External: ${btnInfo.text}`);
-                        continue;
-                    }
-
-                    // Click it
-                    await btn.click({ timeout: 3000 }).catch(() => null);
-                    await page.waitForTimeout(150);
-
-                    results.clickedButtons.push(`[Step ${step}] ${btnInfo.text} (${btnInfo.id || btnInfo.className.substring(0, 30)})`);
-                } catch (e) {
-                    results.failedClicks.push(`[Step ${step}] Button #${i}: ${e.message.substring(0, 100)}`);
-                }
-            }
+            // Toggle back
+            await darkModeBtn.click();
+            await page.waitForTimeout(300);
+            results.clickedButtons.push('[Navbar] Dark mode toggle back');
         }
 
-        // --- Also click dropdown items and toggle buttons ---
-        console.log('\n[*] Testing dropdown menus...');
+        // Dropdown menu
+        console.log('[*] Testing dropdown menus...');
         const dropdownToggle = page.locator('.dropdown-toggle').first();
         if (await dropdownToggle.isVisible()) {
             await dropdownToggle.click();
             await page.waitForTimeout(300);
-            // Click non-link dropdown items
-            const dropdownBtns = page.locator('.dropdown-menu button.dropdown-item');
-            const ddCount = await dropdownBtns.count();
-            for (let i = 0; i < ddCount; i++) {
-                try {
-                    const item = dropdownBtns.nth(i);
-                    if (await item.isVisible()) {
-                        const text = (await item.textContent()).trim();
-                        await item.click();
-                        await page.waitForTimeout(200);
-                        results.clickedButtons.push(`[Dropdown] ${text}`);
-                    }
-                } catch { /* dropdown may close */ }
-            }
-        }
 
-        // --- Test auth mode toggle ---
-        console.log('[*] Testing auth mode toggles...');
-        for (const mode of ['oauth2', 'basic']) {
-            const authBtn = page.locator(`[data-mode="${mode}"]`);
-            if (await authBtn.count() > 0 && await authBtn.isVisible()) {
-                await authBtn.click();
-                await page.waitForTimeout(300);
-                results.clickedButtons.push(`[Auth] Switched to ${mode}`);
-            }
-        }
+            const dropdownItems = page.locator('.dropdown-menu .dropdown-item');
+            const ddCount = await dropdownItems.count();
+            console.log(`[*] Found ${ddCount} dropdown items`);
 
-        // --- Test file delivery options ---
-        console.log('[*] Testing file delivery dropdown...');
-        // Navigate to step 2 for this
-        await page.locator('.step-indicator .step[data-step="2"]').click();
-        await page.waitForTimeout(500);
-        const fdToggle = page.locator('#fd-dd-toggle');
-        if (await fdToggle.isVisible()) {
-            await fdToggle.click();
+            // Close dropdown without clicking destructive items
+            await page.keyboard.press('Escape');
             await page.waitForTimeout(200);
-            for (const fd of ['upload', 'url', 'base64']) {
-                const fdItem = page.locator(`[data-fd="${fd}"]`);
-                if (await fdItem.isVisible()) {
-                    await fdItem.click();
+            results.clickedButtons.push('[Dropdown] Opened and closed');
+        }
+
+        // -----------------------------------------------------------------
+        // Feature showcase (resources section)
+        // -----------------------------------------------------------------
+        console.log('\n[*] Testing feature showcase...');
+        const featureItems = page.locator('.feature-item');
+        const featureCount = await featureItems.count();
+        console.log(`[*] Found ${featureCount} feature items`);
+
+        for (let i = 0; i < featureCount; i++) {
+            try {
+                const item = featureItems.nth(i);
+                if (await item.isVisible()) {
+                    await item.click();
                     await page.waitForTimeout(200);
-                    results.clickedButtons.push(`[FileDelivery] ${fd}`);
-                    // Re-open dropdown for next option
-                    if (fd !== 'base64') {
-                        await fdToggle.click();
-                        await page.waitForTimeout(200);
-                    }
+                    results.clickedButtons.push(`[Feature] Item ${i + 1}`);
                 }
+            } catch { /* item may not be clickable */ }
+        }
+
+        // -----------------------------------------------------------------
+        // Use cheat buttons to reveal hidden steps (if they exist)
+        // -----------------------------------------------------------------
+        console.log('\n[*] Trying cheat buttons to reveal steps...');
+
+        // cheatCreateSession() reveals steps 2-4
+        const cheatBtn = page.locator('.cheat-btn').first();
+        if (await cheatBtn.count() > 0) {
+            try {
+                // Cheat buttons are nearly invisible (opacity 0.3), force click
+                await cheatBtn.click({ force: true, timeout: 3000 });
+                await page.waitForTimeout(1000);
+                results.clickedButtons.push('[Cheat] Skipped step 1');
+                console.log('[*] Cheat button clicked, steps revealed');
+            } catch {
+                console.log('[*] Could not click cheat button');
+            }
+        }
+
+        // Check if step 2 is now visible
+        for (const stepNum of [2, 3, 4]) {
+            const stepEl = page.locator(`#step${stepNum}`);
+            if (await stepEl.isVisible()) {
+                console.log(`\n[Step ${stepNum}] Now visible, checking buttons...`);
+                await clickSafeButtons(page, `#step${stepNum}`, results, stepNum);
+            } else {
+                console.log(`\n[Step ${stepNum}] Not visible (skipping)`);
             }
         }
 
@@ -363,3 +296,52 @@ function shouldSkip(selectors, btn) {
         try { process.kill(-server.pid, 'SIGTERM'); } catch { /* ignore */ }
     }
 })();
+
+// ---------------------------------------------------------------------------
+// Click all safe (non-API, non-destructive) buttons within a scope
+// ---------------------------------------------------------------------------
+async function clickSafeButtons(page, scopeSelector, results, stepLabel) {
+    const buttons = page.locator(`${scopeSelector} button`);
+    const btnCount = await buttons.count();
+    console.log(`[Step ${stepLabel}] Found ${btnCount} buttons`);
+
+    for (let i = 0; i < btnCount; i++) {
+        const btn = buttons.nth(i);
+        try {
+            if (!(await btn.isVisible())) continue;
+
+            // Get button info
+            const btnInfo = await btn.evaluate((el, skipSels) => {
+                for (const sel of skipSels) {
+                    if (el.matches(sel)) return { skip: true, text: el.textContent.trim(), id: el.id };
+                }
+                return {
+                    skip: false,
+                    text: el.textContent.trim().substring(0, 60),
+                    id: el.id || '',
+                    className: el.className.substring(0, 80),
+                };
+            }, SKIP_BUTTON_SELECTORS);
+
+            if (btnInfo.skip) {
+                results.skippedButtons.push(`[Step ${stepLabel}] ${btnInfo.text} (${btnInfo.id})`);
+                continue;
+            }
+
+            // Skip buttons with API-calling onclick handlers
+            const onclick = await btn.getAttribute('onclick') || '';
+            const shouldSkip = SKIP_ONCLICK_PATTERNS.some(pat => onclick.includes(pat));
+            if (shouldSkip) {
+                results.skippedButtons.push(`[Step ${stepLabel}] API: ${btnInfo.text}`);
+                continue;
+            }
+
+            // Click it
+            await btn.click({ timeout: 3000 }).catch(() => null);
+            await page.waitForTimeout(150);
+            results.clickedButtons.push(`[Step ${stepLabel}] ${btnInfo.text} (${btnInfo.id || btnInfo.className.substring(0, 30)})`);
+        } catch (e) {
+            results.failedClicks.push(`[Step ${stepLabel}] Button #${i}: ${e.message.substring(0, 100)}`);
+        }
+    }
+}
