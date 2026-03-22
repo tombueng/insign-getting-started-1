@@ -424,14 +424,15 @@ The server `<id>` must match the `<repository><id>` in `pom.xml` (`github-getins
 
 The CI workflow (`.github/workflows/maven.yml`) requires the following **repository secrets** (Settings > Secrets and variables > Actions > New repository secret):
 
-| Secret | Required for | How to get it |
+| Secret | Required | How to get it |
 |---|---|---|
-| `INSIGN_PACKAGES_TOKEN` | Downloading `insign-java-api` from GitHub Packages (insign-client profile) | Create a GitHub PAT with `read:packages` scope at https://github.com/settings/tokens |
-| `INSIGN_BASE_URL` | Integration tests (both profiles) | inSign API base URL, e.g. `https://sandbox.test.getinsign.show` |
-| `INSIGN_USERNAME` | Integration tests (both profiles) | inSign API username |
-| `INSIGN_PASSWORD` | Integration tests (both profiles) | inSign API password |
+| `INSIGN_PACKAGES_TOKEN` | **Yes** - for the `insign-client` profile | Create a GitHub PAT with `read:packages` scope at https://github.com/settings/tokens |
 
 `GITHUB_TOKEN` is provided automatically by GitHub Actions and does not need to be created.
+
+The inSign sandbox credentials (`controller` / `pwd.insign.sandbox.4561`) are baked into `application.properties` as defaults. **Do not** add `INSIGN_BASE_URL`, `INSIGN_USERNAME`, or `INSIGN_PASSWORD` as repository secrets unless you want to override the sandbox - empty secrets would override the defaults with blank values and break the build.
+
+To use a different inSign environment in CI, set all three as non-empty secrets. To use the sandbox (default), leave them unset.
 
 **If the `insign-client` build fails** with "No versions available for de.is2.insign:insign-java-api", the `INSIGN_PACKAGES_TOKEN` secret is missing or the PAT doesn't have the `read:packages` scope.
 
