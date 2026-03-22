@@ -24,12 +24,15 @@ public class InsignDeliveryConfig {
     private String emailEmpfaenger;
 
     /** @deprecated Whether editing of the recipient email address is disabled when pre-filled. */
+    @Deprecated
     private Boolean emailEmpfaengerReadOnly;
 
     /** @deprecated Default CC email recipient. Falls back to user configuration or application properties. */
+    @Deprecated
     private String emailEmpfaengerKopie;
 
     /** @deprecated Default BCC email recipient. Not visible in the UI. Falls back to application properties. */
+    @Deprecated
     private String emailEmpfaengerBCC;
 
     /** Default reply-to email address for outgoing emails. */
@@ -57,12 +60,14 @@ public class InsignDeliveryConfig {
     private String empfaengerSMSExtern;
 
     /** @deprecated Content of the email containing the transaction number. Use passwortEmailInhalt instead. */
+    @Deprecated
     private String tanEmailInhalt;
 
     /** Content of the SMS containing the transaction number. Supports template placeholders. */
     private String tanSMSText;
 
     /** @deprecated Subject of the email containing the transaction number. Use passwortEmailBetreff instead. */
+    @Deprecated
     private String tanEmailBetreff;
 
     /** Content of the email for external processing. Supports template placeholders. */

@@ -34,6 +34,7 @@ public class InsignDocumentConfig {
     private String displayname;
 
     /** @deprecated Whether this document must be signed. Default is false. */
+    @Deprecated
     private boolean mustbesigned;
 
     /** Whether this document must be read before the process can complete. */

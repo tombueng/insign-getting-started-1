@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ import java.util.List;
  * Enabled via: --app.console.enabled=true
  */
 @Component
+@ConditionalOnProperty(name = "app.console.enabled", havingValue = "true")
 public class InsignConsoleDemo implements CommandLineRunner {
 
     @Autowired
@@ -30,18 +32,11 @@ public class InsignConsoleDemo implements CommandLineRunner {
     @Value("${insign.api.username}")
     private String apiUsername;
 
-    @Value("${app.console.enabled:false}")
-    private boolean consoleEnabled;
-
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
 
     @Override
     public void run(String... args) throws Exception {
-        if (!consoleEnabled) {
-            return;
-        }
-
         System.out.println("=== inSign Console Demo ===");
         System.out.println("Implementation: " + apiService.getVersion());
         System.out.println();

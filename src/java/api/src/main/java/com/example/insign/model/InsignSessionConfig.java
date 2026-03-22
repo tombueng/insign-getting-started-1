@@ -94,6 +94,7 @@ public class InsignSessionConfig {
     private Boolean externUploadEnabled;
 
     /** @deprecated Whether documents load directly into the PDF editor instead of showing the overview. */
+    @Deprecated
     private Boolean pdfEditorOnly;
 
     // -- Sub-configurations --
