@@ -127,8 +127,8 @@ public class SpringRestInsignApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult beginExtern(InsignExternConfig config) {
-        return postJson("/extern/beginmulti", config, InsignBasicResult.class);
+    public InsignExternResult beginExtern(InsignExternConfig config) {
+        return postJson("/extern/beginmulti", config, InsignExternResult.class);
     }
 
     @Override
@@ -137,13 +137,31 @@ public class SpringRestInsignApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult getExternUsers(String sessionId) {
-        return postSessionId("/extern/users", sessionId, InsignBasicResult.class);
+    public InsignExternResult getExternUsers(String sessionId) {
+        return postSessionId("/extern/users", sessionId, InsignExternResult.class);
     }
 
     @Override
-    public InsignBasicResult getExternInfos(String sessionId) {
-        return postSessionId("/get/externInfos", sessionId, InsignBasicResult.class);
+    public InsignExternInfosResult getExternInfos(String sessionId) {
+        try {
+            String json = mapper.writeValueAsString(Map.of("sessionid", sessionId));
+            ResponseEntity<String> res = restClient.post()
+                    .uri("/get/externInfos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json)
+                    .retrieve().toEntity(String.class);
+            var node = mapper.readTree(res.getBody());
+            if (node.isArray()) {
+                InsignExternInfosResult result = new InsignExternInfosResult();
+                result.setExternInfos(mapper.readerForListOf(InsignExternUserInfo.class).readValue(res.getBody()));
+                return result;
+            } else {
+                return checkAndParse("/get/externInfos", res, InsignExternInfosResult.class);
+            }
+        } catch (InsignApiException e) { throw e; }
+        catch (Exception e) {
+            throw new InsignApiException("API call failed: /get/externInfos - " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -194,8 +212,8 @@ public class SpringRestInsignApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult getSessionMetadata(String sessionId) {
-        return postSessionId("/get/documents/full?includeAnnotations=true", sessionId, InsignBasicResult.class);
+    public InsignSessionDataResult getSessionMetadata(String sessionId) {
+        return postSessionId("/get/documents/full?includeAnnotations=true", sessionId, InsignSessionDataResult.class);
     }
 
     @Override

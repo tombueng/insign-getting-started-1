@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * inSign API client using the typed insign-java-api library.
@@ -23,23 +24,27 @@ import java.util.List;
 @Component
 public class InsignJavaApiClient implements InsignApiService {
 
-    private final IInSignAdapter<?> adapter;
+    @SuppressWarnings("rawtypes")
+    private final IInSignAdapter adapter;
     private final String baseUrl;
-    private final String username;
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public InsignJavaApiClient(
             @Value("${insign.api.base-url}") String baseUrl,
             @Value("${insign.api.username}") String username,
             @Value("${insign.api.password}") String password) {
 
         this.baseUrl = baseUrl;
-        this.username = username;
 
-        InSignTransPortAdpaterFactoryApacheHttpClient factory =
-                new InSignTransPortAdpaterFactoryApacheHttpClient(baseUrl, username, password);
-        this.adapter = new InSignAdapter<>(factory);
+        try {
+            InSignTransPortAdpaterFactoryApacheHttpClient factory =
+                    new InSignTransPortAdpaterFactoryApacheHttpClient(baseUrl, username, password);
+            this.adapter = new InSignAdapter(factory);
+        } catch (Exception e) {
+            throw new InsignApiException("Failed to initialize inSign adapter: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -97,9 +102,10 @@ public class InsignJavaApiClient implements InsignApiService {
             return InsignSessionResult.builder()
                     .sessionid(handle.getSessionID())
                     .token(handle.getToken())
-                    .accessurl(handle.getAccessurl() != null ? handle.getAccessurl().toString() : null)
+                    .accessURL(handle.getAccessurl() != null ? handle.getAccessurl().toString() : null)
                     .build();
-        } catch (InSignAdapterException e) {
+        } catch (InsignApiException e) { throw e; }
+        catch (Exception e) {
             throw new InsignApiException("Failed to create session: " + e.getMessage(), e);
         }
     }
@@ -126,7 +132,7 @@ public class InsignJavaApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult beginExtern(InsignExternConfig config) {
+    public InsignExternResult beginExtern(InsignExternConfig config) {
         try {
             // Field names match - ObjectMapper handles the conversion directly
             List<InsignExternUser> users = new ArrayList<>();
@@ -138,7 +144,7 @@ public class InsignJavaApiClient implements InsignApiService {
 
             JSONExternMultiuserResult result = adapter.setExternal(
                     sessionHandle(config.getSessionid()), users);
-            return mapper.convertValue(result, InsignBasicResult.class);
+            return mapper.convertValue(result, InsignExternResult.class);
         } catch (InSignAdapterException e) {
             throw new InsignApiException("Failed to begin extern: " + e.getMessage(), e);
         }
@@ -155,21 +161,21 @@ public class InsignJavaApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult getExternUsers(String sessionId) {
+    public InsignExternResult getExternUsers(String sessionId) {
         try {
             // Use getStatus as the adapter doesn't have a direct getExternUsers
             JSONSessionStatusResult result = adapter.getStatus(sessionHandle(sessionId));
-            return mapper.convertValue(result, InsignBasicResult.class);
+            return mapper.convertValue(result, InsignExternResult.class);
         } catch (InSignAdapterException e) {
             throw new InsignApiException("Failed to get extern users: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public InsignBasicResult getExternInfos(String sessionId) {
+    public InsignExternInfosResult getExternInfos(String sessionId) {
         try {
             JSONSessionStatusResult result = adapter.getStatus(sessionHandle(sessionId));
-            return mapper.convertValue(result, InsignBasicResult.class);
+            return mapper.convertValue(result, InsignExternInfosResult.class);
         } catch (InSignAdapterException e) {
             throw new InsignApiException("Failed to get extern infos: " + e.getMessage(), e);
         }
@@ -225,10 +231,10 @@ public class InsignJavaApiClient implements InsignApiService {
     }
 
     @Override
-    public InsignBasicResult getSessionMetadata(String sessionId) {
+    public InsignSessionDataResult getSessionMetadata(String sessionId) {
         try {
             JSONSessionData data = adapter.getDocumentsFull(sessionHandle(sessionId));
-            return mapper.convertValue(data, InsignBasicResult.class);
+            return mapper.convertValue(data, InsignSessionDataResult.class);
         } catch (InSignAdapterException e) {
             throw new InsignApiException("Failed to get metadata: " + e.getMessage(), e);
         }
@@ -264,8 +270,6 @@ public class InsignJavaApiClient implements InsignApiService {
     }
 
     private InSignSessionHandle sessionHandle(String sessionId) {
-        InSignSessionHandle handle = new InSignSessionHandle();
-        handle.setSessionID(sessionId);
-        return handle;
+        return new InSignSessionHandle(sessionId, null);
     }
 }
