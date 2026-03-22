@@ -422,12 +422,18 @@ The server `<id>` must match the `<repository><id>` in `pom.xml` (`github-getins
 
 ### CI / GitHub Actions
 
-The CI workflow (`.github/workflows/maven.yml`) needs a repository secret for cross-org package access:
+The CI workflow (`.github/workflows/maven.yml`) requires the following **repository secrets** (Settings > Secrets and variables > Actions > New repository secret):
 
-1. **Create a PAT** with `read:packages` scope at https://github.com/settings/tokens
-2. **Add it as a repository secret:** repo Settings > Secrets and variables > Actions > New repository secret
-   - Name: `INSIGN_PACKAGES_TOKEN`
-   - Value: the PAT from step 1
+| Secret | Required for | How to get it |
+|---|---|---|
+| `INSIGN_PACKAGES_TOKEN` | Downloading `insign-java-api` from GitHub Packages (insign-client profile) | Create a GitHub PAT with `read:packages` scope at https://github.com/settings/tokens |
+| `INSIGN_BASE_URL` | Integration tests (both profiles) | inSign API base URL, e.g. `https://sandbox.test.getinsign.show` |
+| `INSIGN_USERNAME` | Integration tests (both profiles) | inSign API username |
+| `INSIGN_PASSWORD` | Integration tests (both profiles) | inSign API password |
+
+`GITHUB_TOKEN` is provided automatically by GitHub Actions and does not need to be created.
+
+**If the `insign-client` build fails** with "No versions available for de.is2.insign:insign-java-api", the `INSIGN_PACKAGES_TOKEN` secret is missing or the PAT doesn't have the `read:packages` scope.
 
 The workflow generates a `settings.xml` with two server entries:
 - `github` (uses `GITHUB_TOKEN`) - for publishing to this repo's own GitHub Packages
