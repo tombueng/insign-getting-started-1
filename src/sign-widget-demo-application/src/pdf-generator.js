@@ -25,6 +25,8 @@ const TEMPLATE_PATH = path.join(__dirname, '..', 'assets', 'mandate-template.pdf
 function ensureTemplate() {
   if (fs.existsSync(TEMPLATE_PATH)) return;
 
+  fs.mkdirSync(path.dirname(TEMPLATE_PATH), { recursive: true });
+
   const PDFDocument = require('pdfkit');
 
   const doc = new PDFDocument({
