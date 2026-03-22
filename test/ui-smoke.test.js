@@ -80,6 +80,7 @@ function isConsoleError(msg) {
     const server = spawn('npx', ['serve', 'docs', '-l', String(PORT), '--no-clipboard'], {
         cwd: process.cwd(),
         stdio: ['ignore', 'pipe', 'pipe'],
+        detached: true,
     });
     server.stdout.on('data', d => { /* silent */ });
     server.stderr.on('data', d => { /* silent */ });
@@ -290,10 +291,10 @@ function isConsoleError(msg) {
         }
 
     } finally {
-        // Kill the server
-        server.kill('SIGTERM');
-        // Also kill any child processes (npx spawns a subprocess)
+        // Kill the entire process group (npx + serve subprocess)
         try { process.kill(-server.pid, 'SIGTERM'); } catch { /* ignore */ }
+        // Fallback: kill the main process directly
+        try { server.kill('SIGTERM'); } catch { /* ignore */ }
     }
 })();
 
