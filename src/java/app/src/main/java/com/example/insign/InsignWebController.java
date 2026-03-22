@@ -1,6 +1,8 @@
 package com.example.insign;
 
 import com.example.insign.model.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,6 +24,7 @@ public class InsignWebController {
     private final PdfGenerator pdfGenerator;
     private final StatusPoller poller;
     private final SessionStatusTracker tracker;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${insign.api.username}")
     private String apiUsername;
@@ -59,7 +62,7 @@ public class InsignWebController {
     // ==================== Session Lifecycle ====================
 
     @PostMapping("/session/create")
-    public InsignSessionResult createSession() throws Exception {
+    public Map<String, Object> createSession() throws Exception {
         byte[] pdf = pdfGenerator.generateTestPdf();
 
         // Build document config with inline file content
@@ -102,7 +105,10 @@ public class InsignWebController {
             poller.watchSession(currentSessionId);
         }
 
-        return result;
+        Map<String, Object> wrapper = new LinkedHashMap<>();
+        wrapper.put("request", sanitizeForDisplay(config));
+        wrapper.put("response", result);
+        return wrapper;
     }
 
     @GetMapping("/session/status")
@@ -136,7 +142,7 @@ public class InsignWebController {
     // ==================== External Signing ====================
 
     @PostMapping("/extern/invite")
-    public InsignBasicResult inviteExtern(@RequestBody Map<String, String> body) {
+    public Map<String, Object> inviteExtern(@RequestBody Map<String, String> body) {
         requireSession();
 
         String email1 = body.getOrDefault("email1", "");
@@ -157,16 +163,21 @@ public class InsignWebController {
             users.add(buildExternUser(email2, "Signer2", delivery, phone2));
         }
 
+        Map<String, Object> wrapper = new LinkedHashMap<>();
         if (users.isEmpty()) {
             InsignBasicResult result = new InsignBasicResult();
             result.setMessage("All roles have completed signing. Nothing to invite.");
-            return result;
+            wrapper.put("response", result);
+            return wrapper;
         }
 
         InsignExternConfig externConfig = new InsignExternConfig();
         externConfig.setSessionid(currentSessionId);
         externConfig.setExternUsers(users);
-        return apiService.beginExtern(externConfig);
+
+        wrapper.put("request", sanitizeForDisplay(externConfig));
+        wrapper.put("response", apiService.beginExtern(externConfig));
+        return wrapper;
     }
 
     @PostMapping("/extern/revoke")
@@ -300,6 +311,30 @@ public class InsignWebController {
             }
         }
         return user;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> sanitizeForDisplay(Object obj) {
+        Map<String, Object> map = objectMapper.convertValue(obj,
+                new TypeReference<Map<String, Object>>() {});
+        // Replace binary document data with a size placeholder
+        Object docs = map.get("documents");
+        if (docs instanceof List) {
+            for (Object item : (List<?>) docs) {
+                if (item instanceof Map) {
+                    Map<String, Object> doc = (Map<String, Object>) item;
+                    Object file = doc.get("file");
+                    if (file instanceof String && ((String) file).length() > 200) {
+                        int bytes = ((String) file).length() * 3 / 4;
+                        doc.put("file", "(" + bytes + " bytes, base64 omitted)");
+                    }
+                    doc.remove("fileStream");
+                }
+            }
+        }
+        // Remove null values for cleaner display
+        map.values().removeIf(Objects::isNull);
+        return map;
     }
 
     private Set<String> getCompletedRoles(InsignStatusResult status) {

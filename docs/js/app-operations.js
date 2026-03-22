@@ -517,9 +517,27 @@ function setExternOption(key, value) {
     if (key === 'inOrder') {
         // inOrder is a top-level field, not per-user
         body.inOrder = value;
+        // When sequential signing is toggled, add/remove orderNumber on each user
+        if (Array.isArray(body.externUsers)) {
+            if (value) {
+                body.externUsers.forEach((u, i) => { u.orderNumber = i + 1; });
+            } else {
+                body.externUsers.forEach(u => { delete u.orderNumber; });
+            }
+        }
     } else if (Array.isArray(body.externUsers)) {
         for (const user of body.externUsers) {
             user[key] = value;
+        }
+        // When SMS is toggled, add/remove the recipientsms phone number
+        if (key === 'sendSMS') {
+            for (const user of body.externUsers) {
+                if (value) {
+                    if (!user.recipientsms) user.recipientsms = '+15550100' + String(body.externUsers.indexOf(user)).padStart(2, '0');
+                } else {
+                    delete user.recipientsms;
+                }
+            }
         }
     }
     setEditorValue('op-extern', body);
@@ -600,6 +618,14 @@ function buildExternBodyFromRoles() {
     }
 
     const inOrder = getExternOption('inOrder') === true;
+    // When sequential signing is enabled, each user needs an orderNumber
+    if (inOrder) {
+        externUsers.forEach((u, i) => { u.orderNumber = i + 1; });
+    }
+    // When SMS is enabled, each user needs a recipientsms phone number
+    if (sendSMS) {
+        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+15550100' + String(i).padStart(2, '0'); });
+    }
     const body = {
         sessionid: state.sessionId || '<session-id>',
         externUsers,

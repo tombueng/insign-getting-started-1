@@ -204,6 +204,15 @@ function getDefaultExternBody() {
         externUsers = roles.map(role => _randomExternUser(role, savedOpts));
     }
 
+    // When sequential signing is enabled, each user needs an orderNumber
+    if (savedOpts.inOrder) {
+        externUsers.forEach((u, i) => { u.orderNumber = i + 1; });
+    }
+    // When SMS is enabled, each user needs a recipientsms phone number
+    if (savedOpts.sendSMS) {
+        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+15550100' + String(i).padStart(2, '0'); });
+    }
+
     return {
         sessionid: state.sessionId || '<session-id>',
         externUsers,

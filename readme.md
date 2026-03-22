@@ -108,7 +108,7 @@ It uses a **pluggable API client architecture** - choose between two included im
 ### Quick Start
 
 ```bash
-cd src/java
+cd src/java/app
 mvn spring-boot:run -Pspring-client    # Option A (default)
 # or
 mvn spring-boot:run -Pinsign-client    # Option B
@@ -130,8 +130,8 @@ You must specify a Maven profile to select the API client implementation (see ta
 
 | Option | Profile | Start Command | Module | Class | Dependencies |
 |---|---|---|---|---|---|
-| **A** (default) | `-Pspring-client` | `mvn spring-boot:run -Pspring-client` | `spring-insign-api-client-impl` | `SpringRestInsignApiClient` | Spring Boot only |
-| **B** | `-Pinsign-client` | `mvn spring-boot:run -Pinsign-client` | `insign-client-api-impl` | `InsignJavaApiClient` | `insign-java-api` from GitHub Packages |
+| **A** (default) | `-Pspring-client` | `mvn spring-boot:run -Pspring-client` (from `app/`) | `spring-insign-api-client-impl` | `SpringRestInsignApiClient` | Spring Boot only |
+| **B** | `-Pinsign-client` | `mvn spring-boot:run -Pinsign-client` (from `app/`) | `insign-client-api-impl` | `InsignJavaApiClient` | `insign-java-api` from GitHub Packages |
 | **C** | *(custom)* | *(depends on your setup)* | *(your own)* | `implements InsignApiService` | Whatever you need |
 
 See the [Java README](src/java/README.md) for full details on architecture, configuration, all REST endpoints, the POJO model, how to write your own implementation, GitHub Packages setup, and testing.

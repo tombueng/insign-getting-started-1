@@ -111,9 +111,9 @@ async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 106) {
         // Reuse pdf.js lib from PdfViewer if loaded, otherwise import
         let pdfjsLib = state.pdfViewer?.lib;
         if (!pdfjsLib) {
-            pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.mjs');
+            pdfjsLib = await import('vendor/pdfjs-dist/build/pdf.min.mjs');
             pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.worker.min.mjs';
+                'vendor/pdfjs-dist/build/pdf.worker.min.mjs';
         }
         const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
         const page = await pdf.getPage(1);

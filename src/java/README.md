@@ -15,15 +15,17 @@ The project uses a **pluggable API client architecture**: all application logic 
 ## Quick Start
 
 ```bash
-mvn spring-boot:run
+mvn clean install -DskipTests    # build all modules
+cd app
+mvn spring-boot:run              # start the app
 # Open http://localhost:8090
 ```
 
 Or build a JAR:
 
 ```bash
-mvn clean package -DskipTests
-java -jar target/insign-getting-started-1.0.0.jar
+mvn clean package -DskipTests    # from src/java/
+java -jar app/target/insign-getting-started-1.0.0.jar
 ```
 
 Connects to the inSign sandbox by default. Stop with Ctrl+C (immediate shutdown, no delay).

@@ -6,6 +6,16 @@
  * (steps 1-4) with navbar, dark mode toggle, feature showcase, and API
  * buttons (sendStep, openInInsign, etc.) which are intentionally skipped.
  *
+ * The test also exercises the full signing flow against the real sandbox,
+ * using a MITM proxy (Playwright route interception) to selectively tamper:
+ *   - /version is intercepted and returns 404 (simulate endpoint not found)
+ *   - "Send to Sandbox" creates a real session on the sandbox
+ *   - Waits for confetti #1 (session creation celebration)
+ *   - /get/status is proxied through, but after baseline calls the response
+ *     is modified to inject numberOfSignatures: 1 (faking a signature)
+ *   - Waits for confetti #2 (signing celebration with 3x particles)
+ * All other sandbox requests pass through untouched.
+ *
  * Usage:  node test/ui-smoke.test.js [--headed]
  *
  * Requires: npx playwright install chromium
@@ -24,6 +34,8 @@ const BASE_URL = `http://localhost:${PORT}`;
 const HEADED = process.argv.includes('--headed');
 const SLOW_MO = HEADED ? 80 : 0;
 
+const SANDBOX_ORIGIN = 'https://sandbox.test.getinsign.show';
+
 // Buttons that trigger destructive/external actions we want to skip
 const SKIP_BUTTON_SELECTORS = [
     '#btn-clear-all-storage',        // wipes localStorage
@@ -32,13 +44,82 @@ const SKIP_BUTTON_SELECTORS = [
 ];
 
 // onclick handlers that call the real API (no backend in test)
+// Note: sendStep is NOT skipped here - we intercept it via route mocking
 const SKIP_ONCLICK_PATTERNS = [
-    'sendStep',
     'openInInsign',
     'openAsOwner',
     'refreshSessionStatus',
     'copySessionId',
 ];
+
+// ---------------------------------------------------------------------------
+// MITM proxy - intercepts sandbox requests, forwards to real server,
+// and selectively tampers with responses to drive the signing flow.
+// ---------------------------------------------------------------------------
+
+/**
+ * Track /get/status calls to know when to inject the fake signature.
+ * The app calls /get/status multiple times:
+ *   - After session creation: fetchStatusAndBuildExternUsers (1x)
+ *   - Sidebar refreshSessionStatus auto-poll (every 10s)
+ *   - Signature watch: fetchSignatureCount for baseline (1x), then every 4s
+ * We inject the signature only after `injectAfterCall` calls, giving the
+ * signature watch time to establish its baseline with 0 signatures first.
+ */
+let statusCallCount = 0;
+let injectAfterCall = 6;
+
+function setupMitmProxy(page) {
+    // /version - intercept and return 404 (simulate endpoint not found)
+    page.route(`${SANDBOX_ORIGIN}/version`, route => {
+        console.log('[MITM] /version -> 404 (simulated)');
+        route.fulfill({ status: 404, body: 'Not Found' });
+    });
+
+    // /get/status - forward to real sandbox, then tamper with the response
+    // to inject a signature after enough baseline calls
+    page.route(`${SANDBOX_ORIGIN}/get/status`, async route => {
+        statusCallCount++;
+        const injectSignature = statusCallCount > injectAfterCall;
+
+        // Forward the request to the real sandbox
+        const response = await route.fetch();
+        const status = response.status();
+        let body = await response.text();
+
+        if (injectSignature && status === 200) {
+            try {
+                const data = JSON.parse(body);
+                // Bump numberOfSignatures on every document
+                if (Array.isArray(data.documentData)) {
+                    for (const doc of data.documentData) {
+                        doc.numberOfSignatures = Math.max(doc.numberOfSignatures || 0, 1);
+                    }
+                }
+                // Mark all signature fields as signed
+                if (Array.isArray(data.signaturFieldsStatusList)) {
+                    for (const field of data.signaturFieldsStatusList) {
+                        field.signed = true;
+                    }
+                }
+                body = JSON.stringify(data);
+                console.log(`[MITM] /get/status (call #${statusCallCount}) -> injected signature`);
+            } catch {
+                console.log(`[MITM] /get/status (call #${statusCallCount}) -> forwarded (parse error)`);
+            }
+        } else {
+            console.log(`[MITM] /get/status (call #${statusCallCount}) -> forwarded (${status})`);
+        }
+
+        route.fulfill({
+            status,
+            headers: response.headers(),
+            body,
+        });
+    });
+
+    // Everything else passes through to the real sandbox untouched
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,6 +148,50 @@ function isConsoleError(msg) {
     return msg.type() === 'error';
 }
 
+/**
+ * Wait for confetti to start by watching the #confetti-canvas for drawing
+ * activity. Returns true if confetti was detected, false on timeout.
+ */
+async function waitForConfetti(page, label, timeoutMs = 15000) {
+    console.log(`[*] Waiting for ${label}...`);
+    try {
+        await page.waitForFunction(() => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return false;
+            const ctx = canvas.getContext('2d');
+            // Check if there are non-transparent pixels (confetti drawn)
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 3; i < data.length; i += 4) {
+                if (data[i] > 0) return true; // found a non-transparent pixel
+            }
+            return false;
+        }, { timeout: timeoutMs });
+        console.log(`[*] ${label} detected!`);
+        return true;
+    } catch {
+        console.log(`[*] ${label} NOT detected (timeout)`);
+        return false;
+    }
+}
+
+/**
+ * Wait for confetti canvas to clear (animation finished).
+ */
+async function waitForConfettiEnd(page, timeoutMs = 20000) {
+    try {
+        await page.waitForFunction(() => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return true;
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 3; i < data.length; i += 4) {
+                if (data[i] > 0) return false;
+            }
+            return true;
+        }, { timeout: timeoutMs });
+    } catch { /* animation still running, continue anyway */ }
+}
+
 // ---------------------------------------------------------------------------
 // Main test runner
 // ---------------------------------------------------------------------------
@@ -77,6 +202,8 @@ function isConsoleError(msg) {
         clickedButtons: [],
         skippedButtons: [],
         failedClicks: [],
+        confetti1: false,
+        confetti2: false,
     };
 
     // --- Start static file server ---
@@ -104,12 +231,18 @@ function isConsoleError(msg) {
         });
         const page = await context.newPage();
 
+        // --- Set up MITM proxy BEFORE navigating ---
+        setupMitmProxy(page);
+
         // --- Capture console errors ---
         page.on('console', msg => {
             if (isConsoleError(msg)) {
                 const text = msg.text();
-                // Ignore known noise (favicon, font loading, etc.)
+                // Ignore known noise (favicon, font loading, MITM'd endpoints, etc.)
                 if (text.includes('favicon') || text.includes('ERR_CONNECTION_REFUSED')) return;
+                if (text.includes('/version')) return; // expected 404 from MITM
+                const loc = msg.location();
+                if (loc && loc.url && loc.url.includes('/version')) return; // 404 resource error
                 results.consoleErrors.push({
                     text,
                     location: msg.location(),
@@ -138,6 +271,14 @@ function isConsoleError(msg) {
         await page.waitForTimeout(3000);
 
         // -----------------------------------------------------------------
+        // Verify /version 404 produced the sandbox warning banner
+        // -----------------------------------------------------------------
+        console.log('\n[*] Checking /version 404 handling...');
+        const warningBanner = page.locator('.sandbox-warning');
+        const warningVisible = await warningBanner.isVisible().catch(() => false);
+        console.log(`[*] Sandbox warning banner visible: ${warningVisible}`);
+
+        // -----------------------------------------------------------------
         // Step 1 - visible on load
         // -----------------------------------------------------------------
         console.log('\n[Step 1] Checking initial page...');
@@ -147,6 +288,15 @@ function isConsoleError(msg) {
 
         // Click safe buttons in step 1 (skip API-calling ones)
         await clickSafeButtons(page, '#step1', results, 1);
+
+        // -----------------------------------------------------------------
+        // Dismiss any popups/backdrops that may have opened
+        // -----------------------------------------------------------------
+        await page.evaluate(() => {
+            document.querySelectorAll('.curl-popup-backdrop, .modal-backdrop').forEach(el => el.remove());
+            document.querySelectorAll('.curl-popup').forEach(el => el.remove());
+        });
+        await page.waitForTimeout(200);
 
         // -----------------------------------------------------------------
         // Navbar interactions
@@ -202,26 +352,82 @@ function isConsoleError(msg) {
             } catch { /* item may not be clickable */ }
         }
 
-        // -----------------------------------------------------------------
-        // Use cheat buttons to reveal hidden steps (if they exist)
-        // -----------------------------------------------------------------
-        console.log('\n[*] Trying cheat buttons to reveal steps...');
+        // =================================================================
+        // SIGNING FLOW - Mock API integration test
+        // =================================================================
+        console.log('\n' + '='.repeat(50));
+        console.log('  SIGNING FLOW (mocked API)');
+        console.log('='.repeat(50));
 
-        // cheatCreateSession() reveals steps 2-4
-        const cheatBtn = page.locator('.cheat-btn').first();
-        if (await cheatBtn.count() > 0) {
-            try {
-                // Cheat buttons are nearly invisible (opacity 0.3), force click
-                await cheatBtn.click({ force: true, timeout: 3000 });
-                await page.waitForTimeout(1000);
-                results.clickedButtons.push('[Cheat] Skipped step 1');
-                console.log('[*] Cheat button clicked, steps revealed');
-            } catch {
-                console.log('[*] Could not click cheat button');
-            }
+        // Clear the confetti cookie so confetti #1 fires
+        await page.evaluate(() => {
+            document.cookie = 'insign_confetti_seen=; max-age=0; path=/';
+        });
+
+        // -----------------------------------------------------------------
+        // Click "Send to Sandbox" to create a session (mocked)
+        // -----------------------------------------------------------------
+        console.log('\n[Flow] Clicking "Send to Sandbox" button...');
+
+        // Find the Step 1 send button (onclick="sendStep(1)")
+        const sendBtn = page.locator('#step1 button[onclick*="sendStep(1)"]').first();
+        if (await sendBtn.isVisible()) {
+            await sendBtn.click({ timeout: 5000 });
+            results.clickedButtons.push('[Flow] Send to Sandbox (sendStep 1)');
+            console.log('[Flow] sendStep(1) triggered');
+
+            // Wait for the mocked /configure/session to complete and UI to update
+            await page.waitForTimeout(2000);
+
+            // -----------------------------------------------------------------
+            // Wait for Confetti #1 (session creation celebration)
+            // -----------------------------------------------------------------
+            results.confetti1 = await waitForConfetti(page, 'Confetti #1 (session created)');
+
+            // Verify the success banner appeared
+            const successBanner = page.locator('.step-success-banner.banner-session');
+            const bannerVisible = await successBanner.isVisible().catch(() => false);
+            console.log(`[Flow] Session success banner visible: ${bannerVisible}`);
+
+            // Verify session ID was set
+            const sessionIdSet = await page.evaluate(() => {
+                return typeof sessionId !== 'undefined' && sessionId !== null && sessionId.length > 0;
+            });
+            console.log(`[Flow] Session ID set in app: ${sessionIdSet}`);
+
+            // Wait for confetti #1 to finish before checking confetti #2
+            await waitForConfettiEnd(page, 10000);
+
+            // -----------------------------------------------------------------
+            // Start signature watch
+            // In normal usage, startSignatureWatch() is called when the user
+            // clicks "Open Session Now as Owner" (openAsOwner), which opens
+            // the session in a new tab. Since we can't open tabs in headless,
+            // we start the watch manually. It polls /get/status every 4s.
+            // Our MITM proxy injects numberOfSignatures: 1 after the
+            // baseline calls, triggering showSigningCelebration().
+            // -----------------------------------------------------------------
+            console.log('\n[Flow] Starting signature watch (normally triggered by "Open as Owner")...');
+            await page.evaluate(() => startSignatureWatch());
+            console.log('[Flow] Waiting for signature watch to detect MITM-injected signature...');
+
+            results.confetti2 = await waitForConfetti(page, 'Confetti #2 (signature detected)', 25000);
+
+            // Verify the signing celebration banner appeared
+            const celebrationBanner = page.locator('.banner-signed');
+            const celebrationVisible = await celebrationBanner.isVisible().catch(() => false);
+            console.log(`[Flow] Signing celebration banner visible: ${celebrationVisible}`);
+
+            // Wait for confetti #2 to finish
+            await waitForConfettiEnd(page, 20000);
+
+        } else {
+            console.log('[Flow] SKIP - Send button not found or not visible');
         }
 
-        // Check if step 2 is now visible
+        // -----------------------------------------------------------------
+        // Check if further steps are now visible after session creation
+        // -----------------------------------------------------------------
         for (const stepNum of [2, 3, 4]) {
             const stepEl = page.locator(`#step${stepNum}`);
             if (await stepEl.isVisible()) {
@@ -250,6 +456,11 @@ function isConsoleError(msg) {
         console.log(`  Click failures:    ${results.failedClicks.length}`);
         console.log(`  Console errors:    ${results.consoleErrors.length}`);
         console.log(`  Uncaught exceptions: ${results.uncaughtExceptions.length}`);
+
+        console.log('\n--- SIGNING FLOW ---');
+        console.log(`  Confetti #1 (session created):   ${results.confetti1 ? 'PASS' : 'FAIL'}`);
+        console.log(`  Confetti #2 (signature detected): ${results.confetti2 ? 'PASS' : 'FAIL'}`);
+        console.log(`  /get/status calls intercepted:    ${statusCallCount}`);
 
         if (results.consoleErrors.length > 0) {
             console.log('\n--- CONSOLE ERRORS ---');
@@ -285,12 +496,17 @@ function isConsoleError(msg) {
         console.log('\n' + '='.repeat(70));
 
         const hasErrors = results.consoleErrors.length > 0 || results.uncaughtExceptions.length > 0;
-        if (hasErrors) {
-            console.log('  RESULT: FAIL - browser errors detected');
+        const flowFailed = !results.confetti1 || !results.confetti2;
+        if (hasErrors || flowFailed) {
+            const reasons = [];
+            if (hasErrors) reasons.push('browser errors detected');
+            if (!results.confetti1) reasons.push('confetti #1 not fired');
+            if (!results.confetti2) reasons.push('confetti #2 not fired');
+            console.log(`  RESULT: FAIL - ${reasons.join(', ')}`);
             console.log('='.repeat(70));
             process.exitCode = 1;
         } else {
-            console.log('  RESULT: PASS - no browser errors');
+            console.log('  RESULT: PASS - no browser errors, full signing flow verified');
             console.log('='.repeat(70));
         }
 

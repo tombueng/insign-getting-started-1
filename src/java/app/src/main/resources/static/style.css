@@ -313,6 +313,22 @@ code {
     color: var(--insign-danger) !important;
 }
 
+/* === Request/Response labels ============================================= */
+
+.response-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--insign-gray);
+    font-weight: 700;
+    margin-bottom: 4px;
+    margin-top: 6px;
+}
+
+.response-label:first-child {
+    margin-top: 0;
+}
+
 /* === Webhook events ===================================================== */
 
 .webhook-event {
