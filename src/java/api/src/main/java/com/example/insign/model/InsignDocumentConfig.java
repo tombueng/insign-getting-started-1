@@ -11,8 +11,8 @@ import lombok.ToString;
 import java.io.InputStream;
 
 /**
- * Document descriptor within a session configuration.
- * Field names match JSONConfigureDocument from the inSign REST API.
+ * Configuration for a single document within a session.
+ * Field names match the ConfigureDocument schema from the inSign REST API.
  *
  * The document content can be provided in multiple ways:
  * - {@code file}: inline as base64-encoded bytes (sent with the JSON request)
@@ -27,23 +27,34 @@ import java.io.InputStream;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignDocumentConfig {
 
+    /** Document ID used to reference this document later. Leave empty to auto-generate a UID. */
     private String id;
+
+    /** Display name of the document in the UI, emails, and downloads. */
     private String displayname;
+
+    /** @deprecated Whether this document must be signed. Default is false. */
     private boolean mustbesigned;
+
+    /** Whether this document must be read before the process can complete. */
     private boolean mustberead;
+
+    /** Whether the document may be changed via the PDF editor. Default is true. */
     private Boolean allowFormEditing;
+
+    /** Whether this document should be scanned for SIG tags; overrides the global inSign setting. */
     private Boolean scanSigTags;
 
-    /** Inline document content as bytes (base64 in JSON). */
+    /** The document content as a byte array (base64-encoded in JSON). Null when uploading via /configure/uploaddocument. */
     private byte[] file;
 
-    /** URL for the inSign server to download the document from. */
+    /** URL where the inSign server can download the document. */
     private String fileURL;
 
-    /** Username for authenticated URL download. */
+    /** Username for authenticated download from fileURL. */
     private String fileDownloadUser;
 
-    /** Password for authenticated URL download. */
+    /** Password for authenticated download from fileURL. */
     private String fileDownloadPassword;
 
     /**
