@@ -307,6 +307,10 @@ Tests cover:
 
 ---
 
+[Impressum](https://www.getinsign.de/impressum/) | [Datenschutz](https://www.getinsign.de/datenschutz/)
+
+---
+
 ## License
 
 Demo application for educational purposes. See inSign licensing for the signature pad component.

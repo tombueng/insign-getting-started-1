@@ -452,3 +452,7 @@ The workflow generates a `settings.xml` with two server entries:
 | `index.html` | Single-page web UI with buttons for every API operation, an embedded iframe for the signing UI, and a live event log |
 | `thankyou.html` | Redirect target shown to signers after completing the signing process |
 | `style.css` | Dark-themed UI styles |
+
+---
+
+[Impressum](https://www.getinsign.de/impressum/) | [Datenschutz](https://www.getinsign.de/datenschutz/)

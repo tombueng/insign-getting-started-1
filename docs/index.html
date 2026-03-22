@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script>!function(){var d=!0;try{var s=localStorage.getItem('insign-dark-mode');if(s!==null)d=s==='true'}catch(e){}document.documentElement.setAttribute('data-theme',d?'dark':'light')}()</script>
+    <script>!function(){var d=!0;try{var s=localStorage.getItem('insign-dark-mode');if(s!==null)d=s==='true'}catch(e){}document.documentElement.setAttribute('data-theme',d?'dark':'light');if('scrollRestoration' in history)history.scrollRestoration='manual'}()</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>inSign API - Getting Started</title>
     <link rel="icon" href="favicon.png" sizes="32x32">
@@ -248,6 +248,104 @@
             margin-top: 0.5rem;
         }
 
+        /* Session details in success banner */
+        .session-details {
+            text-align: left;
+            max-width: 640px;
+            margin: 1rem auto 0;
+        }
+        .session-detail-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2px 12px;
+            font-size: 0.78rem;
+            margin-bottom: 0.75rem;
+            background: var(--insign-code-bg);
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-input);
+            padding: 0.6rem 0.85rem;
+        }
+        .session-detail-grid dt {
+            color: var(--insign-text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .session-detail-grid dd {
+            color: var(--insign-text);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            margin: 0;
+            word-break: break-all;
+        }
+        .session-doc-card {
+            background: var(--insign-code-bg);
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-input);
+            padding: 0.6rem 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        .session-doc-card h6 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--insign-text);
+            margin: 0 0 0.4rem;
+        }
+        .session-doc-card h6 i {
+            color: var(--insign-blue);
+            margin-right: 4px;
+        }
+        .sig-field-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sig-field-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 0.75rem;
+            color: var(--insign-text-muted);
+            border-top: 1px solid var(--insign-border);
+        }
+        .sig-field-item:first-child { border-top: none; }
+        .sig-field-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            background: rgba(1, 101, 188, 0.1);
+            color: var(--insign-blue);
+            font-size: 0.65rem;
+            flex-shrink: 0;
+        }
+        .sig-field-role {
+            font-weight: 600;
+            color: var(--insign-text);
+        }
+        .sig-field-tag {
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 3px;
+            background: rgba(1, 101, 188, 0.08);
+            color: var(--insign-blue);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .sig-fields-loading {
+            font-size: 0.75rem;
+            color: var(--insign-text-muted);
+            padding: 6px 0;
+        }
+        .sig-fields-loading .btn-spinner {
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
         /* Signer links cards after step 2 */
         .signer-links-banner {
             max-width: 960px;
@@ -449,6 +547,12 @@
         .scroll-reveal.reveal-scale { transform: scale(0.85); }
         .scroll-reveal.reveal-rotate { transform: rotate(-4deg) translateY(40px); }
         .scroll-reveal.reveal-flip { transform: perspective(800px) rotateX(15deg) translateY(40px); }
+        .scroll-reveal.reveal-pop {
+            transform: scale(0);
+            opacity: 0;
+            transition: opacity 0.15s ease-out,
+                        transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
+        }
 
         /* Stagger delays for children */
         .scroll-reveal.stagger-1 { transition-delay: 0.1s; }
@@ -788,6 +892,133 @@
             .feature-preview-inner { width: 100%; }
         }
 
+        /* ============================================================
+           FLOATING EXPLORER HINT (right sidebar)
+           ============================================================ */
+        .explorer-hint {
+            position: fixed;
+            right: 16px;
+            top: 80px;
+            width: 280px;
+            z-index: 900;
+            display: none;
+        }
+        .explorer-hint.visible {
+            display: block;
+            animation: explorerHintIn 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+        }
+        .explorer-hint.dismissing {
+            animation: explorerHintOut 0.3s ease-in forwards;
+        }
+        @keyframes explorerHintIn {
+            from { opacity: 0; transform: translateX(40px) scale(0.9); }
+            to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes explorerHintOut {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to   { opacity: 0; transform: translateX(40px) scale(0.9); }
+        }
+
+        .explorer-hint-card {
+            position: relative;
+            background: var(--insign-card-bg);
+            border: 1px solid transparent;
+            border-radius: var(--insign-radius-card);
+            padding: 1.25rem 1rem 1rem;
+            box-shadow: 0 4px 24px rgba(1, 101, 188, 0.18), 0 0 0 1px rgba(1, 101, 188, 0.15);
+            background-clip: padding-box;
+            overflow: hidden;
+        }
+        /* Gradient top accent bar */
+        .explorer-hint-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--insign-blue), #7c4dff, #e91e63);
+        }
+        /* Subtle animated glow */
+        .explorer-hint-card::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(1, 101, 188, 0.12), rgba(124, 77, 255, 0.08), rgba(233, 30, 99, 0.06));
+            z-index: -1;
+            animation: explorerGlow 3s ease-in-out infinite alternate;
+        }
+        @keyframes explorerGlow {
+            from { opacity: 0.5; }
+            to   { opacity: 1; }
+        }
+
+        .explorer-hint-dismiss {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--insign-text-muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 2px 5px;
+            line-height: 1;
+            border-radius: 4px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .explorer-hint-dismiss:hover {
+            background: var(--insign-border);
+            color: var(--insign-text);
+        }
+
+        .explorer-hint-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(1, 101, 188, 0.15), rgba(124, 77, 255, 0.10));
+            color: var(--insign-blue);
+            font-size: 1.1rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .explorer-hint-card h6 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--insign-text);
+            margin-bottom: 0.4rem;
+        }
+        .explorer-hint-card p {
+            font-size: 0.76rem;
+            color: var(--insign-text-muted);
+            margin-bottom: 0.75rem;
+            line-height: 1.45;
+        }
+        .explorer-hint-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 0.75rem;
+        }
+        .explorer-hint-features li {
+            font-size: 0.73rem;
+            color: var(--insign-text-muted);
+            padding: 2px 0;
+        }
+        .explorer-hint-features li i {
+            color: var(--insign-blue);
+            margin-right: 4px;
+            font-size: 0.7rem;
+        }
+
+        /* On small screens, hide the right-side hint (session sidebar already uses bottom bar) */
+        @media (max-width: 1100px) {
+            .explorer-hint { display: none !important; }
+        }
+
         /* Mobile bottom bar: add drag handle */
         .sc-mobile-collapse {
             width: 36px;
@@ -798,9 +1029,209 @@
             margin: 6px auto 2px;
             cursor: pointer;
         }
+
+        /* Sandbox version badge */
+        .sandbox-version-badge {
+            font-size: 0.65rem;
+            font-weight: 500;
+            font-family: 'Roboto Mono', monospace;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(40, 167, 69, 0.12);
+            color: var(--insign-success);
+            border: 1px solid rgba(40, 167, 69, 0.25);
+            white-space: nowrap;
+            margin-right: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .sandbox-version-badge.visible { opacity: 1; }
+
+        /* Sandbox warning banner */
+        .sandbox-warning {
+            background: rgba(220, 53, 69, 0.08);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: var(--insign-radius-input);
+            max-width: 960px;
+            margin: 0.75rem auto;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: bannerSlideIn 0.4s ease-out;
+        }
+        .sandbox-warning i {
+            font-size: 1.2rem;
+            color: var(--insign-danger, #dc3545);
+            flex-shrink: 0;
+        }
+        .sandbox-warning-text {
+            font-size: 0.82rem;
+            color: var(--insign-text);
+        }
+        .sandbox-warning-text strong { color: var(--insign-danger, #dc3545); }
+        .sandbox-warning-dismiss {
+            background: none;
+            border: none;
+            color: var(--insign-text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: auto;
+            padding: 2px 6px;
+            line-height: 1;
+        }
+        .sandbox-warning-dismiss:hover { color: var(--insign-text); }
+
+        /* cURL popup */
+        .curl-popup-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: curlFadeIn 0.15s ease-out;
+        }
+        @keyframes curlFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .curl-popup {
+            background: var(--insign-card-bg);
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-card);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            animation: curlSlideUp 0.2s ease-out;
+        }
+        @keyframes curlSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .curl-popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--insign-border);
+        }
+        .curl-popup-header h6 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--insign-text);
+        }
+        .curl-popup-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--insign-text-muted);
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .curl-popup-close:hover { color: var(--insign-text); }
+        .curl-popup-body {
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .curl-platform-switch {
+            display: inline-flex;
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-input);
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        .curl-platform-btn {
+            background: none;
+            border: none;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--insign-text-muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .curl-platform-btn:not(:last-child) {
+            border-right: 1px solid var(--insign-border);
+        }
+        .curl-platform-btn.active {
+            background: var(--insign-blue);
+            color: #fff;
+        }
+        .curl-popup pre {
+            background: var(--insign-code-bg);
+            border: 1px solid var(--insign-border);
+            border-radius: var(--insign-radius-input);
+            padding: 0.75rem;
+            margin: 0;
+            overflow-x: auto;
+            font-size: 0.78rem;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--insign-text);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .curl-popup-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem 0.75rem;
+            border-top: 1px solid var(--insign-border);
+        }
+        .curl-copy-feedback {
+            font-size: 0.75rem;
+            color: var(--insign-success);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .curl-copy-feedback.show { opacity: 1; }
     </style>
 </head>
 <body>
+
+<template id="tpl-curl-popup">
+    <div class="curl-popup-backdrop" onclick="closeCurlPopup(event)">
+        <div class="curl-popup" onclick="event.stopPropagation()">
+            <div class="curl-popup-header">
+                <h6><i class="bi bi-terminal me-2"></i>cURL Command</h6>
+                <button class="curl-popup-close" onclick="closeCurlPopup()" title="Close">&times;</button>
+            </div>
+            <div class="curl-popup-body">
+                <div class="curl-platform-switch">
+                    <button class="curl-platform-btn active" data-platform="unix">Unix / macOS</button>
+                    <button class="curl-platform-btn" data-platform="ps">Windows PowerShell</button>
+                    <button class="curl-platform-btn" data-platform="cmd">Windows CMD</button>
+                </div>
+                <pre><code class="curl-command-code"></code></pre>
+            </div>
+            <div class="curl-popup-footer">
+                <span class="curl-copy-feedback">Copied!</span>
+                <button class="btn btn-insign btn-insign-primary btn-insign-sm" onclick="copyCurlCommand()"><i class="bi bi-clipboard me-1"></i>Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="tpl-explorer-hint">
+    <div class="explorer-hint" id="explorer-hint">
+        <div class="explorer-hint-card">
+            <button class="explorer-hint-dismiss" onclick="dismissExplorerHint()" title="Dismiss">&times;</button>
+            <div class="explorer-hint-icon"><i class="bi bi-rocket-takeoff"></i></div>
+            <h6>Ready for the full experience?</h6>
+            <p>The <strong>inSign API Explorer</strong> gives you a complete interactive playground with powerful tools:</p>
+            <ul class="explorer-hint-features">
+                <li><i class="bi bi-check-circle-fill"></i>Schema-aware JSON editor with autocomplete</li>
+                <li><i class="bi bi-check-circle-fill"></i>Code snippets in 8 languages</li>
+                <li><i class="bi bi-check-circle-fill"></i>Real-time webhook viewer</li>
+                <li><i class="bi bi-check-circle-fill"></i>Full request/response tracing</li>
+                <li><i class="bi bi-check-circle-fill"></i>Totally free - no installation, no registration</li>
+            </ul>
+            <a href="explorer.html" class="btn btn-insign btn-insign-sm btn-insign-cta" style="width:100%;text-align:center"><i class="bi bi-play-circle me-1"></i>Open API Explorer</a>
+        </div>
+    </div>
+</template>
 
 <!-- Confetti overlay -->
 <canvas id="confetti-canvas"></canvas>
@@ -818,10 +1249,12 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
             <div class="navbar-brand-stack">
-                <img src="https://www.getinsign.com/wp-content/uploads/inSign_blank-1.svg" alt="inSign" onerror="this.src='img/inSign_logo.svg'">
+                <img src="img/inSign_logo.svg" alt="inSign">
                 <span class="navbar-brand-sub">Getting Started</span>
             </div>
         </a>
+
+        <span class="sandbox-version-badge" id="sandbox-version-badge"></span>
 
         <!-- More menu -->
         <div class="dropdown">
@@ -838,6 +1271,7 @@
         </div>
     </div>
 </nav>
+<div id="sandbox-warning-slot"></div>
 
 <!-- ====================================================================
      MAIN CONTENT
@@ -885,7 +1319,7 @@
     <div id="step-content">
 
         <!-- ========== STEP 1 ========== -->
-        <div id="step1" class="scroll-reveal reveal-up">
+        <div id="step1" class="scroll-reveal reveal-scale" style="transition-duration:1.4s">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">1</span>
@@ -908,6 +1342,7 @@
                         </div>
                         <div class="col-12">
                             <button class="btn btn-insign btn-insign-primary btn-cta-magnet" id="btn-send-step1" onclick="sendStep(1)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                            <button class="btn btn-insign btn-insign-outline btn-insign-sm ms-2" onclick="showCurlPopup(1)" title="Show cURL command"><i class="bi bi-terminal me-1"></i>cURL</button>
                             <span class="ms-2" style="font-size:0.8rem;color:var(--insign-text-muted)" id="status-step1"></span>
                         </div>
                     </div>
@@ -922,7 +1357,7 @@
         <div id="signing-celebration-slot"></div>
 
         <!-- ========== STEP 2 ========== -->
-        <div id="step2" style="display:none" class="scroll-reveal reveal-left">
+        <div id="step2" style="display:none" class="scroll-reveal reveal-pop">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">2</span>
@@ -948,6 +1383,7 @@
                         </div>
                         <div class="col-12">
                             <button class="btn btn-insign btn-insign-primary" onclick="sendStep(2)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                            <button class="btn btn-insign btn-insign-outline btn-insign-sm ms-2" onclick="showCurlPopup(2)" title="Show cURL command"><i class="bi bi-terminal me-1"></i>cURL</button>
                             <button class="btn btn-insign btn-insign-cta" id="btn-open-insign" onclick="openInInsign()"><i class="bi bi-box-arrow-up-right me-1"></i>Open in inSign</button>
                             <span class="ms-2" style="font-size:0.8rem;color:var(--insign-text-muted)" id="status-step2"></span>
                         </div>
@@ -960,7 +1396,7 @@
         <div id="step2-success-slot"></div>
 
         <!-- ========== STEP 3 ========== -->
-        <div id="step3" style="display:none" class="scroll-reveal reveal-right">
+        <div id="step3" style="display:none" class="scroll-reveal reveal-pop stagger-1">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">3</span>
@@ -981,6 +1417,7 @@
                         </div>
                         <div class="col-12">
                             <button class="btn btn-insign btn-insign-primary" onclick="sendStep(3)"><i class="bi bi-send me-1"></i>Send to Sandbox</button>
+                            <button class="btn btn-insign btn-insign-outline btn-insign-sm ms-2" onclick="showCurlPopup(3)" title="Show cURL command"><i class="bi bi-terminal me-1"></i>cURL</button>
                             <span class="ms-2" style="font-size:0.8rem;color:var(--insign-text-muted)" id="status-step3"></span>
                         </div>
                     </div>
@@ -989,7 +1426,7 @@
         </div>
 
         <!-- ========== STEP 4 ========== -->
-        <div id="step4" style="display:none" class="scroll-reveal reveal-flip">
+        <div id="step4" style="display:none" class="scroll-reveal reveal-pop stagger-2">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">4</span>
@@ -1010,6 +1447,7 @@
                         </div>
                         <div class="col-12">
                             <button class="btn btn-insign btn-insign-primary" onclick="sendStep(4)"><i class="bi bi-download me-1"></i>Download from Sandbox</button>
+                            <button class="btn btn-insign btn-insign-outline btn-insign-sm ms-2" onclick="showCurlPopup(4)" title="Show cURL command"><i class="bi bi-terminal me-1"></i>cURL</button>
                             <span class="ms-2" style="font-size:0.8rem;color:var(--insign-text-muted)" id="status-step4"></span>
                         </div>
                     </div>
@@ -1018,6 +1456,9 @@
         </div>
 
     </div><!-- /tab-content -->
+
+    <!-- Full-page spacer so Additional Resources is below the fold -->
+    <div style="height:100vh" aria-hidden="true"></div>
 
     <!-- ============================================================
          ADDITIONAL RESOURCES
@@ -1052,6 +1493,7 @@
                 </div>
                 <p>
                     <a href="explorer.html" class="btn btn-insign btn-insign-sm btn-insign-cta"><i class="bi bi-play-circle me-1"></i>Open API Explorer</a>
+                    <a href="DOCUMENTATION.md" class="btn btn-insign btn-insign-sm btn-insign-outline ms-2"><i class="bi bi-journal-text me-1"></i>Explorer Documentation</a>
                 </p>
 
                 <h5 class="mt-3"><i class="bi bi-book me-1"></i>Swagger / OpenAPI</h5>
@@ -1094,7 +1536,8 @@ tools/                       PDF generator scripts</code></pre>
 
     <!-- Footer -->
     <div class="footer-bar scroll-reveal reveal-up">
-        <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Electronic Signature Solutions
+        <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Electronic Signature Solutions<br>
+        <span style="font-size:0.72rem"><a href="https://www.getinsign.de/impressum/">Impressum</a> &middot; <a href="https://www.getinsign.de/datenschutz/">Datenschutz</a></span>
     </div>
 
 </div>
@@ -1106,7 +1549,7 @@ tools/                       PDF generator scripts</code></pre>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs/loader.js"></script>
 
-<!-- Reuse API Explorer libraries -->
+<!-- Local libraries (always loaded) -->
 <script src="js/openapi-schema-loader.js"></script>
 <script src="js/api-client.js"></script>
 
@@ -1345,6 +1788,16 @@ function initMonaco() {
             autoResizeEditor(responseEditors[i]);
         }
 
+        // Editors are now rendered - trigger step1 reveal after layout settles
+        requestAnimationFrame(function () {
+            setTimeout(function () {
+                var step1 = document.getElementById('step1');
+                if (step1 && window._scrollRevealObserver) {
+                    window._scrollRevealObserver.observe(step1);
+                }
+            }, 50);
+        });
+
         schemaLoader.load(SANDBOX.url, null).then(function (ok) {
             if (ok) {
                 schemaLoader.registerWithMonaco(monaco);
@@ -1464,9 +1917,11 @@ async function sendStep(step) {
                 localStorage.setItem('insign-cb-latest', sessionId);
             } catch (_) {}
             propagateSessionId();
-            fetchStatusAndBuildExternUsers();
+            fetchStatusAndBuildExternUsers().then(function (statusData) {
+                if (statusData) enrichBannerWithStatus(statusData);
+            });
             // Celebrate and show proceed button
-            showSessionSuccessBanner(data.sessionid, accessURL);
+            showSessionSuccessBanner(data.sessionid, accessURL, editorValue);
             showSessionSidebar();
             if (!hasSeenConfetti()) {
                 launchConfetti();
@@ -1492,9 +1947,6 @@ async function sendStep(step) {
                 document.getElementById('btn-open-insign').style.display = '';
                 showSignerLinksBanner(externData);
             }
-            // Reveal remaining steps (no scroll)
-            revealStep(3, false);
-            revealStep(4, false);
         }
 
         if (step === 3 && result.ok && data) {
@@ -1722,11 +2174,40 @@ function launchConfetti(multiplier) {
    SUCCESS BANNERS
    ========================================================================== */
 
-function showSessionSuccessBanner(sid, ownerUrl) {
+function esc(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+
+function showSessionSuccessBanner(sid, ownerUrl, requestBody) {
     var slot = document.getElementById('step1-success-slot');
+
+    // Build session info grid from request body
+    var detailsHtml = '<dl class="session-detail-grid">';
+    detailsHtml += '<dt>Session ID</dt><dd>' + esc(sid) + '</dd>';
+    if (requestBody) {
+        if (requestBody.displayname) detailsHtml += '<dt>Session Name</dt><dd>' + esc(requestBody.displayname) + '</dd>';
+        if (requestBody.userfullname) detailsHtml += '<dt>Owner</dt><dd>' + esc(requestBody.userfullname) + '</dd>';
+        if (requestBody.foruser) detailsHtml += '<dt>User ID</dt><dd>' + esc(requestBody.foruser) + '</dd>';
+    }
+    detailsHtml += '</dl>';
+
+    // Build document cards from request body
+    var docsHtml = '';
+    var docs = (requestBody && Array.isArray(requestBody.documents)) ? requestBody.documents : [];
+    for (var i = 0; i < docs.length; i++) {
+        var doc = docs[i];
+        docsHtml += '<div class="session-doc-card">' +
+            '<h6><i class="bi bi-file-earmark-pdf"></i>' + esc(doc.displayname || doc.id || 'Document ' + (i + 1)) + '</h6>';
+        if (doc.id) docsHtml += '<div style="font-size:0.72rem;color:var(--insign-text-muted);margin-bottom:4px"><strong>ID:</strong> <code style="font-size:0.72rem">' + esc(doc.id) + '</code></div>';
+        // Placeholder for signature fields (filled by enrichBannerWithStatus)
+        docsHtml += '<div class="sig-fields-slot" data-doc-id="' + esc(doc.id || '') + '">' +
+            '<div class="sig-fields-loading"><span class="btn-spinner"></span>Loading signature fields...</div>' +
+        '</div>';
+        docsHtml += '</div>';
+    }
+
     var ownerBtn = '<button class="btn btn-insign btn-insign-cta" onclick="openAsOwner(this)">' +
               '<i class="bi bi-box-arrow-up-right me-1"></i>Open Session Now as Owner' +
           '</button>';
+
     slot.innerHTML =
         '<div class="step-success-banner banner-session">' +
             '<h3><i class="bi bi-check-circle-fill me-2"></i>Great! You created your first session!</h3>' +
@@ -1735,7 +2216,10 @@ function showSessionSuccessBanner(sid, ownerUrl) {
             '<p>You can also <strong>invite signees</strong> - external participants who each receive their own ' +
             'signing link. They can sign from any device, no account needed. You can invite them now via the API, ' +
             'or do it later through the inSign UI.</p>' +
-            '<span class="session-id-display"><i class="bi bi-tag me-1"></i>Session: ' + sid + '</span>' +
+            '<div class="session-details">' +
+                detailsHtml +
+                docsHtml +
+            '</div>' +
             '<div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">' +
                 ownerBtn +
                 '<button class="btn btn-insign btn-insign-primary" onclick="revealStep(2)">' +
@@ -1749,6 +2233,55 @@ function showSessionSuccessBanner(sid, ownerUrl) {
         '</div>';
 }
 
+function enrichBannerWithStatus(statusData) {
+    var sigFields = statusData.signaturFieldsStatusList || [];
+    var docData = statusData.documentData || [];
+
+    // Group signature fields by document
+    var fieldsByDoc = {};
+    for (var i = 0; i < sigFields.length; i++) {
+        var f = sigFields[i];
+        var docId = f.docid || (docData[0] ? docData[0].docid : '');
+        if (!fieldsByDoc[docId]) fieldsByDoc[docId] = [];
+        fieldsByDoc[docId].push(f);
+    }
+
+    // Fill in each sig-fields-slot
+    var slots = document.querySelectorAll('.sig-fields-slot');
+    for (var s = 0; s < slots.length; s++) {
+        var slotDocId = slots[s].getAttribute('data-doc-id');
+        // Try exact match first, then fall back to first doc's fields
+        var fields = fieldsByDoc[slotDocId] || fieldsByDoc[Object.keys(fieldsByDoc)[0]] || [];
+
+        if (fields.length === 0) {
+            slots[s].innerHTML = '<div style="font-size:0.73rem;color:var(--insign-text-muted);padding:4px 0">No signature fields detected</div>';
+            continue;
+        }
+
+        var html = '<div style="font-size:0.72rem;color:var(--insign-text-muted);margin-bottom:4px;font-weight:500">' +
+            '<i class="bi bi-pen me-1"></i>' + fields.length + ' signature field' + (fields.length > 1 ? 's' : '') + '</div>' +
+            '<ul class="sig-field-list">';
+
+        for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            var role = field.role || field.quickInfoParsedRole || 'unknown';
+            var name = field.displayname || field.quickInfoParsedName || '';
+            var type = field.type || field.quickInfoParsedType || 'signature';
+            var required = field.required !== false;
+
+            html += '<li class="sig-field-item">' +
+                '<span class="sig-field-icon"><i class="bi bi-pen-fill"></i></span>' +
+                '<span class="sig-field-role">' + esc(role) + '</span>';
+            if (name) html += '<span style="color:var(--insign-text-muted)">' + esc(name) + '</span>';
+            html += '<span class="sig-field-tag">' + esc(type) + '</span>';
+            if (required) html += '<span class="sig-field-tag" style="background:rgba(40,167,69,0.1);color:var(--insign-success)">required</span>';
+            html += '</li>';
+        }
+        html += '</ul>';
+        slots[s].innerHTML = html;
+    }
+}
+
 function revealStep(n, scroll) {
     var el = document.getElementById('step' + n);
     if (el) {
@@ -1759,6 +2292,11 @@ function revealStep(n, scroll) {
         if (scroll !== false) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    }
+    // Revealing step 2 also reveals 3 and 4 at once
+    if (n === 2) {
+        revealStep(3, false);
+        revealStep(4, false);
     }
 }
 
@@ -1908,12 +2446,12 @@ function looksLikeEmail(s) {
 }
 
 async function fetchStatusAndBuildExternUsers() {
-    if (!sessionId) return;
+    if (!sessionId) return null;
     try {
         var result = await apiClient.call('POST', '/get/status', {
             body: { sessionid: sessionId }
         });
-        if (!result.ok || !result.body) return;
+        if (!result.ok || !result.body) return null;
         var data = result.body;
 
         // Collect unique roles and any associated info from sig fields
@@ -1935,7 +2473,7 @@ async function fetchStatusAndBuildExternUsers() {
             }
         }
 
-        if (roleInfos.length === 0) return;
+        if (roleInfos.length === 0) return data;
 
         var externUsers = roleInfos.map(function (info, idx) {
             var fallbackName = SIGNER_NAMES[idx % SIGNER_NAMES.length];
@@ -1958,7 +2496,8 @@ async function fetchStatusAndBuildExternUsers() {
         };
 
         editors[2].setValue(JSON.stringify(step2Json, null, 2));
-    } catch (_) {}
+        return data;
+    } catch (_) { return null; }
 }
 
 function updateStep4DocId() {
@@ -2468,7 +3007,7 @@ function _escSc(s) {
 (function () {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    var observer = new IntersectionObserver(function (entries) {
+    var observer = window._scrollRevealObserver = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
             var el = entry.target;
             if (entry.isIntersecting) {
@@ -2493,9 +3032,10 @@ function _escSc(s) {
         rootMargin: '0px 0px -40px 0px'
     });
 
-    // Observe on DOM ready
+    // Observe on DOM ready (skip step1 - it waits for Monaco)
     $(function () {
         document.querySelectorAll('.scroll-reveal').forEach(function (el) {
+            if (el.id === 'step1') return;
             observer.observe(el);
         });
     });
@@ -2519,12 +3059,227 @@ function _escSc(s) {
 })();
 
 /* ==========================================================================
+   EXPLORER HINT (floating right-side card)
+   ========================================================================== */
+
+var explorerHintShown = false;
+
+function showExplorerHint() {
+    if (explorerHintShown) return;
+    if (document.getElementById('explorer-hint')) return;
+    explorerHintShown = true;
+
+    var tpl = document.getElementById('tpl-explorer-hint');
+    var clone = tpl.content.cloneNode(true);
+    document.body.appendChild(clone);
+
+    // Small delay so the DOM insertion completes before triggering the animation
+    requestAnimationFrame(function () {
+        var el = document.getElementById('explorer-hint');
+        if (el) el.classList.add('visible');
+    });
+}
+
+function dismissExplorerHint() {
+    var el = document.getElementById('explorer-hint');
+    if (!el) return;
+    el.classList.add('dismissing');
+    el.addEventListener('animationend', function () {
+        el.remove();
+    });
+}
+
+// Hook into revealStep to trigger the hint when step 3 appears
+(function () {
+    var origRevealStep = window.revealStep;
+    if (typeof origRevealStep !== 'function') return;
+    window.revealStep = function (n, scroll) {
+        origRevealStep(n, scroll);
+        if (n >= 3) {
+            // Delay slightly so the step card animates in first
+            setTimeout(showExplorerHint, 800);
+        }
+    };
+})();
+
+/* ==========================================================================
+   cURL POPUP
+   ========================================================================== */
+
+var curlPopupEl = null;
+var curlCurrentPlatform = 'unix';
+var curlCurrentStep = null;
+
+function buildCurlCommand(step, platform) {
+    var stepDef = STEPS[step];
+    var editorValue = editors[step] ? editors[step].getValue() : '{}';
+
+    var url = SANDBOX.url + stepDef.path;
+    var user = SANDBOX.username;
+    var pass = SANDBOX.password;
+
+    // For step 4 (query params), append as query string
+    if (stepDef.bodyType === 'query') {
+        try {
+            var params = JSON.parse(editorValue);
+            var qs = Object.keys(params).map(function (k) {
+                return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+            }).join('&');
+            if (qs) url += '?' + qs;
+        } catch (_) {}
+    }
+
+    if (platform === 'cmd') {
+        // Windows CMD: use double quotes, escape inner double quotes with \"
+        var lines = ['curl -X ' + stepDef.method + ' "' + url + '"'];
+        lines.push('  -u "' + user + ':' + pass + '"');
+        if (stepDef.bodyType === 'json') {
+            lines.push('  -H "Content-Type: application/json"');
+            // CMD: replace " inside JSON with \"
+            var body = editorValue.replace(/\r?\n/g, '').replace(/\s+/g, ' ');
+            lines.push('  -d "' + body.replace(/"/g, '\\"') + '"');
+        }
+        if (step === 4) {
+            lines.push('  -o signed-document.pdf');
+        }
+        return lines.join(' ^\n');
+    }
+
+    if (platform === 'ps') {
+        // PowerShell: use backtick for line continuation
+        var lines = ['curl -X ' + stepDef.method + ' "' + url + '"'];
+        lines.push('  -u "' + user + ':' + pass + '"');
+        if (stepDef.bodyType === 'json') {
+            lines.push('  -H "Content-Type: application/json"');
+            var body = editorValue.replace(/\r?\n/g, '').replace(/\s+/g, ' ');
+            // PowerShell: escape inner " with \"
+            lines.push('  -d "' + body.replace(/"/g, '\\"') + '"');
+        }
+        if (step === 4) {
+            lines.push('  -o signed-document.pdf');
+        }
+        return lines.join(' `\n');
+    }
+
+    // Unix (default): use single quotes for body
+    var lines = ['curl -X ' + stepDef.method + " '" + url + "'"];
+    lines.push("  -u '" + user + ':' + pass + "'");
+    if (stepDef.bodyType === 'json') {
+        lines.push("  -H 'Content-Type: application/json'");
+        // Pretty-print the body for readability
+        try {
+            var parsed = JSON.parse(editorValue);
+            var pretty = JSON.stringify(parsed, null, 2);
+            lines.push("  -d '" + pretty + "'");
+        } catch (_) {
+            lines.push("  -d '" + editorValue.replace(/'/g, "'\\''") + "'");
+        }
+    }
+    if (step === 4) {
+        lines.push('  -o signed-document.pdf');
+    }
+    return lines.join(' \\\n');
+}
+
+function showCurlPopup(step) {
+    closeCurlPopup();
+    curlCurrentStep = step;
+    curlCurrentPlatform = 'unix';
+
+    var tpl = document.getElementById('tpl-curl-popup');
+    var clone = tpl.content.cloneNode(true);
+    var backdrop = clone.querySelector('.curl-popup-backdrop');
+
+    // Wire platform buttons
+    var platformBtns = backdrop.querySelectorAll('.curl-platform-btn');
+    platformBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            platformBtns.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            curlCurrentPlatform = btn.getAttribute('data-platform');
+            updateCurlCode();
+        });
+    });
+
+    document.body.appendChild(backdrop);
+    curlPopupEl = backdrop;
+    updateCurlCode();
+
+    // Close on Escape
+    document.addEventListener('keydown', curlEscHandler);
+}
+
+function curlEscHandler(e) {
+    if (e.key === 'Escape') closeCurlPopup();
+}
+
+function closeCurlPopup(e) {
+    // If called from backdrop click, only close if clicking backdrop itself
+    if (e && e.target !== e.currentTarget) return;
+    if (curlPopupEl) {
+        curlPopupEl.remove();
+        curlPopupEl = null;
+    }
+    document.removeEventListener('keydown', curlEscHandler);
+}
+
+function updateCurlCode() {
+    if (!curlPopupEl || curlCurrentStep === null) return;
+    var code = curlPopupEl.querySelector('.curl-command-code');
+    code.textContent = buildCurlCommand(curlCurrentStep, curlCurrentPlatform);
+}
+
+function copyCurlCommand() {
+    if (!curlPopupEl) return;
+    var code = curlPopupEl.querySelector('.curl-command-code');
+    navigator.clipboard.writeText(code.textContent).then(function () {
+        var fb = curlPopupEl.querySelector('.curl-copy-feedback');
+        fb.classList.add('show');
+        setTimeout(function () { fb.classList.remove('show'); }, 1500);
+    });
+}
+
+/* ==========================================================================
    INIT
    ========================================================================== */
 
 $(function () {
+    window.scrollTo(0, 0);
     initMonaco();
+    checkSandboxVersion();
 });
+
+function checkSandboxVersion() {
+    fetch(SANDBOX.url + '/version', { mode: 'cors' })
+        .then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        })
+        .then(function (text) {
+            var version = text.trim();
+            // Response might be JSON
+            try {
+                var json = JSON.parse(version);
+                version = json.version || json.Version || json.build || JSON.stringify(json);
+            } catch (_) {}
+            var badge = document.getElementById('sandbox-version-badge');
+            badge.textContent = 'sandbox ' + version;
+            badge.classList.add('visible');
+        })
+        .catch(function () {
+            var slot = document.getElementById('sandbox-warning-slot');
+            slot.innerHTML =
+                '<div class="sandbox-warning">' +
+                    '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                    '<div class="sandbox-warning-text">' +
+                        '<strong>Sandbox unreachable</strong> - The inSign sandbox at <code>' + SANDBOX.url + '</code> ' +
+                        'could not be reached from your network. It may be temporarily down or blocked by a firewall. ' +
+                        'API calls in the steps below will likely fail.' +
+                    '</div>' +
+                    '<button class="sandbox-warning-dismiss" onclick="this.parentElement.remove()" title="Dismiss">&times;</button>' +
+                '</div>';
+        });
+}
 </script>
 
 </body>

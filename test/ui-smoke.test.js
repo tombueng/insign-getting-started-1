@@ -1,11 +1,15 @@
 /**
- * UI Smoke Test - loads the application, clicks through visible interactive
- * elements, and watches the browser console for errors.
+ * UI Smoke Test for the iSign Getting Started Explorer (docs/index.html).
+ *
+ * Loads the application, clicks through visible interactive elements, and
+ * watches the browser console for errors. The app is a multi-step wizard UI
+ * (steps 1-4) with navbar, dark mode toggle, feature showcase, and API
+ * buttons (sendStep, openInInsign, etc.) which are intentionally skipped.
  *
  * Usage:  node test/ui-smoke.test.js [--headed]
  *
  * Requires: npx playwright install chromium
- * The script starts a local static server (npx serve) automatically.
+ * The script starts a local static server (npx serve docs/) automatically.
  */
 
 const { chromium } = require('playwright');

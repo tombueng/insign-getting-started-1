@@ -693,3 +693,7 @@ docs/
   fonts/                        # Web fonts
 cors-proxy.js                   # Local Node.js CORS proxy (~80 lines)
 ```
+
+---
+
+**[inSign GmbH](https://www.getinsign.com/)** - Electronic Signature Solutions | [Impressum](https://www.getinsign.de/impressum/) | [Datenschutz](https://www.getinsign.de/datenschutz/)

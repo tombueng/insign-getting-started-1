@@ -135,3 +135,10 @@ You must specify a Maven profile to select the API client implementation (see ta
 | **C** | *(custom)* | *(depends on your setup)* | *(your own)* | `implements InsignApiService` | Whatever you need |
 
 See the [Java README](src/java/README.md) for full details on architecture, configuration, all REST endpoints, the POJO model, how to write your own implementation, GitHub Packages setup, and testing.
+
+---
+
+<p align="center">
+  <strong><a href="https://www.getinsign.com/">inSign GmbH</a></strong> - Electronic Signature Solutions<br>
+  <sub><a href="https://www.getinsign.de/impressum/">Impressum</a> &middot; <a href="https://www.getinsign.de/datenschutz/">Datenschutz</a></sub>
+</p>
