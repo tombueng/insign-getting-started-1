@@ -311,7 +311,8 @@ The common interface implemented by all API client variants:
 | `downloadAuditReport(sessionId)` | `GET /get/audit/download` | Audit report as PDF bytes |
 | `downloadDocumentsArchive(sessionId)` | `POST /get/documents/download` | All signed documents as ZIP bytes |
 | `getSessionMetadata(sessionId)` | `POST /get/documents/full` | Document metadata including annotations |
-| `purgeSession(sessionId)` | `DELETE /persistence/purge` | Permanently deletes a session |
+| `unloadSession(sessionId)` | `POST /persistence/unloadsession` | Removes session from active sessions |
+| `purgeSession(sessionId)` | `POST /persistence/purge` | Permanently deletes a session |
 | `getUserSessions(user)` | `POST /get/usersessions` | Lists sessions for a user |
 | `queryUserSessions(sessionIds)` | `POST /get/querysessions` | Batch status query |
 

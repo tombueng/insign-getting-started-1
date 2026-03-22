@@ -87,7 +87,7 @@ public class InsignConsoleDemo implements CommandLineRunner {
         System.out.println();
 
         // 4. Cleanup
-        System.out.println("--- DELETE /persistence/purge ---");
+        System.out.println("--- POST /persistence/purge ---");
         apiService.purgeSession(sessionId);
         System.out.println("Session purged: " + sessionId);
 

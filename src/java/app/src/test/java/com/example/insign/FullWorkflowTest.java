@@ -327,7 +327,7 @@ class FullWorkflowTest {
         System.out.println("[Test] Webhook tracking OK");
     }
 
-    // --- Cleanup: always purge session, even if tests fail ---
+    // --- Cleanup: purge session, even if tests fail ---
 
     @AfterAll
     void cleanup() {
@@ -336,7 +336,7 @@ class FullWorkflowTest {
                 apiService.purgeSession(sessionId);
                 System.out.println("[Test] Session purged: " + sessionId);
             } catch (Exception e) {
-                System.out.println("[Test] Cleanup (best-effort): " + e.getMessage());
+                System.out.println("[Test] Purge (best-effort): " + e.getMessage());
             }
         }
     }

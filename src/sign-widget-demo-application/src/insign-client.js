@@ -231,6 +231,18 @@ async function downloadDocument(sessionId, docId, original) {
 }
 
 // ============================================================================
+// unloadSession — Remove a session from "Active sessions" without deleting it
+// ============================================================================
+//
+// Unloads the session from the active sessions list on the inSign server.
+// The session data is preserved but no longer shown as active.
+// Call this before purgeSession for clean teardown.
+//
+async function unloadSession(sessionId) {
+  await http().post('/persistence/unloadsession', { sessionid: sessionId });
+}
+
+// ============================================================================
 // purgeSession — Permanently delete a session from inSign
 // ============================================================================
 //
@@ -239,9 +251,7 @@ async function downloadDocument(sessionId, docId, original) {
 // is no longer needed.
 //
 async function purgeSession(sessionId) {
-  await http().delete('/persistence/purge', {
-    params: { sessionid: sessionId }
-  });
+  await http().post('/persistence/purge', { sessionid: sessionId });
 }
 
 // ============================================================================
@@ -252,6 +262,7 @@ module.exports = {
   uploadDocument,
   getStatus,
   downloadDocument,
+  unloadSession,
   purgeSession,
   INSIGN_BASE,       // Exported so the backend can tell the browser where inSign is
   AUTH               // Exported for internal use only — NEVER send to browser

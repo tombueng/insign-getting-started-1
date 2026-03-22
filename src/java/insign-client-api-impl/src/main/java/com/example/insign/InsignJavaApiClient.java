@@ -241,6 +241,15 @@ public class InsignJavaApiClient implements InsignApiService {
     }
 
     @Override
+    public void unloadSession(String sessionId) {
+        try {
+            adapter.unloadSession(sessionHandle(sessionId));
+        } catch (InSignAdapterException e) {
+            throw new InsignApiException("Failed to unload session: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void purgeSession(String sessionId) {
         try {
             adapter.deleteinSignSessionImmediately(sessionHandle(sessionId));
