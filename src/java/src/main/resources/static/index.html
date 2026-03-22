@@ -2,42 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>document.documentElement.setAttribute('data-theme','dark')</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>inSign API - Getting Started</title>
+    <title>inSign API - Getting Started Java Sample Application</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        body { padding-bottom: 160px; }
-        .status-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1030;
-                       background: #1e293b; color: #e2e8f0; font-size: 0.82rem; border-top: 2px solid #3b82f6; }
-        .status-bar .status-section { padding: 6px 12px; }
-        .status-bar .label { color: #94a3b8; font-weight: 600; }
-        .status-bar .badge-signed { background: #22c55e; }
-        .status-bar .badge-unsigned { background: #ef4444; }
-        .status-bar .badge-completed { background: #22c55e; }
-        .status-bar .badge-incomplete { background: #f59e0b; }
-        .response-card { margin-bottom: 8px; }
-        .response-card .card-header { padding: 4px 10px; font-size: 0.82rem; }
-        .response-card .card-body { padding: 8px; }
-        .response-card pre { white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; margin: 0; }
-        .response-card .timestamp { color: #6b7280; font-size: 0.75rem; }
-        .btn-action { margin: 2px; }
-        .section-title { font-size: 0.75rem; text-transform: uppercase; color: #6b7280; font-weight: 700;
-                          letter-spacing: 0.05em; margin-top: 12px; margin-bottom: 4px; }
-        .alert-toast { position: fixed; top: 70px; right: 20px; z-index: 2000; min-width: 300px; }
-        .webhook-event { font-size: 0.78rem; padding: 3px 8px; border-left: 3px solid #3b82f6;
-                          margin-bottom: 2px; background: rgba(59,130,246,0.08); }
-        .webhook-event .event-id { font-weight: 600; color: #60a5fa; }
-        .webhook-event .event-time { color: #94a3b8; font-size: 0.7rem; }
-    </style>
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-insign">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-pen"></i> inSign API - Getting Started
+            <span class="navbar-brand">
+                <i class="bi bi-pen me-2"></i>inSign API - Getting Started Java Sample Application
             </span>
-            <span class="text-light" id="version-badge"></span>
+            <span class="badge badge-version" id="version-badge"></span>
         </div>
     </nav>
 
@@ -48,75 +27,87 @@
             <!-- Left column: Actions -->
             <div class="col-md-4 col-lg-3">
 
-                <button class="btn btn-primary w-100 mb-3" id="btn-create" onclick="createSession()">
-                    <i class="bi bi-plus-circle"></i> Create Session
+                <button class="btn btn-insign btn-insign-primary w-100 mb-3" id="btn-create" onclick="createSession()">
+                    <i class="bi bi-plus-circle me-1"></i> Create Session
                 </button>
 
                 <div id="session-actions" style="display:none">
                     <div class="section-title">Session Info</div>
-                    <div class="d-flex flex-wrap">
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiGet('/api/session/status', 'Status')">
-                            <i class="bi bi-info-circle"></i> Status</button>
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiGet('/api/session/checkstatus', 'Check Status')">
-                            <i class="bi bi-arrow-repeat"></i> Check Status</button>
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiGet('/api/session/metadata', 'Session Data')">
-                            <i class="bi bi-file-earmark-text"></i> Session Data</button>
-                        <button class="btn btn-sm btn-outline-info btn-action" onclick="getOwnerLink()">
-                            <i class="bi bi-link-45deg"></i> Owner Link</button>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/session/status', 'Status')">
+                            <i class="bi bi-info-circle me-1"></i>Status</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/session/checkstatus', 'Check Status')">
+                            <i class="bi bi-arrow-repeat me-1"></i>Check Status</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/session/metadata', 'Session Data')">
+                            <i class="bi bi-file-earmark-text me-1"></i>Session Data</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-cta" onclick="getOwnerLink()">
+                            <i class="bi bi-link-45deg me-1"></i>Owner Link</button>
                     </div>
 
                     <div class="section-title">External Signing</div>
-                    <div class="card card-body p-2 mb-2" id="invite-card">
-                        <div class="mb-1">
-                            <input type="email" class="form-control form-control-sm" id="email1" placeholder="Email Signer 1">
+                    <div class="card-insign">
+                        <div class="card-body p-2">
+                            <div class="mb-1">
+                                <input type="email" class="form-control form-control-sm" id="email1" placeholder="Email Signer 1">
+                            </div>
+                            <div class="mb-1">
+                                <input type="email" class="form-control form-control-sm" id="email2" placeholder="Email Signer 2">
+                            </div>
+                            <div class="mb-1">
+                                <select class="form-select form-select-sm" id="delivery" onchange="togglePhoneFields()">
+                                    <option value="link">Link only</option>
+                                    <option value="email">Email</option>
+                                    <option value="sms">SMS</option>
+                                </select>
+                            </div>
+                            <div id="phone-fields" style="display:none">
+                                <input type="tel" class="form-control form-control-sm mb-1" id="phone1" placeholder="Phone Signer 1">
+                                <input type="tel" class="form-control form-control-sm mb-1" id="phone2" placeholder="Phone Signer 2">
+                            </div>
+                            <button class="btn btn-insign btn-insign-sm btn-insign-primary w-100" onclick="inviteExtern()">
+                                <i class="bi bi-send me-1"></i>Send Invitations</button>
                         </div>
-                        <div class="mb-1">
-                            <input type="email" class="form-control form-control-sm" id="email2" placeholder="Email Signer 2">
-                        </div>
-                        <div class="mb-1">
-                            <select class="form-select form-select-sm" id="delivery" onchange="togglePhoneFields()">
-                                <option value="link">Link only</option>
-                                <option value="email">Email</option>
-                                <option value="sms">SMS</option>
-                            </select>
-                        </div>
-                        <div id="phone-fields" style="display:none">
-                            <input type="tel" class="form-control form-control-sm mb-1" id="phone1" placeholder="Phone Signer 1">
-                            <input type="tel" class="form-control form-control-sm mb-1" id="phone2" placeholder="Phone Signer 2">
-                        </div>
-                        <button class="btn btn-sm btn-success w-100" onclick="inviteExtern()">
-                            <i class="bi bi-send"></i> Send Invitations</button>
                     </div>
-                    <div class="d-flex flex-wrap">
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiGet('/api/extern/users', 'Extern Users')">
-                            <i class="bi bi-people"></i> Extern Users</button>
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiGet('/api/extern/infos', 'Extern Infos')">
-                            <i class="bi bi-info-square"></i> Extern Infos</button>
-                        <button class="btn btn-sm btn-outline-warning btn-action" onclick="apiPost('/api/extern/revoke', null, 'Revoke Invites')">
-                            <i class="bi bi-x-circle"></i> Revoke</button>
-                        <button class="btn btn-sm btn-outline-secondary btn-action" onclick="apiPost('/api/extern/reminder', null, 'Reminder')">
-                            <i class="bi bi-bell"></i> Reminder</button>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/extern/users', 'Extern Users')">
+                            <i class="bi bi-people me-1"></i>Extern Users</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/extern/infos', 'Extern Infos')">
+                            <i class="bi bi-info-square me-1"></i>Extern Infos</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiPost('/api/extern/revoke', null, 'Revoke Invites')">
+                            <i class="bi bi-x-circle me-1"></i>Revoke</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiPost('/api/extern/reminder', null, 'Reminder')">
+                            <i class="bi bi-bell me-1"></i>Reminder</button>
                     </div>
 
-                    <div class="section-title">Documents</div>
-                    <div class="d-flex flex-wrap">
-                        <button class="btn btn-sm btn-outline-primary btn-action" onclick="download('/api/documents/download')">
-                            <i class="bi bi-download"></i> Download ZIP</button>
-                        <button class="btn btn-sm btn-outline-primary btn-action" onclick="download('/api/audit/download')">
-                            <i class="bi bi-file-pdf"></i> Audit Report</button>
+                    <div class="section-title">Documents &amp; Audit</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="download('/api/documents/download')">
+                            <i class="bi bi-download me-1"></i>Download ZIP</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="download('/api/audit/download')">
+                            <i class="bi bi-file-pdf me-1"></i>Audit PDF</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/audit/json', 'Audit JSON')">
+                            <i class="bi bi-journal-text me-1"></i>Audit JSON</button>
+                    </div>
+
+                    <div class="section-title">User Sessions</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="apiGet('/api/sessions/user', 'User Sessions')">
+                            <i class="bi bi-collection me-1"></i>My Sessions</button>
+                        <button class="btn btn-insign btn-insign-sm btn-insign-outline" onclick="queryCurrentSession()">
+                            <i class="bi bi-search me-1"></i>Query Session</button>
                     </div>
 
                     <div class="section-title mt-3">Danger Zone</div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="purgeSession()">
-                        <i class="bi bi-trash"></i> Purge Session</button>
+                    <button class="btn btn-insign btn-insign-sm btn-insign-danger" onclick="purgeSession()">
+                        <i class="bi bi-trash me-1"></i>Purge Session</button>
                 </div>
             </div>
 
             <!-- Right column: Response history -->
             <div class="col-md-8 col-lg-9">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small class="text-muted">Responses</small>
-                    <button class="btn btn-sm btn-outline-secondary py-0" onclick="$('#response-list').empty()">Clear All</button>
+                    <span class="section-title mt-0 mb-0">Responses</span>
+                    <button class="btn btn-insign btn-insign-sm btn-insign-outline py-0" onclick="document.getElementById('response-list').innerHTML=''">Clear All</button>
                 </div>
                 <div id="response-list"></div>
             </div>
@@ -132,9 +123,9 @@
                 <span class="ms-2 label">User:</span>
                 <span id="sb-userid">-</span>
                 <span class="ms-2 label">TAN:</span>
-                <span id="sb-tan" class="text-info">-</span>
+                <span id="sb-tan" style="color:var(--insign-blue)">-</span>
                 <span class="ms-2 label">Completed:</span>
-                <span id="sb-completed" class="badge badge-incomplete">-</span>
+                <span id="sb-completed" class="badge-incomplete">-</span>
                 <span class="ms-2" id="sb-poll-indicator"></span>
             </div>
         </div>
@@ -146,8 +137,6 @@
                 <span id="sb-mandatory">-</span>
                 <span class="ms-2 label">Optional:</span>
                 <span id="sb-optional">-</span>
-                <span class="ms-3 label">Docs:</span>
-                <span id="sb-docs">-</span>
             </div>
         </div>
         <div class="d-flex flex-wrap">
@@ -159,7 +148,7 @@
         <div class="d-flex flex-wrap">
             <div class="status-section flex-fill">
                 <span class="label">Step:</span>
-                <span id="sb-process-step" class="text-info">-</span>
+                <span id="sb-process-step" style="color:var(--insign-blue)">-</span>
                 <span class="ms-2 label">Needed:</span>
                 <span id="sb-sigs-needed">-</span>
                 <span class="ms-2 label">Done:</span>
@@ -181,6 +170,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     var sessionActive = false;
+    var currentSessionId = null;
     var pollTimer = null;
     var evtSource = null;
     var webhookEvents = [];
@@ -274,54 +264,62 @@
     }
 
     function updateStatusBar(status) {
+        // Only update fields that are present in the response.
+        // SSE events from the backend poller use checkStatus data which lacks
+        // session detail fields - skip those to avoid blanking the status bar.
+
         // Session info
-        var sid = status.sessionid || status.sessionId || '-';
-        $('#sb-session').text(sid.length > 14 ? sid.substring(0, 14) + '...' : sid);
-        $('#sb-userid').text(status.userid || '-');
-        $('#sb-tan').text(status.tan || '-');
+        if (status.sessionid || status.sessionId) {
+            var sid = status.sessionid || status.sessionId;
+            $('#sb-session').text(sid.length > 14 ? sid.substring(0, 14) + '...' : sid);
+        }
+        if ('userid' in status) $('#sb-userid').text(status.userid || '-');
+        if ('tan' in status) $('#sb-tan').text(status.tan || '-');
 
         // Completed flag
-        var completed = status.sucessfullyCompleted || false;
-        $('#sb-completed').text(completed ? 'YES' : 'NO')
-            .removeClass('badge-completed badge-incomplete')
-            .addClass(completed ? 'badge badge-completed' : 'badge badge-incomplete');
-
-        // Signature counts
-        var totalSigFields = status.numberOfSignaturesFields || 0;
-        var mandatoryFields = status.numberOfMandatorySignatureFields || 0;
-        var mandatorySigs = status.numberOfMandatorySignatures || 0;
-        var optionalFields = status.numberOfOptionalSignatureFields || 0;
-        var optionalSigs = status.numberOfOptionalSignatures || 0;
-
-        // Count signed from signaturFieldsStatusList
-        var sigFields = status.signaturFieldsStatusList || [];
-        var signedCount = 0;
-        var fieldHtml = '';
-        for (var i = 0; i < sigFields.length; i++) {
-            var f = sigFields[i];
-            var signed = f.signed || false;
-            if (signed) signedCount++;
-            var icon = signed
-                ? '<i class="bi bi-check-circle-fill text-success"></i>'
-                : (f.mandatory ? '<i class="bi bi-circle text-danger"></i>' : '<i class="bi bi-circle text-warning"></i>');
-            var mLabel = f.mandatory ? '<span class="text-danger">*</span>' : '';
-            fieldHtml += icon + ' ' + (f.displayname || f.name || '?') + mLabel
-                + ' <small class="text-muted">(' + (f.role || '?') + ')</small> ';
+        if ('sucessfullyCompleted' in status) {
+            var completed = status.sucessfullyCompleted || false;
+            $('#sb-completed').text(completed ? 'YES' : 'NO')
+                .removeClass('badge-completed badge-incomplete')
+                .addClass(completed ? 'badge-completed' : 'badge-incomplete');
         }
 
-        $('#sb-sig-summary').text(signedCount + ' / ' + totalSigFields + ' signed');
-        $('#sb-mandatory').text(mandatorySigs + ' sigs / ' + mandatoryFields + ' fields');
-        $('#sb-optional').text(optionalSigs + ' sigs / ' + optionalFields + ' fields');
-        $('#sb-fields').html(fieldHtml || '-');
+        // Signature counts - only update if present
+        if ('numberOfSignaturesFields' in status) {
+            var totalSigFields = status.numberOfSignaturesFields || 0;
+            var mandatoryFields = status.numberOfMandatorySignatureFields || 0;
+            var mandatorySigs = status.numberOfMandatorySignatures || 0;
+            var optionalFields = status.numberOfOptionalSignatureFields || 0;
+            var optionalSigs = status.numberOfOptionalSignatures || 0;
 
-        // Documents
-        var docs = status.documents || [];
-        var docHtml = '';
-        for (var d = 0; d < docs.length; d++) {
-            if (d > 0) docHtml += ', ';
-            docHtml += (docs[d].displayname || docs[d].docid || '?');
+            $('#sb-sig-summary').text('- / ' + totalSigFields + ' signed');
+            $('#sb-mandatory').text(mandatorySigs + ' sigs / ' + mandatoryFields + ' fields');
+            $('#sb-optional').text(optionalSigs + ' sigs / ' + optionalFields + ' fields');
         }
-        $('#sb-docs').text(docHtml || '-');
+
+        // Signature fields detail
+        if ('signaturFieldsStatusList' in status) {
+            var sigFields = status.signaturFieldsStatusList || [];
+            var signedCount = 0;
+            var fieldHtml = '';
+            for (var i = 0; i < sigFields.length; i++) {
+                var f = sigFields[i];
+                var signed = f.signed || false;
+                if (signed) signedCount++;
+                var icon = signed
+                    ? '<i class="bi bi-check-circle-fill text-success"></i>'
+                    : (f.mandatory ? '<i class="bi bi-circle text-danger"></i>' : '<i class="bi bi-circle text-warning"></i>');
+                var mLabel = f.mandatory ? '<span class="text-danger">*</span>' : '';
+                fieldHtml += icon + ' ' + (f.displayname || f.name || '?') + mLabel
+                    + ' <small class="text-muted">(' + (f.role || '?') + ')</small> ';
+            }
+            var totalSigFields2 = status.numberOfSignaturesFields || sigFields.length;
+            $('#sb-sig-summary').text(signedCount + ' / ' + totalSigFields2 + ' signed');
+            $('#sb-fields').html(fieldHtml || '-');
+        }
+
+        // checkStatus fields (may arrive via SSE from backend poller)
+        if ('processStep' in status) updateCheckStatus(status);
     }
 
     function updateCheckStatus(status) {
@@ -331,23 +329,23 @@
         $('#sb-sigs-needed').text(needed != null ? needed : '-');
         $('#sb-sigs-done').text(done != null ? (done + (needed != null ? ' / ' + needed : '')) : '-');
         var ext = status.extern;
-        $('#sb-extern').html(ext ? '<span class="badge badge-signed">YES</span>' : '<span class="badge badge-unsigned">NO</span>');
+        $('#sb-extern').html(ext ? '<span class="badge-signed">YES</span>' : '<span class="badge-unsigned">NO</span>');
     }
 
     // -- Response card management --
     function addResponseCard(title, data, isError) {
         var json = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-        var textClass = isError ? 'text-danger' : 'text-light';
-        var borderClass = isError ? 'border-danger' : '';
-        var $card = $('<div class="card response-card ' + borderClass + '">'
-            + '<div class="card-header d-flex justify-content-between align-items-center bg-dark text-light">'
-            + '<span>' + $('<span>').text(title).html() + '</span>'
+        var errorClass = isError ? ' border-danger' : '';
+        var textClass = isError ? ' text-danger' : '';
+        var $card = $('<div class="response-card' + errorClass + '">'
+            + '<div class="card-header d-flex justify-content-between align-items-center">'
+            + '<span></span>'
             + '<span class="timestamp">' + timeStr() + '</span>'
             + '</div>'
-            + '<div class="card-body bg-dark p-2">'
-            + '<pre class="' + textClass + ' bg-dark p-1 rounded mb-0"></pre>'
+            + '<div class="card-body">'
+            + '<pre class="' + textClass + '"></pre>'
             + '</div></div>');
-        // Use .text() to safely escape content
+        $card.find('.card-header span:first').text(title);
         $card.find('pre').text(json);
         $('#response-list').prepend($card);
     }
@@ -420,9 +418,10 @@
         $('#btn-create').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Creating...');
         $.post('/api/session/create').done(function(data) {
             sessionActive = true;
+            currentSessionId = data.sessionid || null;
             addResponseCard('Create Session', data, false);
             $('#session-actions').slideDown();
-            $('#btn-create').html('<i class="bi bi-plus-circle"></i> Create New Session');
+            $('#btn-create').html('<i class="bi bi-plus-circle me-1"></i> Create New Session');
             showAlert('Session created: ' + (data.sessionid || ''), 'success');
             startPolling();
         }).fail(function(xhr) {
@@ -460,6 +459,7 @@
         if (!confirm('Purge current session? This cannot be undone.')) return;
         $.ajax({ url: '/api/session/purge', method: 'DELETE' }).done(function(data) {
             sessionActive = false;
+            currentSessionId = null;
             addResponseCard('Purge Session', data, false);
             $('#session-actions').slideUp();
             $('#sb-session').text('-');
@@ -469,6 +469,14 @@
             if (pollTimer) clearInterval(pollTimer);
             showAlert('Session purged', 'warning');
         }).fail(function(xhr) { handleError(xhr, 'Purge Session'); });
+    }
+
+    function queryCurrentSession() {
+        if (!currentSessionId) {
+            showAlert('No active session', 'warning');
+            return;
+        }
+        apiPost('/api/sessions/query', { sessionids: [currentSessionId] }, 'Query Session');
     }
 
     function togglePhoneFields() {

@@ -1,9 +1,9 @@
 package com.example.insign;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -196,6 +196,33 @@ public class InsignWebController {
     public JsonNode sendReminder() throws Exception {
         requireSession();
         return apiClient.sendReminder(currentSessionId);
+    }
+
+    // -- Audit --
+
+    @GetMapping("/audit/json")
+    public JsonNode getAuditJson() throws Exception {
+        requireSession();
+        return apiClient.getAuditJson(currentSessionId);
+    }
+
+    // -- User sessions --
+
+    @GetMapping("/sessions/user")
+    public JsonNode getUserSessions() throws Exception {
+        return apiClient.getUserSessions(apiUsername);
+    }
+
+    @PostMapping("/sessions/query")
+    public JsonNode queryUserSessions(@RequestBody JsonNode body) throws Exception {
+        List<String> ids = new ArrayList<>();
+        JsonNode sessionIds = body.path("sessionids");
+        if (sessionIds.isArray()) {
+            for (JsonNode id : sessionIds) {
+                ids.add(id.asText());
+            }
+        }
+        return apiClient.queryUserSessions(ids);
     }
 
     // -- Owner link --
