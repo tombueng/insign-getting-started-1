@@ -1,6 +1,9 @@
 <p align="center">
   <a href="https://www.getinsign.com/">
-    <img src="./docs/img/inSign_logo.svg" width="300" alt="inSign - Electronic Signature Solutions" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./docs/img/inSign_logo_white.svg" />
+      <img src="./docs/img/inSign_logo.svg" width="300" alt="inSign - Electronic Signature Solutions" />
+    </picture>
   </a>
 </p>
 
