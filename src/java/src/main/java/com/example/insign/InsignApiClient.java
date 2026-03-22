@@ -1,8 +1,9 @@
 package com.example.insign;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * Minimal REST client for the inSign API.
@@ -157,7 +159,7 @@ public class InsignApiClient {
 
     public void purgeSession(String sessionId) {
         restClient.delete()
-                .uri("/persistence/delete?sessionid=" + sessionId)
+                .uri("/persistence/purge?sessionid=" + sessionId)
                 .retrieve().toBodilessEntity();
     }
 
@@ -177,6 +179,26 @@ public class InsignApiClient {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(mapper.writeValueAsString(body))
                 .retrieve().body(String.class);
+    }
+
+    // -- Audit --
+
+    public JsonNode getAuditJson(String sessionId) throws Exception {
+        return postSessionId("/get/audit", sessionId);
+    }
+
+    // -- User sessions --
+
+    public JsonNode getUserSessions(String user) throws Exception {
+        return postJson("/get/usersessions?user=" + user, mapper.createObjectNode());
+    }
+
+    public JsonNode queryUserSessions(List<String> sessionIds) throws Exception {
+        ObjectNode body = mapper.createObjectNode();
+        ArrayNode ids = mapper.createArrayNode();
+        sessionIds.forEach(ids::add);
+        body.set("sessionids", ids);
+        return postJson("/get/querysessions", body);
     }
 
     // -- Helpers --

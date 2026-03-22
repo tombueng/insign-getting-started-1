@@ -1,14 +1,13 @@
 package com.example.insign;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeType;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.fail;
@@ -103,9 +102,7 @@ public class ResponseTemplateValidator {
 
         switch (expectedType) {
             case OBJECT -> {
-                Iterator<String> fieldNames = template.fieldNames();
-                while (fieldNames.hasNext()) {
-                    String field = fieldNames.next();
+                for (String field : template.propertyNames()) {
                     if (!actual.has(field)) {
                         errors.add(path + "." + field + ": missing field");
                     } else {
