@@ -217,10 +217,13 @@ public class SpringRestInsignApiClient implements InsignApiService {
     }
 
     @Override
+    public void unloadSession(String sessionId) {
+        postSessionId("/persistence/unloadsession", sessionId, InsignBasicResult.class);
+    }
+
+    @Override
     public void purgeSession(String sessionId) {
-        restClient.delete()
-                .uri("/persistence/purge?sessionid=" + sessionId)
-                .retrieve().toBodilessEntity();
+        postSessionId("/persistence/purge", sessionId, InsignBasicResult.class);
     }
 
     @Override

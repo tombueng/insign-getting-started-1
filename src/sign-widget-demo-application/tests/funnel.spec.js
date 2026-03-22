@@ -155,12 +155,15 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
   });
 
   // ---------- API Tests ----------
+  // These tests share a single inSign session to minimize sandbox resource usage.
+
+  let apiSessionKey;
 
   test('API — POST /api/session returns sessionKey, insignSessionId, jwt', async ({ request }) => {
     const response = await request.post('/api/session', {
       data: {
         firstName: 'API', lastName: 'Test',
-        street: 'API-Straße 1', zip: '12345',
+        street: 'API-Strasse 1', zip: '12345',
         city: 'Teststadt', birthdate: '2000-01-01'
       }
     });
@@ -170,6 +173,7 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     expect(json.sessionKey).toBeTruthy();
     expect(json.insignSessionId).toBeTruthy();
     expect(json.jwt).toBeTruthy();
+    apiSessionKey = json.sessionKey;
   });
 
   test('API — POST /api/session rejects missing fields', async ({ request }) => {
@@ -182,32 +186,18 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
   });
 
   test('API — GET /api/session/:key/status returns status', async ({ request }) => {
-    const createRes = await request.post('/api/session', {
-      data: {
-        firstName: 'Status', lastName: 'Check',
-        street: 'Status-Weg 1', zip: '99999',
-        city: 'Statustown', birthdate: '1995-06-15'
-      }
-    });
-    const { sessionKey } = await createRes.json();
+    expect(apiSessionKey).toBeTruthy();
 
-    const statusRes = await request.get(`/api/session/${sessionKey}/status`);
+    const statusRes = await request.get(`/api/session/${apiSessionKey}/status`);
     expect(statusRes.ok()).toBeTruthy();
     const status = await statusRes.json();
     expect(status.status).toBeTruthy();
   });
 
   test('API — GET /api/session/:key/document returns PDF', async ({ request }) => {
-    const createRes = await request.post('/api/session', {
-      data: {
-        firstName: 'DocTest', lastName: 'Download',
-        street: 'Download-Ring 5', zip: '55555',
-        city: 'Downloadhausen', birthdate: '1988-03-20'
-      }
-    });
-    const { sessionKey } = await createRes.json();
+    expect(apiSessionKey).toBeTruthy();
 
-    const docRes = await request.get(`/api/session/${sessionKey}/document`);
+    const docRes = await request.get(`/api/session/${apiSessionKey}/document`);
     if (docRes.ok()) {
       const contentType = docRes.headers()['content-type'];
       expect(contentType).toContain('application/pdf');

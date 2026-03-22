@@ -29,6 +29,9 @@ public interface InsignApiService {
      */
     InsignSessionResult createSession(InsignSessionConfig config);
 
+    /** Unloads a session from active sessions without deleting it. */
+    void unloadSession(String sessionId);
+
     /** Permanently deletes a session and all its data. */
     void purgeSession(String sessionId);
 
