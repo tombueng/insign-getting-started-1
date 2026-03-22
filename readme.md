@@ -93,9 +93,6 @@ Also deployable to Glitch, StackBlitz, Vercel, or Docker - see the [Sig-Funnel R
 - Dynamically rendering signature pads for each signature field found in the PDF
 - Downloading the signed PDF with embedded biometric data
 
-### Architecture
-
-The core business logic lives in shared modules (`src/routes.js`, `src/insign-client.js`, `src/pdf-generator.js`) with thin wrappers for Express (local/Docker) and Vercel (serverless). No code duplication across platforms.
 
 <p align="center">
   <img src="src/sign-widget-demo-application/docs/images/sequence.svg" alt="API Call Sequence Diagram" width="760">
