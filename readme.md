@@ -11,6 +11,15 @@
   <sub>Free sandbox. No registration. No credit card. Just code.</sub>
 </p>
 
+<p align="center">
+  <a href="https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml">
+    <img src="https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml/badge.svg" alt="Java CI - Build and Publish" />
+  </a>
+  <a href="https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml">
+    <img src="https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml/badge.svg" alt="Node.js CI - Lint and Test" />
+  </a>
+</p>
+
 ---
 
 This repository contains everything you need to get started with the **inSign** electronic signature API: an interactive getting-started guide, a browser-based API explorer, a Java/Spring Boot sample application, and a Node.js demo showing the embedded signature widget.
