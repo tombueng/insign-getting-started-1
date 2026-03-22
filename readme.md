@@ -12,12 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml">
-    <img src="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml/badge.svg" alt="Java CI - Build and Publish" />
-  </a>
-  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml">
-    <img src="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml/badge.svg" alt="Node.js CI - Lint and Test" />
-  </a>
+  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28spring-client%29&logo=github" alt="Java (spring-client)" /></a><!--
+  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28insign-client%29&logo=github" alt="Java (insign-client)" /></a><!--
+  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=Sign%20Widget%20Tests&logo=github" alt="Sign Widget Tests" /></a><!--
+  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=UI%20Smoke%20Tests&logo=github" alt="UI Smoke Tests" /></a>
 </p>
 
 ---
