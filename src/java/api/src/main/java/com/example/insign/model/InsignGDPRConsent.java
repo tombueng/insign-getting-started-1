@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * GDPR consent information for a session participant.
- * Field names match JSONGDPRConsent from the inSign REST API.
+ * Detailed information about a participant's consent to GDPR data collection.
+ * Field names match the GDPRConsent schema from the inSign REST API.
  */
 @Data
 @Builder
@@ -19,8 +19,15 @@ import lombok.ToString;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignGDPRConsent {
 
+    /** Indicator or timestamp of when the GDPR consent was accepted. */
     private String gdprAccepted;
+
+    /** Indicator or timestamp of when the GDPR consent was declined. */
     private String gdprDeclined;
+
+    /** Device ID of the device used when consent was given or declined. */
     private String deviceId;
+
+    /** Signature role associated with this consent entry. */
     private String role;
 }

@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * Page ratio information for a document page.
- * Field names match JSONPageRatio from the inSign REST API.
+ * Aspect ratio information for a single page in a document.
+ * Field names match the PageRatio schema from the inSign REST API.
  */
 @Data
 @Builder
@@ -19,6 +19,9 @@ import lombok.ToString;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignPageRatio {
 
+    /** Viewing aspect ratio of this page. */
     private float ratio;
+
+    /** Zero-based page number that this ratio corresponds to. */
     private int page;
 }

@@ -11,8 +11,9 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Response from beginExtern / getExternUsers.
- * Field names match JSONExternMultiuserResult from the inSign REST API.
+ * Response from beginExtern / getExternUsers API calls.
+ * Contains the list of external users that were created or retrieved for a session.
+ * Field names match the ExternMultiuserResult schema from the inSign REST API.
  */
 @Data
 @SuperBuilder
@@ -23,6 +24,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignExternResult extends InsignBasicResult {
 
+    /** User-facing message associated with this result. */
     private String usermessage;
+
+    /** List of the external users that were created or retrieved. */
     private List<InsignExternUserResult> externUsers;
 }

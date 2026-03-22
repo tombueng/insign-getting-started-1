@@ -11,8 +11,8 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Response from getExternInfos.
- * Contains a list of extern user info entries with signing state details.
+ * Response from the getExternInfos API call.
+ * Contains a list of external user info entries with details about their signing progress.
  */
 @Data
 @SuperBuilder
@@ -23,5 +23,6 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignExternInfosResult extends InsignBasicResult {
 
+    /** List of information entries for each external user in the session. */
     private List<InsignExternUserInfo> externInfos;
 }

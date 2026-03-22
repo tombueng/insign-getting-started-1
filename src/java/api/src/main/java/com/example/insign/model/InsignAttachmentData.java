@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * Attachment metadata for a session document.
- * Field names match JSONAttachmentData from the inSign REST API.
+ * Metadata for a file attachment within a signing session.
+ * Field names match the AttachmentData schema from the inSign REST API.
  */
 @Data
 @Builder
@@ -19,7 +19,12 @@ import lombok.ToString;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignAttachmentData {
 
+    /** Unique ID of the attachment. */
     private String attachmentid;
+
+    /** Display name of the attachment. */
     private String displayname;
+
+    /** Whether the attachment can be deleted by the user. */
     private boolean canbedeleted;
 }

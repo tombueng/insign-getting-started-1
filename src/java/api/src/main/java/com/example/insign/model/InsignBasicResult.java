@@ -13,9 +13,9 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Base API response. Captures the common fields (error, message, trace)
- * shared by all inSign REST API responses.
- * Field names match JSONBasicResult from the inSign REST API.
+ * Base API response shared by all inSign REST API endpoints.
+ * Captures the common result fields: error code, message, and stack trace.
+ * Field names match the BasicResult schema from the inSign REST API.
  *
  * Specialized responses extend this class with their own typed fields.
  */
@@ -27,10 +27,19 @@ import lombok.experimental.SuperBuilder;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsignBasicResult {
 
+    /** Error code; 0 indicates success. */
     private Integer error;
+
+    /** Error message (populated only when error is non-zero). */
     private String message;
+
+    /** Error message (alternative field). */
     private String errormessage;
+
+    /** Stack trace if an exception occurred on the server. */
     private String trace;
+
+    /** Map of error messages (populated only when error is non-zero). */
     private Map<String, String> messages;
 
     @lombok.Builder.Default
