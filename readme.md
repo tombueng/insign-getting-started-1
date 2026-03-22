@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml">
-    <img src="https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml/badge.svg" alt="Java CI - Build and Publish" />
+  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml">
+    <img src="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml/badge.svg" alt="Java CI - Build and Publish" />
   </a>
-  <a href="https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml">
-    <img src="https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml/badge.svg" alt="Node.js CI - Lint and Test" />
+  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml">
+    <img src="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml/badge.svg" alt="Node.js CI - Lint and Test" />
   </a>
 </p>
 
@@ -28,8 +28,8 @@ This repository contains everything you need to get started with the **inSign** 
 
 | | |
 |---|---|
-| **Getting Started Guide** | [Start here](https://getinsign.github.io/insign-getting-started/) |
-| **API Explorer** | [Open the interactive API Explorer](https://getinsign.github.io/insign-getting-started/explorer.html) |
+| **Getting Started Guide** | [Start here](https://tombueng.github.io/insign-getting-started-1/) |
+| **API Explorer** | [Open the interactive API Explorer](https://tombueng.github.io/insign-getting-started-1/explorer.html) |
 | **Swagger API Reference** | [Browse the API docs](https://sandbox.test.getinsign.show/docs/swagger-ui/index.html) |
 | **inSign Homepage** | [www.getinsign.com](https://www.getinsign.com/) |
 
@@ -37,7 +37,7 @@ This repository contains everything you need to get started with the **inSign** 
 
 ## Start Here - The Getting Started Guide
 
-> **[https://getinsign.github.io/insign-getting-started/](https://getinsign.github.io/insign-getting-started/)**
+> **[https://tombueng.github.io/insign-getting-started-1/](https://tombueng.github.io/insign-getting-started-1/)**
 
 The Getting Started Guide is a single-page interactive walkthrough hosted via GitHub Pages (served from the [`docs/`](docs/) directory). It is the best starting point for anyone new to the inSign API.
 
@@ -49,7 +49,7 @@ The guide links to the full API Explorer for deeper exploration and to the Swagg
 
 ## API Explorer
 
-> **[https://getinsign.github.io/insign-getting-started/explorer.html](https://getinsign.github.io/insign-getting-started/explorer.html)**
+> **[https://tombueng.github.io/insign-getting-started-1/explorer.html](https://tombueng.github.io/insign-getting-started-1/explorer.html)**
 
 The API Explorer is a full interactive playground for the inSign API, also hosted via GitHub Pages from [`docs/explorer.html`](docs/explorer.html). It runs entirely in the browser - no backend required.
 
@@ -66,7 +66,7 @@ Each step includes editable JSON request bodies, real-time response display, and
 
 ## Sig-Funnel - Embedded Signature Pad Demo
 
-The [`src/sign-widget-demo-application/`](src/sign-widget-demo-application/) directory contains a **self-contained Node.js demo** (based on [sig-funnel](https://github.com/tombueng/sig-funnel)) that demonstrates the inSign **embedded signature pad** in a realistic use case: a SEPA Direct Debit Mandate signing flow.
+The [`src/sign-widget-demo-application/`](src/sign-widget-demo-application/) directory contains a **self-contained Node.js demo** (based on [sig-funnel](https://github.com/tombueng/insign-getting-started-1)) that demonstrates the inSign **embedded signature pad** in a realistic use case: a SEPA Direct Debit Mandate signing flow.
 
 The user fills in personal data, the server generates a mandate PDF on the fly, creates an inSign session, and the signature pad is rendered inline - all without leaving the page. Each step includes collapsible developer documentation explaining the integration.
 

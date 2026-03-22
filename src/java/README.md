@@ -1,4 +1,4 @@
-[![Java CI - Build and Publish](https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml/badge.svg)](https://github.com/getinsign/insign-getting-started/actions/workflows/maven.yml)
+[![Java CI - Build and Publish](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml)
 
 # inSign API - Getting Started (Java / Spring Boot)
 
