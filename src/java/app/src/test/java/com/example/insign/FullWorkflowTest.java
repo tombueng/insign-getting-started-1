@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
         properties = "app.console.enabled=false"
 )
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FullWorkflowTest {
 
     @Autowired
@@ -46,7 +47,7 @@ class FullWorkflowTest {
 
     private final ResponseTemplateValidator templateValidator = ResponseTemplateValidator.standard();
 
-    private static String sessionId;
+    private String sessionId;
 
     // --- 0. Check server version ---
 
@@ -326,10 +327,9 @@ class FullWorkflowTest {
         System.out.println("[Test] Webhook tracking OK");
     }
 
-    // --- 99. Cleanup: purge session ---
+    // --- Cleanup: always purge session, even if tests fail ---
 
-    @Test
-    @Order(99)
+    @AfterAll
     void cleanup() {
         if (sessionId != null) {
             try {

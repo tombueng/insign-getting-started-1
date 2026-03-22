@@ -221,4 +221,20 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     expect(text.length).toBeGreaterThan(1000);
     expect(text).toContain('INSIGNAPP');
   });
+
+  // ---------- Cleanup ----------
+
+  test.afterAll(async ({ request }) => {
+    try {
+      const res = await request.delete('/api/sessions/purge');
+      if (res.ok()) {
+        const json = await res.json();
+        if (json.purged > 0) {
+          console.log(`[teardown] Purged ${json.purged} inSign session(s)`);
+        }
+      }
+    } catch {
+      // Server may already be shutting down - ignore
+    }
+  });
 });

@@ -126,4 +126,21 @@ async function ensureReady() {
   await ensureTemplate();
 }
 
-module.exports = { createSession, getStatus, getDocument, ensureReady, sessions };
+// ============================================================================
+// DELETE /api/sessions/purge — Purge all sessions (test cleanup)
+// ============================================================================
+async function purgeSessions(req, res) {
+  const results = [];
+  for (const [key, session] of sessions) {
+    try {
+      await insign.purgeSession(session.insignSessionId);
+      results.push({ key, insignSessionId: session.insignSessionId, purged: true });
+    } catch (err) {
+      results.push({ key, insignSessionId: session.insignSessionId, purged: false, error: err.message });
+    }
+    sessions.delete(key);
+  }
+  res.json({ purged: results.length, results });
+}
+
+module.exports = { createSession, getStatus, getDocument, purgeSessions, ensureReady, sessions };

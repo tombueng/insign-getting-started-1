@@ -231,6 +231,20 @@ async function downloadDocument(sessionId, docId, original) {
 }
 
 // ============================================================================
+// purgeSession — Permanently delete a session from inSign
+// ============================================================================
+//
+// Removes the session and all its documents from the inSign server.
+// This is irreversible. Used for cleanup after tests or when a session
+// is no longer needed.
+//
+async function purgeSession(sessionId) {
+  await http().delete('/persistence/purge', {
+    params: { sessionid: sessionId }
+  });
+}
+
+// ============================================================================
 // Exports
 // ============================================================================
 module.exports = {
@@ -238,6 +252,7 @@ module.exports = {
   uploadDocument,
   getStatus,
   downloadDocument,
+  purgeSession,
   INSIGN_BASE,       // Exported so the backend can tell the browser where inSign is
   AUTH               // Exported for internal use only — NEVER send to browser
 };
