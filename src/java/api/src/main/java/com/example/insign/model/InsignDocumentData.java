@@ -44,6 +44,7 @@ public class InsignDocumentData {
     private boolean mustberead;
 
     /** @deprecated Whether this document must be signed. */
+    @Deprecated
     private boolean mustbesigned;
 
     /** Whether the document has been read. */
@@ -85,9 +86,11 @@ public class InsignDocumentData {
     private boolean formfillingallowed;
 
     /** @deprecated Product ID associated with this document. */
+    @Deprecated
     private String productid;
 
     /** @deprecated Name of the associated product. */
+    @Deprecated
     private String productname;
 
     /** Icon ID for the file type. */

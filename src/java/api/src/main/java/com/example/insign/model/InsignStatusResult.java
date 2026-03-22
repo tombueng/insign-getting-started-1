@@ -80,21 +80,26 @@ public class InsignStatusResult {
     private Integer numberOfSignatures;
 
     /** @deprecated List of emails to which signed documents were sent. Use delivery results instead. */
+    @Deprecated
     private Collection<String> emails_abgeschlossen;
 
     /** @deprecated List of emails to which original documents were sent. Use delivery results instead. */
+    @Deprecated
     private Collection<String> emails_ausgehaendigt;
 
     /** @deprecated List of signed document IDs that were handed out. Use delivery results instead. */
+    @Deprecated
     private Collection<String> docs_abgeschlossen;
 
     /** @deprecated List of original document IDs that were handed out. Use delivery results instead. */
+    @Deprecated
     private Collection<String> docs_ausgehaendigt;
 
     /** Metadata list of documents (since v3.5.0). */
     private List<InsignDocumentDataStatus> documentData;
 
     /** @deprecated Timestamp when delivery was confirmed, if confirmation was required. */
+    @Deprecated
     private Date aushaendigen_bestaetigt_timestamp;
 
     /** Total number of signature fields (optional and mandatory) across all documents. */

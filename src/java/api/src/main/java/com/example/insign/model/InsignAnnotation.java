@@ -28,6 +28,7 @@ public class InsignAnnotation {
     private int posindex;
 
     /** @deprecated The annotation's text content (for type=text). */
+    @Deprecated
     private String text;
 
     /** Whether this annotation is a required field (currently only applies to signatures). */
