@@ -2,7 +2,7 @@
   <a href="https://www.getinsign.com/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="./docs/img/inSign_logo_white.svg" />
-      <img src="./docs/img/inSign_logo.svg" width="300" alt="inSign - Electronic Signature Solutions" />
+      <img src="./docs/img/inSign_logo.svg" width="225" alt="inSign - Electronic Signature Solutions" />
     </picture>
   </a>
 </p>
@@ -109,11 +109,13 @@ It uses a **pluggable API client architecture** - choose between two included im
 
 ```bash
 cd src/java
-mvn spring-boot:run
+mvn spring-boot:run -Pspring-client    # Option A (default)
+# or
+mvn spring-boot:run -Pinsign-client    # Option B
 # Open http://localhost:8090
 ```
 
-Connects to the inSign sandbox by default. No registration needed.
+You must specify a Maven profile to select the API client implementation (see table below). Connects to the inSign sandbox by default. No registration needed.
 
 ### Key Features
 
@@ -126,10 +128,10 @@ Connects to the inSign sandbox by default. No registration needed.
 
 ### API Client Options
 
-| Option | Module | Class | Dependencies |
-|---|---|---|---|
-| **A** (default) | `spring-insign-api-client-impl` | `SpringRestInsignApiClient` | Spring Boot only |
-| **B** | `insign-client-api-impl` | `InsignJavaApiClient` | `insign-java-api` from GitHub Packages |
-| **C** | *(your own)* | `implements InsignApiService` | Whatever you need |
+| Option | Profile | Start Command | Module | Class | Dependencies |
+|---|---|---|---|---|---|
+| **A** (default) | `-Pspring-client` | `mvn spring-boot:run -Pspring-client` | `spring-insign-api-client-impl` | `SpringRestInsignApiClient` | Spring Boot only |
+| **B** | `-Pinsign-client` | `mvn spring-boot:run -Pinsign-client` | `insign-client-api-impl` | `InsignJavaApiClient` | `insign-java-api` from GitHub Packages |
+| **C** | *(custom)* | *(depends on your setup)* | *(your own)* | `implements InsignApiService` | Whatever you need |
 
 See the [Java README](src/java/README.md) for full details on architecture, configuration, all REST endpoints, the POJO model, how to write your own implementation, GitHub Packages setup, and testing.
