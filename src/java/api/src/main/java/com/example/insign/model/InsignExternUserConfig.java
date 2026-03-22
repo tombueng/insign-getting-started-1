@@ -26,7 +26,8 @@ public class InsignExternUserConfig {
     private boolean sendSMS;
     private String recipientsms;
     private boolean singleSignOnEnabled;
-    private Integer orderNumber;
+    @Builder.Default
+    private int orderNumber = 0;
     private String mailLanguage;
     private String callBackURL;
 }
