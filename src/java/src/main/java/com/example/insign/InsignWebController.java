@@ -1,9 +1,6 @@
 package com.example.insign;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.example.insign.model.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,15 +10,18 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
 
+/**
+ * Main REST controller exposing /api/ endpoints consumed by the browser UI.
+ * Uses the common {@link InsignApiService} interface - works with both implementations.
+ */
 @RestController
 @RequestMapping("/api")
 public class InsignWebController {
 
-    private final InsignApiClient apiClient;
+    private final InsignApiService apiService;
     private final PdfGenerator pdfGenerator;
     private final StatusPoller poller;
     private final SessionStatusTracker tracker;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${insign.api.username}")
     private String apiUsername;
@@ -34,75 +34,71 @@ public class InsignWebController {
 
     private String currentSessionId;
 
-    public InsignWebController(InsignApiClient apiClient, PdfGenerator pdfGenerator,
+    public InsignWebController(InsignApiService apiService, PdfGenerator pdfGenerator,
                                StatusPoller poller, SessionStatusTracker tracker) {
-        this.apiClient = apiClient;
+        this.apiService = apiService;
         this.pdfGenerator = pdfGenerator;
         this.poller = poller;
         this.tracker = tracker;
     }
 
-    // -- SSE --
+    // ==================== SSE ====================
 
     @GetMapping("/events")
     public SseEmitter events() {
         return tracker.registerEmitter();
     }
 
-    // -- Version --
+    // ==================== Version ====================
 
     @GetMapping("/version")
     public Map<String, String> version() {
-        return Map.of("version", apiClient.getVersion());
+        return Map.of("version", apiService.getVersion());
     }
 
-    // -- Session lifecycle --
+    // ==================== Session Lifecycle ====================
 
     @PostMapping("/session/create")
-    public JsonNode createSession() throws Exception {
+    public InsignSessionResult createSession() throws Exception {
         byte[] pdf = pdfGenerator.generateTestPdf();
 
-        ObjectNode config = mapper.createObjectNode();
-        config.put("foruser", "getting-started-" + System.currentTimeMillis());
-        config.put("userFullName", "Chris Signlord");
-        config.put("userEmail", apiUsername);
-        config.put("displayname", "Getting Started - Test Contract");
-        config.put("makeFieldsMandatory", true);
-        config.put("signatureLevel", "AES");
-        config.put("embedBiometricData", true);
-        config.put("writeAuditReport", true);
+        // Build document config with inline file content
+        InsignDocumentConfig doc = InsignDocumentConfig.builder()
+                .id("doc1")
+                .displayname("Test Contract")
+                .mustbesigned(true)
+                .file(pdf)
+                .filename("contract.pdf")
+                .fileSize(pdf.length)
+                .build();
 
-        ObjectNode guiProperties = mapper.createObjectNode();
-        guiProperties.put("guiFertigbuttonSkipModalDialog", true);
-        guiProperties.put("guiFertigbuttonSkipModalDialogExtern", true);
-        guiProperties.put("guiFertigbuttonModalDialogExternSkipSendMail", true);
-        guiProperties.put("guiAfterSignOpenNextSignatureField", true);
-        config.set("guiProperties", guiProperties);
+        // Build session configuration using the builder
+        InsignSessionConfig config = InsignSessionConfig.builder()
+                .foruser("getting-started-" + System.currentTimeMillis())
+                .userFullName("Chris Signlord")
+                .userEmail(apiUsername)
+                .displayname("Getting Started - Test Contract")
+                .makeFieldsMandatory(true)
+                .signatureLevel("AES")
+                .embedBiometricData(true)
+                .writeAuditReport(true)
+                .guiProperties(Map.of(
+                        "guiFertigbuttonSkipModalDialog", true,
+                        "guiFertigbuttonSkipModalDialogExtern", true,
+                        "guiFertigbuttonModalDialogExternSkipSendMail", true,
+                        "guiAfterSignOpenNextSignatureField", true
+                ))
+                .callbackURL(thankyouUrl != null && !thankyouUrl.isEmpty() ? thankyouUrl : null)
+                .serverSidecallbackURL(webhookCallbackUrl != null && !webhookCallbackUrl.isEmpty() ? webhookCallbackUrl : null)
+                .serversideCallbackMethod(webhookCallbackUrl != null && !webhookCallbackUrl.isEmpty() ? "POST" : null)
+                .serversideCallbackContenttype(webhookCallbackUrl != null && !webhookCallbackUrl.isEmpty() ? "application/json" : null)
+                .documents(List.of(doc))
+                .build();
 
-        // Thank-you page shown to signer after completion
-        if (thankyouUrl != null && !thankyouUrl.isEmpty()) {
-            config.put("callbackURL", thankyouUrl);
-        }
-
-        if (webhookCallbackUrl != null && !webhookCallbackUrl.isEmpty()) {
-            config.put("serverSidecallbackURL", webhookCallbackUrl);
-            config.put("serversideCallbackMethod", "POST");
-            config.put("serversideCallbackContentType", "application/json");
-        }
-
-        ArrayNode documents = mapper.createArrayNode();
-        ObjectNode doc = mapper.createObjectNode();
-        doc.put("id", "doc1");
-        doc.put("displayname", "Test Contract");
-        doc.put("mustbesigned", true);
-        documents.add(doc);
-        config.set("documents", documents);
-
-        JsonNode result = apiClient.createSession(config);
-        currentSessionId = result.path("sessionid").asText(null);
+        InsignSessionResult result = apiService.createSession(config);
+        currentSessionId = result.getSessionid();
 
         if (currentSessionId != null) {
-            apiClient.uploadDocument(currentSessionId, "doc1", pdf, "contract.pdf");
             poller.watchSession(currentSessionId);
         }
 
@@ -110,53 +106,50 @@ public class InsignWebController {
     }
 
     @GetMapping("/session/status")
-    public JsonNode getStatus() throws Exception {
+    public InsignStatusResult getStatus() {
         requireSession();
-        return apiClient.getStatus(currentSessionId);
+        return apiService.getStatus(currentSessionId);
     }
 
     @GetMapping("/session/checkstatus")
-    public JsonNode checkStatus() throws Exception {
+    public InsignStatusResult checkStatus() {
         requireSession();
-        return apiClient.checkStatus(currentSessionId);
+        return apiService.checkStatus(currentSessionId);
     }
 
     @GetMapping("/session/metadata")
-    public JsonNode getSessionMetadata() throws Exception {
+    public InsignBasicResult getSessionMetadata() {
         requireSession();
-        return apiClient.getSessionMetadata(currentSessionId);
+        return apiService.getSessionMetadata(currentSessionId);
     }
 
     @DeleteMapping("/session/purge")
     public Map<String, String> purgeSession() {
         requireSession();
         poller.unwatchSession(currentSessionId);
-        apiClient.purgeSession(currentSessionId);
+        apiService.purgeSession(currentSessionId);
         String purgedId = currentSessionId;
         currentSessionId = null;
         return Map.of("message", "Session purged: " + purgedId);
     }
 
-    // -- External signing --
+    // ==================== External Signing ====================
 
     @PostMapping("/extern/invite")
-    public JsonNode inviteExtern(@RequestBody JsonNode body) throws Exception {
+    public InsignBasicResult inviteExtern(@RequestBody Map<String, String> body) {
         requireSession();
 
-        String email1 = body.path("email1").asText("");
-        String email2 = body.path("email2").asText("");
-        String delivery = body.path("delivery").asText("link");
-        String phone1 = body.path("phone1").asText("");
-        String phone2 = body.path("phone2").asText("");
+        String email1 = body.getOrDefault("email1", "");
+        String email2 = body.getOrDefault("email2", "");
+        String delivery = body.getOrDefault("delivery", "link");
+        String phone1 = body.getOrDefault("phone1", "");
+        String phone2 = body.getOrDefault("phone2", "");
 
         // Check which roles still need signing
-        JsonNode status = apiClient.getStatus(currentSessionId);
+        InsignStatusResult status = apiService.getStatus(currentSessionId);
         Set<String> completedRoles = getCompletedRoles(status);
 
-        ObjectNode externConfig = mapper.createObjectNode();
-        externConfig.put("sessionid", currentSessionId);
-
-        ArrayNode users = mapper.createArrayNode();
+        List<InsignExternUserConfig> users = new ArrayList<>();
         if (!completedRoles.contains("Signer1")) {
             users.add(buildExternUser(email1, "Signer1", delivery, phone1));
         }
@@ -165,82 +158,79 @@ public class InsignWebController {
         }
 
         if (users.isEmpty()) {
-            ObjectNode result = mapper.createObjectNode();
-            result.put("message", "All roles have completed signing. Nothing to invite.");
+            InsignBasicResult result = new InsignBasicResult();
+            result.setMessage("All roles have completed signing. Nothing to invite.");
             return result;
         }
 
-        externConfig.set("externUsers", users);
-        return apiClient.beginExtern(externConfig);
+        InsignExternConfig externConfig = new InsignExternConfig();
+        externConfig.setSessionid(currentSessionId);
+        externConfig.setExternUsers(users);
+        return apiService.beginExtern(externConfig);
     }
 
     @PostMapping("/extern/revoke")
-    public JsonNode revokeExtern() throws Exception {
+    public InsignBasicResult revokeExtern() {
         requireSession();
-        return apiClient.revokeExtern(currentSessionId);
+        return apiService.revokeExtern(currentSessionId);
     }
 
     @GetMapping("/extern/users")
-    public JsonNode getExternUsers() throws Exception {
+    public InsignBasicResult getExternUsers() {
         requireSession();
-        return apiClient.getExternUsers(currentSessionId);
+        return apiService.getExternUsers(currentSessionId);
     }
 
     @GetMapping("/extern/infos")
-    public JsonNode getExternInfos() throws Exception {
+    public InsignBasicResult getExternInfos() {
         requireSession();
-        return apiClient.getExternInfos(currentSessionId);
+        return apiService.getExternInfos(currentSessionId);
     }
 
     @PostMapping("/extern/reminder")
-    public JsonNode sendReminder() throws Exception {
+    public InsignBasicResult sendReminder() {
         requireSession();
-        return apiClient.sendReminder(currentSessionId);
+        return apiService.sendReminder(currentSessionId);
     }
 
-    // -- Audit --
+    // ==================== Audit ====================
 
     @GetMapping("/audit/json")
-    public JsonNode getAuditJson() throws Exception {
+    public InsignBasicResult getAuditJson() {
         requireSession();
-        return apiClient.getAuditJson(currentSessionId);
+        return apiService.getAuditJson(currentSessionId);
     }
 
-    // -- User sessions --
+    // ==================== User Sessions ====================
 
     @GetMapping("/sessions/user")
-    public JsonNode getUserSessions() throws Exception {
-        return apiClient.getUserSessions(apiUsername);
+    public InsignBasicResult getUserSessions() {
+        return apiService.getUserSessions(apiUsername);
     }
 
     @PostMapping("/sessions/query")
-    public JsonNode queryUserSessions(@RequestBody JsonNode body) throws Exception {
-        List<String> ids = new ArrayList<>();
-        JsonNode sessionIds = body.path("sessionids");
-        if (sessionIds.isArray()) {
-            for (JsonNode id : sessionIds) {
-                ids.add(id.asText());
-            }
-        }
-        return apiClient.queryUserSessions(ids);
+    public InsignBasicResult queryUserSessions(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<String> ids = (List<String>) body.getOrDefault("sessionids", List.of());
+        return apiService.queryUserSessions(ids);
     }
 
-    // -- Owner link --
+    // ==================== Owner Link ====================
 
     @GetMapping("/owner-link")
-    public Map<String, String> getOwnerLink() throws Exception {
+    public Map<String, String> getOwnerLink() {
         requireSession();
-        String jwt = apiClient.createOwnerSSOLink(apiUsername);
-        String url = apiClient.getBaseUrl() + "/index?jwt=" + jwt + "&sessionid=" + currentSessionId;
+        String jwt = apiService.createOwnerSSOLink(apiUsername);
+        String url = apiService.getBaseUrl() + "/index?jwt=" + jwt + "&sessionid=" + currentSessionId;
         return Map.of("url", url, "jwt", jwt);
     }
 
-    // -- Documents --
+    // ==================== Documents ====================
 
     @GetMapping("/documents/download")
-    public ResponseEntity<byte[]> downloadDocuments() throws Exception {
+    public ResponseEntity<byte[]> downloadDocuments() {
         requireSession();
-        byte[] zip = apiClient.downloadDocumentsArchive(currentSessionId);
+        byte[] zip = apiService.downloadDocumentsArchive(currentSessionId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=documents_" + currentSessionId + ".zip")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -248,16 +238,16 @@ public class InsignWebController {
     }
 
     @GetMapping("/audit/download")
-    public ResponseEntity<byte[]> downloadAuditReport() throws Exception {
+    public ResponseEntity<byte[]> downloadAuditReport() {
         requireSession();
-        byte[] pdf = apiClient.downloadAuditReport(currentSessionId);
+        byte[] pdf = apiService.downloadAuditReport(currentSessionId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=audit_" + currentSessionId + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
 
-    // -- Error handling --
+    // ==================== Error Handling ====================
 
     @ExceptionHandler(InsignApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiError(InsignApiException e) {
@@ -276,7 +266,7 @@ public class InsignWebController {
                 .body(Map.of("error", true, "message", e.getMessage()));
     }
 
-    // -- Helpers --
+    // ==================== Helpers ====================
 
     private void requireSession() {
         if (currentSessionId == null) {
@@ -284,45 +274,43 @@ public class InsignWebController {
         }
     }
 
-    private ObjectNode buildExternUser(String email, String role, String delivery, String phone) {
-        ObjectNode user = mapper.createObjectNode();
+    private InsignExternUserConfig buildExternUser(String email, String role, String delivery, String phone) {
         if (email.isEmpty()) {
             email = System.currentTimeMillis() + "@example.invalid";
         }
-        user.put("recipient", email);
-        user.put("realName", email);
-        ArrayNode roles = mapper.createArrayNode();
-        roles.add(role);
-        user.set("roles", roles);
+        InsignExternUserConfig user = new InsignExternUserConfig();
+        user.setRecipient(email);
+        user.setRealName(email);
+        user.setRoles(new String[]{role});
+        user.setSingleSignOnEnabled(true);
 
         switch (delivery) {
             case "email" -> {
-                user.put("sendEmails", true);
-                user.put("sendSMS", false);
+                user.setSendEmails(true);
+                user.setSendSMS(false);
             }
             case "sms" -> {
-                user.put("sendEmails", false);
-                user.put("sendSMS", true);
-                user.put("mobileNumber", phone);
+                user.setSendEmails(false);
+                user.setSendSMS(true);
+                user.setRecipientsms(phone);
             }
             default -> {
-                user.put("sendEmails", false);
-                user.put("sendSMS", false);
+                user.setSendEmails(false);
+                user.setSendSMS(false);
             }
         }
-        user.put("singleSignOnEnabled", true);
         return user;
     }
 
-    private Set<String> getCompletedRoles(JsonNode status) {
+    private Set<String> getCompletedRoles(InsignStatusResult status) {
         Map<String, List<Boolean>> roleFields = new LinkedHashMap<>();
-        JsonNode sigFields = status.path("signaturFieldsStatusList");
-        if (sigFields.isArray()) {
-            for (JsonNode field : sigFields) {
-                String role = field.path("role").asText("");
-                if (!role.isEmpty()) {
+        List<InsignSignatureFieldStatus> sigFields = status.getSignaturFieldsStatusList();
+        if (sigFields != null) {
+            for (InsignSignatureFieldStatus field : sigFields) {
+                String role = field.getRole();
+                if (role != null && !role.isEmpty()) {
                     roleFields.computeIfAbsent(role, k -> new ArrayList<>())
-                            .add(field.path("signed").asBoolean(false));
+                            .add(field.isSigned());
                 }
             }
         }

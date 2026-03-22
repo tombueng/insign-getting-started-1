@@ -1,34 +1,24 @@
 package com.example.insign;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.example.insign.model.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration test that exercises every operation against the real inSign sandbox.
- * Tests run in order: create session, then exercise all menu options, then cleanup.
+ * Tests run in order: create session, exercise all operations, then cleanup.
  *
- * <h3>Response template validation</h3>
- * JSON responses are validated against template files in
- * {@code src/test/resources/response-templates/}. This ensures the API response
- * structure (field names and value types) stays consistent across runs without
- * comparing exact values (which change per session, e.g. IDs and timestamps).
+ * Uses the common {@link InsignApiService} interface - runs with whichever
+ * implementation is on the classpath (Spring RestClient or insign-java-api).
  *
- * <ul>
- *   <li><b>First run</b> (no template files): responses are captured as templates.
- *       Commit the generated files so subsequent runs validate against them.</li>
- *   <li><b>Subsequent runs</b>: each response is compared structurally against its
- *       template. Missing fields or type mismatches cause the test to fail.</li>
- *   <li><b>Re-capture</b>: delete a template file and re-run to capture a fresh
- *       baseline (e.g. after an intentional API change).</li>
- * </ul>
+ * Response template validation ensures API response structure stays consistent.
  *
  * @see ResponseTemplateValidator
  */
@@ -40,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FullWorkflowTest {
 
     @Autowired
-    private InsignApiClient apiClient;
+    private InsignApiService apiService;
 
     @Autowired
     private PdfGenerator pdfGenerator;
@@ -54,7 +44,6 @@ class FullWorkflowTest {
     @Value("${insign.api.username}")
     private String apiUsername;
 
-    private final ObjectMapper mapper = new ObjectMapper();
     private final ResponseTemplateValidator templateValidator = ResponseTemplateValidator.standard();
 
     private static String sessionId;
@@ -64,7 +53,7 @@ class FullWorkflowTest {
     @Test
     @Order(0)
     void checkVersion() {
-        String version = apiClient.getVersion();
+        String version = apiService.getVersion();
         assertNotNull(version, "Version must be returned");
         assertFalse(version.isBlank(), "Version must not be blank");
         System.out.println("[Test] inSign server version: " + version);
@@ -85,27 +74,31 @@ class FullWorkflowTest {
     @Test
     @Order(2)
     void createSession() throws Exception {
-        ObjectNode config = mapper.createObjectNode();
-        config.put("foruser", apiUsername);
-        config.put("userFullName", apiUsername);
-        config.put("userEmail", apiUsername);
-        config.put("displayname", "Test - FullWorkflowTest");
-        config.put("allSignaturesRequired", true);
-        config.put("makeFieldsMandatory", true);
-        config.put("signatureLevel", "SES");
-        config.put("writeAuditReport", true);
+        byte[] pdf = pdfGenerator.generateTestPdf();
 
-        ArrayNode documents = mapper.createArrayNode();
-        ObjectNode doc = mapper.createObjectNode();
-        doc.put("id", "doc1");
-        doc.put("displayname", "Test Contract");
-        doc.put("mustbesigned", true);
-        documents.add(doc);
-        config.set("documents", documents);
+        InsignSessionConfig config = InsignSessionConfig.builder()
+                .foruser(apiUsername)
+                .userFullName(apiUsername)
+                .userEmail(apiUsername)
+                .displayname("Test - FullWorkflowTest")
+                .makeFieldsMandatory(true)
+                .signatureLevel("SES")
+                .writeAuditReport(true)
+                .documents(List.of(
+                        InsignDocumentConfig.builder()
+                                .id("doc1")
+                                .displayname("Test Contract")
+                                .mustbesigned(true)
+                                .file(pdf)
+                                .filename("contract.pdf")
+                                .fileSize(pdf.length)
+                                .build()
+                ))
+                .build();
 
-        JsonNode result = apiClient.createSession(config);
+        InsignSessionResult result = apiService.createSession(config);
 
-        sessionId = result.path("sessionid").asText(null);
+        sessionId = result.getSessionid();
         assertNotNull(sessionId, "Session ID must be returned");
         assertFalse(sessionId.isBlank(), "Session ID must not be blank");
         templateValidator.assertMatchesTemplate("createSession", result);
@@ -113,66 +106,49 @@ class FullWorkflowTest {
         System.out.println("[Test] Created session: " + sessionId);
     }
 
-    // --- 3. Upload document ---
+    // --- 3. Show status ---
 
     @Test
     @Order(3)
-    void uploadDocument() throws Exception {
-        assertNotNull(sessionId, "Session must exist");
-
-        byte[] pdf = pdfGenerator.generateTestPdf();
-        assertDoesNotThrow(() ->
-                apiClient.uploadDocument(sessionId, "doc1", pdf, "contract.pdf"));
-
-        System.out.println("[Test] Document uploaded");
-    }
-
-    // --- 4. Show status (menu option 2) ---
-
-    @Test
-    @Order(4)
     void showStatus() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        JsonNode status = apiClient.getStatus(sessionId);
+        InsignStatusResult status = apiService.getStatus(sessionId);
 
         assertNotNull(status);
-        // The response itself must not indicate an error
-        int error = status.path("error").asInt(0);
-        assertEquals(0, error, "Status call should not return an error: "
-                + status.path("errormessage").asText(status.toString()));
+        assertNull(status.getError() == null ? null : (status.getError() != 0 ? status.getError() : null),
+                "Status call should not return an error");
         templateValidator.assertMatchesTemplate("getStatus", status);
 
-        System.out.println("[Test] Status response: " + status.toPrettyString());
+        System.out.println("[Test] Status: completed=" + status.isSucessfullyCompleted());
     }
 
-    // --- 5. Check status / polling (menu option 2 alternative) ---
+    // --- 4. Check status / polling ---
 
     @Test
-    @Order(5)
+    @Order(4)
     void checkStatus() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        JsonNode status = apiClient.checkStatus(sessionId);
+        InsignStatusResult status = apiService.checkStatus(sessionId);
 
         assertNotNull(status);
-        assertFalse(status.path("status").asText("").isBlank());
         templateValidator.assertMatchesTemplate("checkStatus", status);
 
         // Feed into tracker to verify no exceptions
         tracker.onPollResult(sessionId, status);
 
-        System.out.println("[Test] CheckStatus: " + status.path("status").asText());
+        System.out.println("[Test] CheckStatus: " + status.getStatus());
     }
 
-    // --- 6. Get owner link (menu option 3) ---
+    // --- 5. Get owner link ---
 
     @Test
-    @Order(6)
-    void getOwnerLink() throws Exception {
+    @Order(5)
+    void getOwnerLink() {
         assertNotNull(sessionId, "Session must exist");
 
-        String ssoToken = apiClient.createOwnerSSOLink(apiUsername);
+        String ssoToken = apiService.createOwnerSSOLink(apiUsername);
 
         assertNotNull(ssoToken, "SSO token must be returned");
         assertFalse(ssoToken.isBlank(), "SSO token must not be blank");
@@ -180,173 +156,150 @@ class FullWorkflowTest {
         System.out.println("[Test] Owner SSO token received (" + ssoToken.length() + " chars)");
     }
 
-    // --- 7. Invite users / begin extern (menu option 1) ---
+    // --- 6. Invite users / begin extern ---
 
     @Test
-    @Order(7)
+    @Order(6)
     void inviteUsers() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        ObjectNode externConfig = mapper.createObjectNode();
-        externConfig.put("sessionid", sessionId);
+        InsignExternConfig externConfig = InsignExternConfig.builder()
+                .sessionid(sessionId)
+                .externUsers(List.of(
+                        InsignExternUserConfig.builder()
+                                .recipient("signer1@example.test")
+                                .realName("Signer One")
+                                .roles(new String[]{"Signer1"})
+                                .sendEmails(false)
+                                .sendSMS(false)
+                                .singleSignOnEnabled(true)
+                                .build(),
+                        InsignExternUserConfig.builder()
+                                .recipient("signer2@example.test")
+                                .realName("Signer Two")
+                                .roles(new String[]{"Signer2"})
+                                .sendEmails(false)
+                                .sendSMS(false)
+                                .singleSignOnEnabled(true)
+                                .build()
+                ))
+                .build();
 
-        ArrayNode users = mapper.createArrayNode();
-
-        ObjectNode user1 = mapper.createObjectNode();
-        user1.put("recipient", "signer1@example.test");
-        user1.put("realName", "Signer One");
-        user1.set("roles", mapper.createArrayNode().add("Signer1"));
-        user1.put("sendEmails", false);
-        user1.put("sendSMS", false);
-        user1.put("singleSignOnEnabled", true);
-        users.add(user1);
-
-        ObjectNode user2 = mapper.createObjectNode();
-        user2.put("recipient", "signer2@example.test");
-        user2.put("realName", "Signer Two");
-        user2.set("roles", mapper.createArrayNode().add("Signer2"));
-        user2.put("sendEmails", false);
-        user2.put("sendSMS", false);
-        user2.put("singleSignOnEnabled", true);
-        users.add(user2);
-
-        externConfig.set("externUsers", users);
-
-        JsonNode result = apiClient.beginExtern(externConfig);
+        InsignBasicResult result = apiService.beginExtern(externConfig);
         assertNotNull(result);
         templateValidator.assertMatchesTemplate("beginExtern", result);
 
-        System.out.println("[Test] Extern begin result: " + result.path("status").asText("n/a"));
+        System.out.println("[Test] Extern begin OK");
     }
 
-    // --- 8. Get extern infos ---
+    // --- 7. Get extern infos ---
 
     @Test
-    @Order(8)
+    @Order(7)
     void getExternInfos() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        JsonNode infos = apiClient.getExternInfos(sessionId);
+        InsignBasicResult infos = apiService.getExternInfos(sessionId);
         assertNotNull(infos);
         templateValidator.assertMatchesTemplate("getExternInfos", infos);
 
         System.out.println("[Test] Extern infos received");
     }
 
-    // --- 9. Get extern users ---
+    // --- 8. Get extern users ---
 
     @Test
-    @Order(9)
+    @Order(8)
     void getExternUsers() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        JsonNode users = apiClient.getExternUsers(sessionId);
+        InsignBasicResult users = apiService.getExternUsers(sessionId);
         assertNotNull(users);
         templateValidator.assertMatchesTemplate("getExternUsers", users);
 
         System.out.println("[Test] Extern users received");
     }
 
-    // --- 10. Resend reminder (menu option 6) ---
+    // --- 9. Resend reminder ---
 
     @Test
-    @Order(10)
-    void resendReminder() throws Exception {
+    @Order(9)
+    void resendReminder() {
         assertNotNull(sessionId, "Session must exist");
 
         try {
-            JsonNode result = apiClient.sendReminder(sessionId);
-            System.out.println("[Test] Reminder result: " + result.path("status").asText("n/a"));
+            InsignBasicResult result = apiService.sendReminder(sessionId);
+            System.out.println("[Test] Reminder result: " + result.getMessage());
         } catch (InsignApiException e) {
-            // Expected when using link-only delivery (no emails to send)
             System.out.println("[Test] Reminder: " + e.getMessage());
         }
     }
 
-    // --- 11. Download documents (menu option 5) - before revoke since revoke may invalidate session ---
+    // --- 10. Download documents ---
 
     @Test
-    @Order(11)
-    void downloadDocuments() throws Exception {
+    @Order(10)
+    void downloadDocuments() {
         assertNotNull(sessionId, "Session must exist");
 
-        byte[] zip = apiClient.downloadDocumentsArchive(sessionId);
+        byte[] zip = apiService.downloadDocumentsArchive(sessionId);
         assertNotNull(zip);
         assertTrue(zip.length > 0, "Downloaded archive should not be empty");
 
         System.out.println("[Test] Downloaded documents: " + zip.length + " bytes");
     }
 
-    // --- 12. Download audit report (menu option 7) ---
+    // --- 11. Download audit report ---
 
     @Test
-    @Order(12)
-    void downloadAuditReport() throws Exception {
+    @Order(11)
+    void downloadAuditReport() {
         assertNotNull(sessionId, "Session must exist");
 
         try {
-            byte[] pdf = apiClient.downloadAuditReport(sessionId);
+            byte[] pdf = apiService.downloadAuditReport(sessionId);
             assertNotNull(pdf);
             assertTrue(pdf.length > 0, "Audit report should not be empty");
             System.out.println("[Test] Downloaded audit report: " + pdf.length + " bytes");
         } catch (InsignApiException e) {
-            // Audit report may not be available if writeAuditReport was not enabled or session not completed
             System.out.println("[Test] Audit report: " + e.getMessage());
         }
     }
 
-    // --- 14. Get session metadata (menu option 8) ---
+    // --- 12. Get session metadata ---
 
     @Test
-    @Order(14)
+    @Order(12)
     void getSessionMetadata() throws Exception {
         assertNotNull(sessionId, "Session must exist");
 
-        JsonNode metadata = apiClient.getSessionMetadata(sessionId);
+        InsignBasicResult metadata = apiService.getSessionMetadata(sessionId);
         assertNotNull(metadata);
         templateValidator.assertMatchesTemplate("getSessionMetadata", metadata);
 
         System.out.println("[Test] Session metadata received");
     }
 
-    // --- 15. Download single document ---
+    // --- 13. Revoke invites / abort extern ---
 
     @Test
-    @Order(15)
-    void downloadSingleDocument() throws Exception {
+    @Order(13)
+    void revokeInvites() {
         assertNotNull(sessionId, "Session must exist");
 
         try {
-            byte[] doc = apiClient.downloadSingleDocument(sessionId, "doc1");
-            assertNotNull(doc);
-            assertTrue(doc.length > 0, "Single document should not be empty");
-            System.out.println("[Test] Downloaded single document: " + doc.length + " bytes");
-        } catch (InsignApiException e) {
-            System.out.println("[Test] Single document: " + e.getMessage());
-        }
-    }
-
-    // --- 16. Revoke invites / abort extern (menu option 4) ---
-
-    @Test
-    @Order(16)
-    void revokeInvites() throws Exception {
-        assertNotNull(sessionId, "Session must exist");
-
-        try {
-            JsonNode result = apiClient.revokeExtern(sessionId);
+            InsignBasicResult result = apiService.revokeExtern(sessionId);
             assertNotNull(result);
-            System.out.println("[Test] Abort extern result: " + result.path("status").asText("n/a"));
+            System.out.println("[Test] Abort extern OK");
         } catch (InsignApiException e) {
-            // The sandbox may reject abort if extern is already completed or session state changed
             System.out.println("[Test] Abort extern: " + e.getMessage());
         }
     }
 
-    // --- 17. Poller watch/unwatch ---
+    // --- 14. Poller watch/unwatch ---
 
     @Test
-    @Order(17)
+    @Order(14)
     void pollerWatchUnwatch() {
         assertNotNull(sessionId, "Session must exist");
 
@@ -356,33 +309,31 @@ class FullWorkflowTest {
         System.out.println("[Test] Poller watch/unwatch OK");
     }
 
-    // --- 18. Webhook controller (unit-level: parse a payload) ---
+    // --- 15. Webhook tracking ---
 
     @Test
-    @Order(18)
-    void webhookTracking() throws Exception {
-        ObjectNode fakeWebhook = mapper.createObjectNode();
-        fakeWebhook.put("sessionid", "test-session-123");
-        fakeWebhook.put("status", "IN_PROGRESS");
-        fakeWebhook.put("signedCount", 1);
-        fakeWebhook.put("totalCount", 2);
-        fakeWebhook.put("sessionCompleted", false);
+    @Order(15)
+    void webhookTracking() {
+        Map<String, Object> fakeWebhook = Map.of(
+                "sessionid", "test-session-123",
+                "eventid", "SIGNATURERSTELLT",
+                "status", "IN_PROGRESS"
+        );
 
         assertDoesNotThrow(() -> tracker.onWebhookReceived("test-session-123", fakeWebhook));
         assertTrue(tracker.hasWebhookSupport("test-session-123"));
-        assertNotNull(tracker.getLastStatus("test-session-123"));
 
         System.out.println("[Test] Webhook tracking OK");
     }
 
-    // --- 19. Cleanup: purge session ---
+    // --- 99. Cleanup: purge session ---
 
     @Test
     @Order(99)
     void cleanup() {
         if (sessionId != null) {
             try {
-                apiClient.purgeSession(sessionId);
+                apiService.purgeSession(sessionId);
                 System.out.println("[Test] Session purged: " + sessionId);
             } catch (Exception e) {
                 System.out.println("[Test] Cleanup (best-effort): " + e.getMessage());

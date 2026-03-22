@@ -1,0 +1,23 @@
+{
+  "name": "sig-funnel",
+  "version": "1.0.0",
+  "description": "SEPA Mandate Signature Funnel with inSign Integration",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "npx playwright test --config=tests/playwright.config.js --reporter=list",
+    "test:headed": "npx playwright test --config=tests/playwright.config.js --headed --reporter=list",
+    "test:debug": "npx playwright test --config=tests/playwright.config.js --debug"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.21.0",
+    "form-data": "^4.0.0",
+    "pdfkit": "^0.15.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

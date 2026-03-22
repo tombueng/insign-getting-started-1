@@ -11,22 +11,53 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 
 /**
- * Generates a simple test PDF with two inSign signature tags (SIG tags).
+ * Generates a sample PDF document with embedded inSign SIG tags using Apache PDFBox.
  *
- * SIG tags are invisible text markers that inSign detects during document processing.
- * Format: ##SIG{role:'RoleName',displayname:'Label',required:true,w:'Xcm',h:'Ycm',y:'-Ycm'}
+ * <h3>What are SIG tags?</h3>
+ * SIG tags are invisible text markers placed in a PDF that inSign detects during
+ * document processing. When inSign opens a PDF containing SIG tags, it automatically
+ * creates signature fields at the tag positions with the specified properties.
  *
- * The generated PDF contains:
- * - A title and contract text
- * - SIG tag for Role "Signer1" (required)
- * - SIG tag for Role "Signer2" (required)
+ * <h3>SIG tag format</h3>
+ * <pre>
+ * ##SIG{role:'RoleName',displayname:'Label',required:true,w:'Xcm',h:'Ycm',y:'-Ycm'}
+ * </pre>
+ *
+ * Properties:
+ * <ul>
+ *   <li><b>role</b> - identifies which signer this field belongs to (e.g., "Signer1")</li>
+ *   <li><b>displayname</b> - label shown in the inSign UI (e.g., "Signer 1")</li>
+ *   <li><b>required</b> - whether this field must be signed before completion</li>
+ *   <li><b>w</b> - field width in centimeters</li>
+ *   <li><b>h</b> - field height in centimeters</li>
+ *   <li><b>y</b> - vertical offset from the tag position (negative = above)</li>
+ * </ul>
+ *
+ * <h3>Visibility trick</h3>
+ * SIG tags are rendered at font size 0.5pt, making them effectively invisible to
+ * the reader while still being machine-readable by the inSign document processor.
+ *
+ * <h3>Generated document structure</h3>
+ * The test PDF contains:
+ * <ul>
+ *   <li>A title ("Sample Contract - Getting Started")</li>
+ *   <li>Contract body text</li>
+ *   <li>Two labeled signature areas with visual guide boxes</li>
+ *   <li>SIG tag for role "Signer1" (required) - left side</li>
+ *   <li>SIG tag for role "Signer2" (required) - right side</li>
+ *   <li>A date line</li>
+ * </ul>
  */
 @Component
 public class PdfGenerator {
 
     /**
-     * Generates a test PDF with 2 signature fields for 2 different roles.
-     * Both fields are marked as required.
+     * Generates a single-page A4 PDF with two signature fields for two different roles.
+     * Both fields are marked as required, meaning the session cannot be completed
+     * until both Signer1 and Signer2 have provided their signatures.
+     *
+     * @return the PDF document as a byte array, ready for upload to the inSign API
+     * @throws Exception if PDF generation fails
      */
     public byte[] generateTestPdf() throws Exception {
         try (PDDocument doc = new PDDocument()) {
