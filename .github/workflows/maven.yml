@@ -62,14 +62,16 @@ jobs:
         EOF
 
     - name: Build and Test (${{ matrix.profile }})
-      run: mvn -B clean verify -P'!spring-client' -P${{ matrix.profile }}
+      run: |
+        if [ "${{ matrix.profile }}" = "insign-client" ]; then
+          mvn -B clean verify -P'!spring-client' -Pinsign-client
+        else
+          mvn -B clean verify -Pspring-client
+        fi
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         INSIGN_PACKAGES_TOKEN: ${{ secrets.INSIGN_PACKAGES_TOKEN }}
-        INSIGN_BASE_URL: ${{ secrets.INSIGN_BASE_URL }}
-        INSIGN_USERNAME: ${{ secrets.INSIGN_USERNAME }}
-        INSIGN_PASSWORD: ${{ secrets.INSIGN_PASSWORD }}
 
     - name: Publish Test Results
       uses: dorny/test-reporter@v1
