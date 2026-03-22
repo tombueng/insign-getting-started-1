@@ -94,10 +94,6 @@ Also deployable to Glitch, StackBlitz, Vercel, or Docker - see the [Sig-Funnel R
 - Downloading the signed PDF with embedded biometric data
 
 
-<p align="center">
-  <img src="src/sign-widget-demo-application/docs/images/sequence.svg" alt="API Call Sequence Diagram" width="760">
-</p>
-
 See the [Sig-Funnel README](src/sign-widget-demo-application/README.md) for the full documentation, including step-by-step guides, architecture diagrams, mobile WebView integration, security considerations, and a production checklist.
 
 ---
