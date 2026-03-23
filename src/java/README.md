@@ -1,5 +1,3 @@
-[![Java CI - Build and Publish](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml)
-
 # inSign API - Getting Started (Java / Spring Boot)
 
 A Spring Boot web application that demonstrates the inSign electronic signature API. It generates a PDF with signature fields, creates a signing session, and provides a web UI and REST endpoints for all common operations.
@@ -8,7 +6,7 @@ The project uses a **pluggable API client architecture**: all application logic 
 
 ## Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - An inSign API account (or use the sandbox defaults)
 
@@ -456,5 +454,7 @@ The workflow generates a `settings.xml` with two server entries:
 | `style.css` | Dark-themed UI styles |
 
 ---
+
+[![Java CI - Build and Publish](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml)
 
 [Impressum](https://www.getinsign.de/impressum/) | [Datenschutz](https://www.getinsign.de/datenschutz/)

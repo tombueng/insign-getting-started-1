@@ -2,7 +2,7 @@
   <a href="https://www.getinsign.com/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="./docs/img/inSign_logo_white.svg" />
-      <img src="./docs/img/inSign_logo.svg" width="225" alt="inSign - Electronic Signature Solutions" />
+      <img src="./docs/img/inSign_logo.svg" width="225" alt="inSign - Simple signature processes" />
     </picture>
   </a>
 </p>
@@ -12,13 +12,6 @@
 <p align="center">
   <strong>Integrate electronic signatures into your application in minutes.</strong><br>
   <sub>Free sandbox. No registration. No credit card. Just code.</sub>
-</p>
-
-<p align="center">
-  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28spring-client%29&logo=github" alt="Java (spring-client)" /></a><!--
-  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28insign-client%29&logo=github" alt="Java (insign-client)" /></a><!--
-  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=Sign%20Widget%20Tests&logo=github" alt="Sign Widget Tests" /></a><!--
-  --><a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=UI%20Smoke%20Tests&logo=github" alt="UI Smoke Tests" /></a>
 </p>
 
 ---
@@ -139,6 +132,16 @@ See the [Java README](src/java/README.md) for full details on architecture, conf
 ---
 
 <p align="center">
-  <strong><a href="https://www.getinsign.com/">inSign GmbH</a></strong> - Electronic Signature Solutions<br>
+  <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28spring-client%29&logo=github" alt="Java (spring-client)" /></a> <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/maven.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/maven.yml?branch=main&label=Java%20%28insign-client%29&logo=github" alt="Java (insign-client)" /></a> <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=Sign%20Widget%20Tests&logo=github" alt="Sign Widget Tests" /></a> <a href="https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml"><img src="https://img.shields.io/github/actions/workflow/status/tombueng/insign-getting-started-1/node.yml?branch=main&label=UI%20Smoke%20Tests&logo=github" alt="UI Smoke Tests" /></a>
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/company/insign-gmbh/"><img src="https://img.shields.io/badge/LinkedIn-insign--gmbh-0A66C2?logo=linkedin&logoColor=white" alt="LinkedIn" /></a>
+  <a href="https://www.getinsign.com/"><img src="https://img.shields.io/badge/Web-getinsign.com-0165bc?logo=googlechrome&logoColor=white" alt="getinsign.com" /></a>
+  <a href="https://www.getinsign.de/"><img src="https://img.shields.io/badge/Web-getinsign.de-0165bc?logo=googlechrome&logoColor=white" alt="getinsign.de" /></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://www.getinsign.com/">inSign GmbH</a></strong> - Simple signature processes<br>
   <sub><a href="https://www.getinsign.de/impressum/">Impressum</a> &middot; <a href="https://www.getinsign.de/datenschutz/">Datenschutz</a></sub>
 </p>

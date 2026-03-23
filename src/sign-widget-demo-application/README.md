@@ -1,5 +1,3 @@
-[![Node.js CI - Lint and Test](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml)
-
 # Sig-Funnel — inSign Embedded Signature Pad Demo
 
 A complete, working demo application that shows how to integrate the **inSign handwritten digital signature pad** into a web application. Built as a learning tool for third-party developers who want to add legally binding digital signatures to their own apps.
@@ -314,3 +312,5 @@ Tests cover:
 ## License
 
 Demo application for educational purposes. See inSign licensing for the signature pad component.
+
+[![Node.js CI - Lint and Test](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml)

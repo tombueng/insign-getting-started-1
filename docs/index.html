@@ -212,13 +212,72 @@
         }
 
         /* Success banner between steps */
+        /* Crown epic zoom animation */
+        .crown-target { position: relative; display: inline-block; overflow: visible; }
+        .crown-phantom {
+            pointer-events: none;
+            z-index: 9999;
+        }
+        /* Flash on the inline crown when the phantom lands */
+        .crown-target.crown-landed {
+            animation: crownLand 0.6s ease-out;
+        }
+        @keyframes crownLand {
+            0% {
+                filter: brightness(2.5) drop-shadow(0 0 16px rgba(255, 215, 0, 0.8));
+            }
+            100% {
+                filter: brightness(1) drop-shadow(0 0 0 transparent);
+            }
+        }
+
         .step-success-banner {
+            position: relative;
             max-width: 960px;
             margin: 0 auto 1.25rem;
             border-radius: var(--insign-radius-card);
             padding: 1.5rem 2rem;
             text-align: center;
             animation: bannerSlideIn 0.5s ease-out;
+        }
+        /* Tiny confetti toggle - bottom-right of banner */
+        .confetti-toggle {
+            position: absolute;
+            bottom: 6px;
+            right: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.55rem;
+            color: var(--insign-text-muted);
+            opacity: 0.5;
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+        }
+        .confetti-toggle:hover { opacity: 1; }
+        .confetti-toggle input { display: none; }
+        .confetti-toggle .toggle-track {
+            width: 22px; height: 12px;
+            border-radius: 6px;
+            background: var(--insign-border);
+            position: relative;
+            transition: background 0.2s;
+        }
+        .confetti-toggle input:checked + .toggle-track {
+            background: var(--insign-success);
+        }
+        .confetti-toggle .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+        .confetti-toggle input:checked + .toggle-track::after {
+            transform: translateX(10px);
         }
         .step-success-banner.banner-session {
             background: linear-gradient(135deg, rgba(40, 167, 69, 0.08), rgba(1, 101, 188, 0.08));
@@ -1355,7 +1414,7 @@
         <div id="signing-celebration-slot"></div>
 
         <!-- ========== STEP 2 ========== -->
-        <div id="step2" style="display:none" class="scroll-reveal reveal-pop">
+        <div id="step2" style="display:none" class="scroll-reveal reveal-up">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">2</span>
@@ -1394,7 +1453,7 @@
         <div id="step2-success-slot"></div>
 
         <!-- ========== STEP 3 ========== -->
-        <div id="step3" style="display:none" class="scroll-reveal reveal-pop stagger-1">
+        <div id="step3" style="display:none" class="scroll-reveal reveal-up stagger-1">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">3</span>
@@ -1424,7 +1483,7 @@
         </div>
 
         <!-- ========== STEP 4 ========== -->
-        <div id="step4" style="display:none" class="scroll-reveal reveal-pop stagger-2">
+        <div id="step4" style="display:none" class="scroll-reveal reveal-up stagger-2">
             <div class="card-insign">
                 <div class="card-header">
                     <span class="step-number">4</span>
@@ -1491,7 +1550,7 @@
                 </div>
                 <p>
                     <a href="explorer.html" class="btn btn-insign btn-insign-sm btn-insign-cta"><i class="bi bi-play-circle me-1"></i>Open API Explorer</a>
-                    <a href="DOCUMENTATION.md" class="btn btn-insign btn-insign-sm btn-insign-outline ms-2"><i class="bi bi-journal-text me-1"></i>Explorer Documentation</a>
+                    <a href="https://github.com/getinsign/insign-getting-started/blob/main/docs/DOCUMENTATION.md" target="_blank" class="btn btn-insign btn-insign-sm btn-insign-outline ms-2"><i class="bi bi-journal-text me-1"></i>Explorer Documentation</a>
                 </p>
 
                 <h5 class="mt-3"><i class="bi bi-book me-1"></i>Swagger / OpenAPI</h5>
@@ -1534,7 +1593,13 @@ tools/                       PDF generator scripts</code></pre>
 
     <!-- Footer -->
     <div class="footer-bar scroll-reveal reveal-up">
-        <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Electronic Signature Solutions<br>
+        <div style="display:flex;justify-content:center;gap:1.25rem;margin-bottom:0.5rem;font-size:0.85rem">
+            <a href="https://github.com/tombueng/insign-getting-started-1" style="text-decoration:none"><i class="bi bi-github me-1"></i>GitHub</a>
+            <a href="https://www.linkedin.com/company/insign-gmbh/" style="text-decoration:none"><i class="bi bi-linkedin me-1"></i>LinkedIn</a>
+            <a href="https://www.getinsign.com/" style="text-decoration:none"><i class="bi bi-globe me-1"></i>getinsign.com</a>
+            <a href="https://www.getinsign.de/" style="text-decoration:none"><i class="bi bi-globe2 me-1"></i>getinsign.de</a>
+        </div>
+        <a href="https://www.getinsign.com/"><strong>inSign GmbH</strong></a> - Simple signature processes<br>
         <span style="font-size:0.72rem"><a href="https://www.getinsign.de/impressum/">Impressum</a> &middot; <a href="https://www.getinsign.de/datenschutz/">Datenschutz</a></span>
     </div>
 
@@ -1691,7 +1756,7 @@ var EDITOR_OPTS = {
     fontSize: 13,
     lineNumbers: 'on',
     scrollBeyondLastLine: false,
-    automaticLayout: true,
+    automaticLayout: false,
     tabSize: 2,
     wordWrap: 'on',
     formatOnPaste: true,
@@ -1723,20 +1788,25 @@ function forceSuggestDetails(editor) {
     var editorDom = editor.getDomNode();
     if (!editorDom) return;
 
+    var rafId = 0;
     var tryExpand = function () {
-        var containers = [editorDom];
-        var overflow = editorDom.querySelector('.overflow-guard');
-        if (overflow) containers.push(overflow);
+        if (rafId) return;
+        rafId = requestAnimationFrame(function () {
+            rafId = 0;
+            var containers = [editorDom];
+            var overflow = editorDom.querySelector('.overflow-guard');
+            if (overflow) containers.push(overflow);
 
-        for (var c = 0; c < containers.length; c++) {
-            var widget = containers[c].querySelector('.suggest-widget');
-            if (widget && widget.classList.contains('visible')) {
-                if (!widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
-                    try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch (_) {}
+            for (var c = 0; c < containers.length; c++) {
+                var widget = containers[c].querySelector('.suggest-widget');
+                if (widget && widget.classList.contains('visible')) {
+                    if (!widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
+                        try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch (_) {}
+                    }
+                    return;
                 }
-                return;
             }
-        }
+        });
     };
 
     var observer = new MutationObserver(tryExpand);
@@ -1744,12 +1814,16 @@ function forceSuggestDetails(editor) {
 }
 
 function autoResizeEditor(editor) {
+    var rafId = 0;
     function resize() {
-        var contentHeight = editor.getContentHeight();
-        var container = editor.getDomNode().parentElement;
-        var newHeight = Math.max(80, contentHeight + 4);
-        container.style.height = newHeight + 'px';
-        editor.layout();
+        if (rafId) return;               // already scheduled
+        rafId = requestAnimationFrame(function () {
+            rafId = 0;
+            var container = editor.getDomNode().parentElement;
+            var newHeight = Math.max(80, editor.getContentHeight() + 4);
+            container.style.height = newHeight + 'px';
+            editor.layout();
+        });
     }
     editor.onDidContentSizeChange(resize);
     resize();
@@ -1785,6 +1859,19 @@ function initMonaco() {
             forceSuggestDetails(responseEditors[i]);
             autoResizeEditor(responseEditors[i]);
         }
+
+        // Relayout all editors on window resize (replaces automaticLayout)
+        var resizeRaf = 0;
+        window.addEventListener('resize', function () {
+            if (resizeRaf) return;
+            resizeRaf = requestAnimationFrame(function () {
+                resizeRaf = 0;
+                for (var r = 1; r <= 4; r++) {
+                    if (editors[r]) editors[r].layout();
+                    if (responseEditors[r]) responseEditors[r].layout();
+                }
+            });
+        });
 
         // Editors are now rendered - trigger step1 reveal after layout settles
         requestAnimationFrame(function () {
@@ -1852,6 +1939,18 @@ async function sendStep(step) {
     btn.disabled = true;
     btn.innerHTML = '<span class="btn-spinner"></span>Sending...';
     statusEl.textContent = '';
+
+    // Step 1 (create session): purge the old session first if one exists
+    if (step === 1 && sessionId) {
+        try {
+            await apiClient.call('POST', '/persistence/purge', { body: { sessionid: sessionId } });
+        } catch (_) { /* best-effort purge */ }
+        sessionId = null;
+        accessURL = null;
+        signerLinks = [];
+        sigWatchFired = false;
+        stopSignatureWatch();
+    }
 
     var editorValue;
     try {
@@ -1921,9 +2020,8 @@ async function sendStep(step) {
             // Celebrate and show proceed button
             showSessionSuccessBanner(data.sessionid, accessURL, editorValue);
             showSessionSidebar();
-            if (!hasSeenConfetti()) {
+            if (isConfettiEnabled()) {
                 launchConfetti();
-                markConfettiSeen();
             }
             // Scroll banner into view with a bit of the content above visible
             setTimeout(function () {
@@ -1966,14 +2064,33 @@ async function sendStep(step) {
    CONFETTI STATE (cookie)
    ========================================================================== */
 
-function hasSeenConfetti() {
-    return document.cookie.split(';').some(function (c) {
-        return c.trim().indexOf('insign_confetti_seen=1') === 0;
+function isConfettiEnabled() {
+    var match = document.cookie.split(';').find(function (c) {
+        return c.trim().indexOf('insign_confetti=') === 0;
     });
+    // Default: enabled (no cookie or cookie=on)
+    if (!match) return true;
+    return match.trim().split('=')[1] !== 'off';
 }
 
-function markConfettiSeen() {
-    document.cookie = 'insign_confetti_seen=1; max-age=' + (60 * 60 * 24 * 365) + '; path=/; SameSite=Lax';
+function setConfettiEnabled(on) {
+    document.cookie = 'insign_confetti=' + (on ? 'on' : 'off') + '; max-age=' + (60 * 60 * 24 * 365) + '; path=/; SameSite=Lax';
+    // Sync all toggle checkboxes on the page
+    document.querySelectorAll('.confetti-toggle input').forEach(function (cb) { cb.checked = on; });
+}
+
+function toggleConfetti(cb) {
+    setConfettiEnabled(cb.checked);
+    if (cb.checked) launchConfetti();
+}
+
+function confettiToggleHtml() {
+    var checked = isConfettiEnabled() ? ' checked' : '';
+    return '<label class="confetti-toggle" title="Toggle confetti">' +
+        '<input type="checkbox"' + checked + ' onchange="toggleConfetti(this)">' +
+        '<span class="toggle-track"></span>' +
+        '<i class="bi bi-stars"></i>' +
+    '</label>';
 }
 
 /* ==========================================================================
@@ -2007,7 +2124,7 @@ function launchConfetti(multiplier) {
     ];
 
     // Shapes: 0=ribbon, 1=circle, 2=star, 3=streamer
-    var count = Math.round(200 * mul);
+    var count = Math.round(500 * mul);
 
     // Two cannons: bottom-left and bottom-right
     var cannons = [
@@ -2023,13 +2140,17 @@ function launchConfetti(multiplier) {
         var shape = Math.random();
         var shapeType = shape < 0.4 ? 0 : shape < 0.7 ? 1 : shape < 0.85 ? 2 : 3;
 
+        // Size variety: mix of tiny (0.3x), normal, and large (2x) pieces
+        var sizeRoll = Math.random();
+        var sizeMul = sizeRoll < 0.25 ? (0.3 + Math.random() * 0.3) : sizeRoll < 0.75 ? 1 : (1.5 + Math.random() * 1);
+
         pieces.push({
             x: cannon.x + (Math.random() - 0.5) * 30,
             y: cannon.y,
             vx: Math.cos(a) * speed + (Math.random() - 0.5) * 3,
             vy: Math.sin(a) * speed + (Math.random() - 0.5) * 2,
-            w: shapeType === 3 ? (Math.random() * 3 + 1.5) : (Math.random() * 10 + 6),
-            h: shapeType === 3 ? (Math.random() * 30 + 20) : (Math.random() * 7 + 4),
+            w: (shapeType === 3 ? (Math.random() * 3 + 1.5) : (Math.random() * 10 + 6)) * sizeMul,
+            h: (shapeType === 3 ? (Math.random() * 30 + 20) : (Math.random() * 7 + 4)) * sizeMul,
             color: col.h,
             shine: col.s,
             shape: shapeType,
@@ -2043,6 +2164,35 @@ function launchConfetti(multiplier) {
             shimmerSpeed: 3 + Math.random() * 4,
             scale: 0.7 + Math.random() * 0.6
         });
+    }
+
+    // Balloons: 20 floating balloons in every celebration
+    {
+        var balloonColors = ['#ff4757', '#ffd93d', '#2ed573', '#1e90ff', '#a55eea', '#ff6b6b', '#ff9f43', '#f368e0', '#00d2d3'];
+        for (var b = 0; b < 20; b++) {
+            var bc = balloonColors[b % balloonColors.length];
+            pieces.push({
+                x: Math.random() * W,
+                y: H + 40 + Math.random() * 200,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: -(2.5 + Math.random() * 2),
+                w: 18 + Math.random() * 10,
+                h: 22 + Math.random() * 12,
+                color: bc,
+                shine: bc,
+                shape: 4, // balloon
+                rot: 0,
+                rotV: (Math.random() - 0.5) * 2,
+                tiltAngle: Math.random() * Math.PI * 2,
+                tiltSpeed: 0.015 + Math.random() * 0.02,
+                opacity: 1,
+                drag: 0.998,
+                shimmerPhase: Math.random() * Math.PI * 2,
+                shimmerSpeed: 2 + Math.random() * 2,
+                scale: 0.8 + Math.random() * 0.4,
+                isBalloon: true
+            });
+        }
     }
 
     var startTime = Date.now();
@@ -2066,7 +2216,12 @@ function launchConfetti(multiplier) {
             // Physics
             p.vx *= p.drag;
             p.vy *= p.drag;
-            p.vy += 0.25; // gravity
+            if (p.isBalloon) {
+                p.vy -= 0.02; // balloons float up gently
+                p.vx += Math.sin(p.tiltAngle) * 0.3; // more sway
+            } else {
+                p.vy += 0.25; // gravity
+            }
             p.vx += Math.sin(p.tiltAngle) * 0.15; // wind sway
             p.x += p.vx;
             p.y += p.vy;
@@ -2087,8 +2242,15 @@ function launchConfetti(multiplier) {
 
             ctx.save();
             ctx.translate(p.x, p.y);
-            ctx.rotate(p.rot * Math.PI / 180);
-            ctx.scale(tiltX * p.scale, p.scale);
+            if (p.isBalloon) {
+                // Balloons: gentle sway only, no spin or flatten
+                var sway = Math.sin(p.tiltAngle) * 0.15;
+                ctx.rotate(sway);
+                ctx.scale(p.scale, p.scale);
+            } else {
+                ctx.rotate(p.rot * Math.PI / 180);
+                ctx.scale(tiltX * p.scale, p.scale);
+            }
             ctx.globalAlpha = p.opacity;
 
             var w = p.w, h = p.h;
@@ -2144,7 +2306,7 @@ function launchConfetti(multiplier) {
                 ctx.fillStyle = p.shine;
                 ctx.fill();
 
-            } else {
+            } else if (p.shape === 3) {
                 // Streamer: long thin wavy strip
                 ctx.beginPath();
                 ctx.moveTo(0, -h/2);
@@ -2157,6 +2319,40 @@ function launchConfetti(multiplier) {
                 ctx.strokeStyle = p.color;
                 ctx.lineWidth = Math.max(1.5, w * 0.5 * absT);
                 ctx.lineCap = 'round';
+                ctx.stroke();
+
+            } else {
+                // Balloon: oval body + knot + wavy string
+                var bw = w * 0.5, bh = h * 0.55;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                // Specular highlight
+                ctx.globalAlpha = p.opacity * shimmer * 0.45;
+                ctx.beginPath();
+                ctx.ellipse(-bw * 0.3, -bh * 0.35, bw * 0.3, bh * 0.25, -0.4, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                // Knot
+                ctx.globalAlpha = p.opacity;
+                ctx.beginPath();
+                ctx.moveTo(-2, bh);
+                ctx.lineTo(0, bh + 4);
+                ctx.lineTo(2, bh);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                // Wavy string
+                ctx.beginPath();
+                ctx.moveTo(0, bh + 4);
+                var strLen = h * 0.8;
+                for (var ks = 0; ks <= 8; ks++) {
+                    var ssy = bh + 4 + (strLen * ks / 8);
+                    var ssx = Math.sin(ks * 0.9 + t * 3 + p.shimmerPhase) * 3;
+                    ctx.lineTo(ssx, ssy);
+                }
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 0.8;
                 ctx.stroke();
             }
 
@@ -2209,7 +2405,7 @@ function showSessionSuccessBanner(sid, ownerUrl, requestBody) {
     slot.innerHTML =
         '<div class="step-success-banner banner-session">' +
             '<h3><i class="bi bi-check-circle-fill me-2"></i>Great! You created your first session!</h3>' +
-            '<p>\ud83d\udc51 You are now the <strong>session owner</strong>. On the left panel you can now see the ' +
+            '<p><span class="crown-target">\ud83d\udc51</span> You are now the <strong>session owner</strong>. On the left panel you can now see the ' +
             '<strong>live status</strong> of your session at a glance.</p>' +
             '<p>You can also <strong>invite signees</strong> - external participants who each receive their own ' +
             'signing link. They can sign from any device, no account needed. You can invite them now via the API, ' +
@@ -2223,12 +2419,95 @@ function showSessionSuccessBanner(sid, ownerUrl, requestBody) {
                 '<button class="btn btn-insign btn-insign-primary" onclick="revealStep(2)">' +
                     '<i class="bi bi-person-fill me-1"></i>Open as Signing Participant <i class="bi bi-arrow-right ms-1"></i>' +
                 '</button>' +
-                '<button class="btn btn-insign btn-insign-outline btn-insign-sm" onclick="launchConfetti()" style="font-size:0.76rem">' +
-                    '<i class="bi bi-stars me-1"></i>More Confetti!' +
-                '</button>' +
                 '<button class="cheat-btn" onclick="cheatSigned()" title="Skip: fake a signature">skip signing</button>' +
+                '<button class="cheat-btn" onclick="animateCrown()" title="Test crown animation">test crown</button>' +
             '</div>' +
+            confettiToggleHtml() +
         '</div>';
+
+    // Launch the crown animation after scroll + layout settle
+    setTimeout(function () { animateCrown(); }, 700);
+}
+
+function animateCrown() {
+    var target = document.querySelector('.crown-target');
+    if (!target) return;
+
+    target.style.visibility = 'hidden';
+
+    // Place phantom as a sibling of the target so it scrolls with the page.
+    // position:absolute relative to .crown-target positions it exactly on top.
+    target.style.position = 'relative';
+    var phantom = document.createElement('span');
+    phantom.className = 'crown-phantom';
+    phantom.textContent = '\ud83d\udc51';
+    phantom.style.position = 'absolute';
+    phantom.style.left = '0';
+    phantom.style.top = '0';
+    phantom.style.willChange = 'transform, opacity';
+    phantom.style.transformOrigin = 'center center';
+    target.appendChild(phantom);
+
+    // Measure phantom (same size as target since it inherits font)
+    var pRect = phantom.getBoundingClientRect();
+    var pw = pRect.width, ph = pRect.height;
+
+    // Where the target center is in the viewport
+    var tRect = target.getBoundingClientRect();
+    var tcx = tRect.left + tRect.width / 2;
+    var tcy = tRect.top + tRect.height / 2;
+    // Viewport center
+    var vcx = window.innerWidth / 2;
+    var vcy = window.innerHeight / 2;
+    // Offset from target to viewport center (in px, scroll-independent)
+    var dx = vcx - tcx;
+    var dy = vcy - tcy;
+
+    // 5x screen width
+    var startScale = (window.innerWidth * 5) / (pw || 16);
+
+    var dx25 = dx * 0.7, dy25 = dy * 0.6;
+    var dx55 = dx * 0.2, dy55 = dy * 0.15;
+
+    var anim = phantom.animate([
+        {
+            opacity: 0.15,
+            filter: 'brightness(2.5)',
+            transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + startScale + ') rotate(-15deg)',
+            offset: 0
+        },
+        {
+            opacity: 0.85,
+            filter: 'brightness(1.8)',
+            transform: 'translate(' + dx25 + 'px,' + dy25 + 'px) scale(' + (startScale * 0.25) + ') rotate(-8deg)',
+            offset: 0.25
+        },
+        {
+            opacity: 0.95,
+            filter: 'brightness(1.3)',
+            transform: 'translate(' + dx55 + 'px,' + dy55 + 'px) scale(' + (startScale * 0.04) + ') rotate(-3deg)',
+            offset: 0.55
+        },
+        {
+            opacity: 1,
+            filter: 'brightness(1)',
+            transform: 'translate(0px, 0px) scale(1) rotate(0deg)',
+            offset: 1
+        }
+    ], {
+        duration: 2800,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards'
+    });
+
+    anim.onfinish = function () {
+        phantom.remove();
+        target.style.visibility = '';
+        target.classList.add('crown-landed');
+        target.addEventListener('animationend', function () {
+            target.classList.remove('crown-landed');
+        }, { once: true });
+    };
 }
 
 function enrichBannerWithStatus(statusData) {
@@ -2284,9 +2563,12 @@ function revealStep(n, scroll) {
     var el = document.getElementById('step' + n);
     if (el) {
         el.style.display = '';
-        // Monaco editors need a layout kick after being revealed
-        if (editors[n]) editors[n].layout();
-        if (responseEditors[n]) responseEditors[n].layout();
+        // Defer editor layout until after the CSS reveal transition finishes
+        // to avoid layout thrashing during animation
+        setTimeout(function () {
+            if (editors[n]) editors[n].layout();
+            if (responseEditors[n]) responseEditors[n].layout();
+        }, 800);
         if (scroll !== false) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -2381,8 +2663,8 @@ function checkForNewSignatures() {
 }
 
 function showSigningCelebration(sigCount) {
-    // 3x cannon confetti
-    launchConfetti(3);
+    // 3x cannon confetti + balloons
+    if (isConfettiEnabled()) launchConfetti(3);
 
     var slot = document.getElementById('signing-celebration-slot');
     slot.innerHTML =
@@ -2402,10 +2684,8 @@ function showSigningCelebration(sigCount) {
                 '<button class="btn btn-insign btn-insign-primary" onclick="revealStep(3)">' +
                     '<i class="bi bi-clipboard-check me-1"></i>Check Status' +
                 '</button>' +
-                '<button class="btn btn-insign btn-insign-outline btn-insign-sm" onclick="launchConfetti(3)" style="font-size:0.76rem">' +
-                    '<i class="bi bi-stars me-1"></i>Even More Confetti!' +
-                '</button>' +
             '</div>' +
+            confettiToggleHtml() +
         '</div>';
 
     slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2693,7 +2973,7 @@ function cheatCreateSession() {
     propagateSessionId();
     showSessionSuccessBanner(fakeId, accessURL);
     showSessionSidebar();
-    if (!hasSeenConfetti()) { launchConfetti(); markConfettiSeen(); }
+    if (isConfettiEnabled()) launchConfetti();
     setTimeout(function () {
         var banner = document.getElementById('step1-success-slot');
         var rect = banner.getBoundingClientRect();
@@ -3005,6 +3285,10 @@ function _escSc(s) {
 (function () {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // Step containers with Monaco editors must never get exit animations
+    // (scale/translate transitions continuously resize editors, causing layout loops)
+    var noExitIds = { step1: 1, step2: 1, step3: 1, step4: 1 };
+
     var observer = window._scrollRevealObserver = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
             var el = entry.target;
@@ -3012,8 +3296,10 @@ function _escSc(s) {
                 // Element entering viewport
                 el.classList.add('revealed');
                 el.classList.remove('reveal-exit-up', 'reveal-exit-down', 'reveal-exit-fade');
-            } else if (el.classList.contains('revealed')) {
-                // Element leaving viewport - apply exit effect
+                // Once a step with editors is revealed, stop observing it
+                if (noExitIds[el.id]) observer.unobserve(el);
+            } else if (el.classList.contains('revealed') && !noExitIds[el.id]) {
+                // Element leaving viewport - apply exit effect (skip step containers)
                 var rect = entry.boundingClientRect;
                 if (rect.top < 0) {
                     // Scrolled past (above viewport)

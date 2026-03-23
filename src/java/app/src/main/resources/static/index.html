@@ -500,7 +500,6 @@
     }
 
     function purgeSession() {
-        if (!confirm('Purge current session? This cannot be undone.')) return;
         $.ajax({ url: '/api/session/purge', method: 'DELETE' }).done(function(data) {
             sessionActive = false;
             currentSessionId = null;
