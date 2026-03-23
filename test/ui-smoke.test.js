@@ -63,11 +63,14 @@ const SKIP_ONCLICK_PATTERNS = [
  *   - After session creation: fetchStatusAndBuildExternUsers (1x)
  *   - Sidebar refreshSessionStatus auto-poll (every 10s)
  *   - Signature watch: fetchSignatureCount for baseline (1x), then every 4s
- * We inject the signature only after `injectAfterCall` calls, giving the
- * signature watch time to establish its baseline with 0 signatures first.
+ *
+ * Instead of a fixed call-count threshold (fragile with concurrent calls),
+ * we use a flag that the test sets explicitly AFTER the signature watch
+ * baseline is established. This ensures the baseline always sees 0
+ * signatures and the next poll triggers the celebration.
  */
 let statusCallCount = 0;
-let injectAfterCall = 6;
+let injectSignatures = false;
 
 function setupMitmProxy(page) {
     // /version - intercept and return 404 (simulate endpoint not found)
@@ -77,10 +80,10 @@ function setupMitmProxy(page) {
     });
 
     // /get/status - forward to real sandbox, then tamper with the response
-    // to inject a signature after enough baseline calls
+    // to inject a signature when the flag is set
     page.route(`${SANDBOX_ORIGIN}/get/status`, async route => {
         statusCallCount++;
-        const injectSignature = statusCallCount > injectAfterCall;
+        const injectSignature = injectSignatures;
 
         // Forward the request to the real sandbox
         const response = await route.fetch();
@@ -150,19 +153,24 @@ function isConsoleError(msg) {
 
 /**
  * Wait for confetti to start by watching the #confetti-canvas for drawing
- * activity. Returns true if confetti was detected, false on timeout.
+ * activity. Samples horizontal strips instead of reading all pixels to
+ * avoid OOM crashes in headless browsers on large canvases.
  */
 async function waitForConfetti(page, label, timeoutMs = 15000) {
     console.log(`[*] Waiting for ${label}...`);
     try {
         await page.waitForFunction(() => {
             const canvas = document.getElementById('confetti-canvas');
-            if (!canvas) return false;
+            if (!canvas || canvas.width === 0 || canvas.height === 0) return false;
             const ctx = canvas.getContext('2d');
-            // Check if there are non-transparent pixels (confetti drawn)
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            for (let i = 3; i < data.length; i += 4) {
-                if (data[i] > 0) return true; // found a non-transparent pixel
+            const w = canvas.width, h = canvas.height;
+            // Sample 5 horizontal strips (1px tall) spread across the canvas
+            for (let s = 0; s < 5; s++) {
+                const y = Math.floor(h * (s + 1) / 6);
+                const data = ctx.getImageData(0, y, w, 1).data;
+                for (let i = 3; i < data.length; i += 4) {
+                    if (data[i] > 0) return true;
+                }
             }
             return false;
         }, { timeout: timeoutMs });
@@ -176,16 +184,22 @@ async function waitForConfetti(page, label, timeoutMs = 15000) {
 
 /**
  * Wait for confetti canvas to clear (animation finished).
+ * Samples strips instead of reading all pixels.
  */
 async function waitForConfettiEnd(page, timeoutMs = 20000) {
     try {
         await page.waitForFunction(() => {
             const canvas = document.getElementById('confetti-canvas');
-            if (!canvas) return true;
+            if (!canvas || canvas.width === 0 || canvas.height === 0) return true;
             const ctx = canvas.getContext('2d');
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            for (let i = 3; i < data.length; i += 4) {
-                if (data[i] > 0) return false;
+            const w = canvas.width, h = canvas.height;
+            // Sample 5 horizontal strips - if all clear, animation is done
+            for (let s = 0; s < 5; s++) {
+                const y = Math.floor(h * (s + 1) / 6);
+                const data = ctx.getImageData(0, y, w, 1).data;
+                for (let i = 3; i < data.length; i += 4) {
+                    if (data[i] > 0) return false;
+                }
             }
             return true;
         }, { timeout: timeoutMs });
@@ -409,6 +423,12 @@ async function waitForConfettiEnd(page, timeoutMs = 20000) {
             // -----------------------------------------------------------------
             console.log('\n[Flow] Starting signature watch (normally triggered by "Open as Owner")...');
             await page.evaluate(() => startSignatureWatch());
+
+            // Wait for the baseline fetchSignatureCount call to complete (uses a 4s poll)
+            // before enabling injection, so the baseline sees 0 signatures.
+            await page.waitForTimeout(2000);
+            injectSignatures = true;
+            console.log(`[Flow] Injection enabled (after ${statusCallCount} clean status calls)`);
             console.log('[Flow] Waiting for signature watch to detect MITM-injected signature...');
 
             results.confetti2 = await waitForConfetti(page, 'Confetti #2 (signature detected)', 25000);

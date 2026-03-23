@@ -1656,6 +1656,10 @@ docker run -p 3000:3000 sig-funnel</code></pre>
   let insignSessionId = null;  // inSign's session ID (needed for script loading)
   let insignJwt = null;        // JWT token — passed to inSign JS for authentication
   let INSIGN_ROOT = '';        // inSign server base URL (set after session creation)
+  let userRequestedNameInput = false;
+  let userRequestedNameSkippable = false;
+  let userRequestedLocationInput = false;
+  let userRequestedLocationSkippable = false;
 
   function showToast(msg) {
     document.getElementById('toast-msg').textContent = msg;
@@ -1760,6 +1764,12 @@ docker run -p 3000:3000 sig-funnel</code></pre>
         locationInputRequired:  $('#opt-location').is(':checked') || undefined,
         locationInputSkippable: $('#opt-location-skip').is(':checked') || undefined
       };
+
+      // Remember checkbox choices for step 3 panel visibility
+      userRequestedNameInput = $('#opt-realname').is(':checked');
+      userRequestedNameSkippable = $('#opt-realname-skip').is(':checked');
+      userRequestedLocationInput = $('#opt-location').is(':checked');
+      userRequestedLocationSkippable = $('#opt-location-skip').is(':checked');
 
       // POST to our backend — this triggers the inSign /configure/session call
       const res = await $.post({ url: '/api/session', data: JSON.stringify(payload), contentType: 'application/json' });
@@ -2143,56 +2153,66 @@ docker run -p 3000:3000 sig-funnel</code></pre>
   // We wire our custom UI to these library functions.
   //
   function setupRealInputPanels() {
-    if (typeof INSIGNAPP === 'undefined' || !INSIGNAPP.config) return;
+    // Use the user's checkbox choices (stored at form submit time) instead of
+    // INSIGNAPP.config, because the sandbox server may have its own defaults
+    // that override what was sent in /configure/session.
+    //
+    // We manage visibility ourselves (d-none) and only wire up the submit/skip
+    // buttons via the inSign library so sendSignature includes the values.
+    // Do NOT call waitForRealNameInput/waitForRealLocationInput - those methods
+    // hide the element and manage visibility on the library's own schedule.
 
-    // Real Name
-    if (INSIGNAPP.config.realNameInputRequired) {
-      document.getElementById('realname-panel').classList.remove('d-none');
-      if (INSIGNAPP.config.realNameInputSkippable) {
-        document.getElementById('realname-skip').classList.remove('d-none');
+    // Wire up via inSign library so sendSignature includes name/location.
+    // The waitFor* calls hide the elements, so we force-show them afterward
+    // with setTimeout(0) to run after the library's DOM changes settle.
+    if (userRequestedNameInput) {
+      INSIGNAPP.embedded.waitForRealNameInput($('#realNameInput'));
+      INSIGNAPP.embedded.submitRealName($('#realname-ok'));
+      if (userRequestedNameSkippable) {
+        INSIGNAPP.embedded.skipRealName($('#realname-skip'));
+      }
+    }
+    if (userRequestedLocationInput) {
+      INSIGNAPP.embedded.waitForRealLocationInput($('#realLocationInput'));
+      INSIGNAPP.embedded.submitRealLocation($('#reallocation-ok'));
+      if (userRequestedLocationSkippable) {
+        INSIGNAPP.embedded.skipRealLocation($('#reallocation-skip'));
       }
     }
 
-    // Real Location
-    if (INSIGNAPP.config.realLocationInputRequired) {
-      document.getElementById('reallocation-panel').classList.remove('d-none');
-      if (INSIGNAPP.config.realLocationInputSkippable) {
-        document.getElementById('reallocation-skip').classList.remove('d-none');
+    // Force-show after library hides them
+    setTimeout(function() {
+      if (userRequestedNameInput) {
+        $('#realname-panel').removeClass('d-none').css('display', '');
+        if (userRequestedNameSkippable) $('#realname-skip').removeClass('d-none').css('display', '');
       }
-    }
+      if (userRequestedLocationInput) {
+        $('#reallocation-panel').removeClass('d-none').css('display', '');
+        if (userRequestedLocationSkippable) $('#reallocation-skip').removeClass('d-none').css('display', '');
+      }
+    }, 0);
   }
 
   function submitRealName() {
     var name = document.getElementById('realNameInput').value.trim();
     if (!name) { showToast('Bitte geben Sie Ihren Namen ein.'); return; }
-    // Store the real name on each signature field wrapper so inSign picks it up
-    $('#sig-container .sig-field-wrap').each(function () {
-      $(this).data('realname', name);
-    });
-    document.getElementById('realname-panel').style.opacity = '.5';
-    document.getElementById('realname-panel').style.pointerEvents = 'none';
-    document.getElementById('realname-ok').innerHTML = '<i class="bi bi-check-lg"></i>';
+    // Click the button wired to INSIGNAPP.embedded.submitRealName
+    document.getElementById('realname-ok').click();
   }
 
   function skipRealName() {
-    document.getElementById('realname-panel').style.opacity = '.5';
-    document.getElementById('realname-panel').style.pointerEvents = 'none';
+    document.getElementById('realname-skip').click();
   }
 
   function submitRealLocation() {
     var loc = document.getElementById('realLocationInput').value.trim();
     if (!loc) { showToast('Bitte geben Sie den Ort ein.'); return; }
-    $('#sig-container .sig-field-wrap').each(function () {
-      $(this).data('reallocation', loc);
-    });
-    document.getElementById('reallocation-panel').style.opacity = '.5';
-    document.getElementById('reallocation-panel').style.pointerEvents = 'none';
-    document.getElementById('reallocation-ok').innerHTML = '<i class="bi bi-check-lg"></i>';
+    // Click the button wired to INSIGNAPP.embedded.submitRealLocation
+    document.getElementById('reallocation-ok').click();
   }
 
   function skipRealLocation() {
-    document.getElementById('reallocation-panel').style.opacity = '.5';
-    document.getElementById('reallocation-panel').style.pointerEvents = 'none';
+    document.getElementById('reallocation-skip').click();
   }
 
   // ==========================================================================
@@ -2269,6 +2289,27 @@ docker run -p 3000:3000 sig-funnel</code></pre>
     if (!allReady) {
       showToast('Bitte zeichnen Sie zuerst Ihre Unterschrift.');
       return;
+    }
+
+    // Validate required name/location inputs before sending
+    if (userRequestedNameInput) {
+      var name = document.getElementById('realNameInput').value.trim();
+      if (!name) {
+        showToast('Bitte geben Sie Ihren Namen ein.');
+        document.getElementById('realNameInput').focus();
+        return;
+      }
+      // Auto-submit if user forgot to click OK
+      if (!pads.first().data('realname')) submitRealName();
+    }
+    if (userRequestedLocationInput) {
+      var loc = document.getElementById('realLocationInput').value.trim();
+      if (!loc) {
+        showToast('Bitte geben Sie den Ort ein.');
+        document.getElementById('realLocationInput').focus();
+        return;
+      }
+      if (!pads.first().data('reallocation')) submitRealLocation();
     }
 
     // Send all signatures sequentially (wait for each /store/document to return before sending the next)

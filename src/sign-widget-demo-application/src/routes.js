@@ -44,7 +44,7 @@ async function createSession(req, res) {
       street, zip, city, country, phone, email,
       idType, idNumber, contract1, contract2, contract3, signDate
     };
-    const sessionKey = require('uuid').v4();
+    const sessionKey = crypto.randomUUID();
     const docId = 'mandate-doc';
 
     // Build preFilledFields and read the PDF template

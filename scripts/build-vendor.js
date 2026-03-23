@@ -121,16 +121,29 @@ copyDir(
   path.join(monacoDest, 'language', 'json')
 );
 
-// basic-languages/javascript/ - needed for JSON worker
+// basic-languages/ - root files + language subdirectories used by the app
 const blDir = path.join(monacoSrc, 'basic-languages');
 if (fs.existsSync(blDir)) {
-  // Copy only the basic-languages root files (contribution registry)
+  // Root files (contribution registry)
   for (const f of fs.readdirSync(blDir)) {
     const full = path.join(blDir, f);
     if (!fs.statSync(full).isDirectory()) {
       copy(full, path.join(monacoDest, 'basic-languages', f));
     }
   }
+  // Language subdirectories loaded on-demand by Monaco
+  for (const lang of ['javascript', 'java', 'typescript', 'html', 'css']) {
+    const langDir = path.join(blDir, lang);
+    if (fs.existsSync(langDir)) {
+      copyDir(langDir, path.join(monacoDest, 'basic-languages', lang));
+    }
+  }
+}
+
+// language/typescript/ - TypeScript language support (loaded on-demand)
+const tsLangDir = path.join(monacoSrc, 'language', 'typescript');
+if (fs.existsSync(tsLangDir)) {
+  copyDir(tsLangDir, path.join(monacoDest, 'language', 'typescript'));
 }
 console.log('  monaco-editor ...... OK');
 

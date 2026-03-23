@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build:vendor": "node scripts/build-vendor.js",
+    "build:explorer": "node scripts/build-explorer.js",
     "test:ui": "node test/ui-smoke.test.js",
     "test:ui:headed": "node test/ui-smoke.test.js --headed"
   }

@@ -70,8 +70,9 @@ The user fills in personal data, the server generates a mandate PDF on the fly, 
 
 ```bash
 cd src/sign-widget-demo-application
-npm install
-npm start             # or: npm run dev (auto-reload)
+./run.sh              # installs deps if needed, starts the server
+# or: ./run.sh docker  (build & run via Docker)
+# or: npm install && npm start
 # Open http://localhost:3000
 ```
 

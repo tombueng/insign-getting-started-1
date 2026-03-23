@@ -1,0 +1,39 @@
+
+    </div><!-- /row -->
+
+    <!-- Expand tab for collapsed sidebar -->
+    <button class="sidebar-expand-tab sidebar-expand-right d-none" id="expand-right-sidebar"
+            onclick="window.app.expandSidebar()" title="Show sidebar">
+        <i class="bi bi-layout-sidebar-reverse"></i>
+        <span class="expand-tab-badge" id="expand-trace-count"></span>
+    </button>
+
+</div><!-- /container -->
+
+<!-- ====================================================================
+     SCRIPTS
+     ==================================================================== -->
+
+<!-- jQuery -->
+<script src="vendor/jquery/jquery.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- Monaco Editor AMD loader -->
+<script src="vendor/monaco-editor/min/vs/loader.js"></script>
+
+<!-- App modules -->
+<script src="js/openapi-schema-loader.js"></script>
+<script src="js/api-client.js"></script>
+<!-- Global drag-and-drop overlay -->
+<div id="feature-float-tooltip"></div>
+<div id="json-hover-tooltip"></div>
+<div id="drop-overlay" class="drop-overlay">
+    <div class="drop-overlay-content">
+        <i class="bi bi-file-earmark-arrow-down drop-overlay-icon"></i>
+        <div class="drop-overlay-title">Drop PDF here</div>
+        <div class="drop-overlay-sub">File will be used as your custom test document</div>
+    </div>
+</div>
+

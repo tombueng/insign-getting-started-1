@@ -530,10 +530,12 @@ function setExternOption(key, value) {
             user[key] = value;
         }
         // When SMS is toggled, add/remove the recipientsms phone number
+        // Placeholder: Swiss mobile (+41 79 555 00 xx) - fictitious but format-valid.
+        // US 555 numbers are widely blacklisted; this passes inSign validation.
         if (key === 'sendSMS') {
             for (const user of body.externUsers) {
                 if (value) {
-                    if (!user.recipientsms) user.recipientsms = '+15550100' + String(body.externUsers.indexOf(user)).padStart(2, '0');
+                    if (!user.recipientsms) user.recipientsms = '+417955500' + String(body.externUsers.indexOf(user)).padStart(2, '0');
                 } else {
                     delete user.recipientsms;
                 }
@@ -623,8 +625,10 @@ function buildExternBodyFromRoles() {
         externUsers.forEach((u, i) => { u.orderNumber = i + 1; });
     }
     // When SMS is enabled, each user needs a recipientsms phone number
+    // Placeholder: Swiss mobile (+41 79 555 00 xx) - fictitious but format-valid.
+    // US 555 numbers are widely blacklisted; this passes inSign validation.
     if (sendSMS) {
-        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+15550100' + String(i).padStart(2, '0'); });
+        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+417955500' + String(i).padStart(2, '0'); });
     }
     const body = {
         sessionid: state.sessionId || '<session-id>',

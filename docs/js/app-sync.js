@@ -209,8 +209,10 @@ function getDefaultExternBody() {
         externUsers.forEach((u, i) => { u.orderNumber = i + 1; });
     }
     // When SMS is enabled, each user needs a recipientsms phone number
+    // Placeholder: Swiss mobile (+41 79 555 00 xx) - fictitious but format-valid.
+    // US 555 numbers are widely blacklisted; this passes inSign validation.
     if (savedOpts.sendSMS) {
-        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+15550100' + String(i).padStart(2, '0'); });
+        externUsers.forEach((u, i) => { if (!u.recipientsms) u.recipientsms = '+417955500' + String(i).padStart(2, '0'); });
     }
 
     return {

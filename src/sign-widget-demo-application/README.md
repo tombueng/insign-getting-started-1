@@ -48,6 +48,13 @@ This is not just a code sample — it's an **interactive tutorial**. Each step o
 
 Choose your preferred way to run the demo:
 
+### Option 0: run.sh (easiest)
+
+```bash
+./run.sh              # npm start (installs deps if needed)
+./run.sh docker       # build & run via Docker
+```
+
 ### Option 1: Local (Node.js)
 
 ```bash
@@ -155,28 +162,7 @@ npm test
 
 ### Docker
 
-```dockerfile
-FROM node:20-slim
-
-# Install Chromium dependencies for Playwright tests (optional)
-RUN apt-get update && apt-get install -y \
-    libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 \
-    libgbm1 libpango-1.0-0 libcairo2 libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-
-# Generate the PDF template at build time
-RUN node -e "require('./src/pdf-generator').ensureTemplate()"
-
-EXPOSE 3000
-CMD ["node", "src/server.js"]
-```
-
-Build and run:
+A [`Dockerfile`](Dockerfile) is included. Build and run:
 
 ```bash
 docker build -t sig-funnel .
