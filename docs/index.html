@@ -213,8 +213,9 @@
 
         /* Success banner between steps */
         /* Crown epic zoom animation */
-        .crown-target { position: relative; display: inline-block; overflow: visible; }
+        .crown-target { display: inline-block; font-size: 2em; vertical-align: baseline; line-height: 0; position: relative; top: 0.15em; }
         .crown-phantom {
+            position: fixed;
             pointer-events: none;
             z-index: 9999;
         }
@@ -492,21 +493,21 @@
         .banner-signed h3 { color: var(--insign-success); font-size: 1.4rem; }
 
         .banner-jumping {
-            animation: comicJump 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.4) 8;
+            animation: comicJumpDecay 3s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
         }
 
-        /* The icon container - absolute chaos */
+        /* The icon container - chaos that calms down */
         .banner-icon {
             display: inline-block;
             font-size: 1.6rem;
             position: relative;
         }
         .banner-jumping .banner-icon {
-            animation: iconPanic 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.4) 8;
+            animation: iconPanicDecay 3s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
             transform-origin: bottom center;
         }
 
-        /* Motion lines that appear during jumping */
+        /* Motion lines - only first few bounces */
         .banner-jumping::before,
         .banner-jumping::after {
             content: '';
@@ -514,7 +515,7 @@
             border-radius: 2px;
             background: var(--insign-success);
             opacity: 0;
-            animation: motionLines 0.35s ease-in-out 8;
+            animation: motionLinesDecay 3s ease-in-out forwards;
         }
         .banner-jumping::before {
             width: 30px; height: 3px;
@@ -527,45 +528,66 @@
             transform: rotate(12deg);
         }
 
-        /* Squash frame at the bottom of each bounce */
-        .banner-squash {
-            animation: comicSquash 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.4) 8;
+        /* Single 3s animation with decreasing bounce amplitude */
+        @keyframes comicJumpDecay {
+            /* Bounce 1 - biggest */
+            0%    { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            2%    { transform: translateY(6px) rotate(0deg) scaleX(1.12) scaleY(0.82); }
+            6%    { transform: translateY(-70px) rotate(-4deg) scaleX(0.88) scaleY(1.16); }
+            12%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            /* Bounce 2 */
+            14%   { transform: translateY(4px) rotate(0deg) scaleX(1.10) scaleY(0.85); }
+            18%   { transform: translateY(-55px) rotate(3.5deg) scaleX(0.90) scaleY(1.12); }
+            24%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            /* Bounce 3 */
+            26%   { transform: translateY(3px) rotate(0deg) scaleX(1.08) scaleY(0.88); }
+            30%   { transform: translateY(-40px) rotate(-3deg) scaleX(0.93) scaleY(1.08); }
+            37%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            /* Bounce 4 - smaller */
+            39%   { transform: translateY(2px) scaleX(1.05) scaleY(0.92); }
+            44%   { transform: translateY(-25px) rotate(2deg) scaleX(0.96) scaleY(1.05); }
+            51%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            /* Bounce 5 - gentle */
+            53%   { transform: translateY(1px) scaleX(1.03) scaleY(0.95); }
+            59%   { transform: translateY(-14px) rotate(-1deg) scaleX(0.98) scaleY(1.03); }
+            67%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+            /* Bounce 6 - subtle */
+            69%   { transform: translateY(-7px) rotate(0.5deg); }
+            78%   { transform: translateY(0) rotate(0deg); }
+            /* Bounce 7 - barely visible, smooth settle */
+            80%   { transform: translateY(-3px); }
+            90%   { transform: translateY(0); }
+            100%  { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
         }
 
-        @keyframes comicJump {
-            0%   { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
-            8%   { transform: translateY(6px) rotate(0deg) scaleX(1.12) scaleY(0.82); }
-            20%  { transform: translateY(-55px) rotate(-4deg) scaleX(0.92) scaleY(1.12); }
-            32%  { transform: translateY(-70px) rotate(3.5deg) scaleX(0.88) scaleY(1.16); }
-            50%  { transform: translateY(-40px) rotate(-5deg) scaleX(0.94) scaleY(1.08); }
-            65%  { transform: translateY(-10px) rotate(2deg) scaleX(1.04) scaleY(0.96); }
-            78%  { transform: translateY(8px) rotate(-1deg) scaleX(1.14) scaleY(0.8); }
-            88%  { transform: translateY(-15px) rotate(1.5deg) scaleX(0.96) scaleY(1.06); }
-            100% { transform: translateY(0) rotate(0deg) scaleX(1) scaleY(1); }
+        @keyframes iconPanicDecay {
+            0%    { transform: rotate(0deg) translate(0, 0); }
+            4%    { transform: rotate(-35deg) translate(-12px, -18px); }
+            8%    { transform: rotate(40deg) translate(15px, -25px); }
+            14%   { transform: rotate(-45deg) translate(-18px, -30px) scale(1.1); }
+            20%   { transform: rotate(38deg) translate(14px, -15px) scale(0.9); }
+            28%   { transform: rotate(-35deg) translate(-14px, -22px) scale(1.05); }
+            36%   { transform: rotate(25deg) translate(10px, -12px); }
+            44%   { transform: rotate(-18deg) translate(-8px, -10px); }
+            54%   { transform: rotate(12deg) translate(5px, -6px); }
+            64%   { transform: rotate(-6deg) translate(-3px, -3px); }
+            76%   { transform: rotate(2deg) translate(1px, -1px); }
+            90%   { transform: rotate(0deg) translate(0, 0); }
+            100%  { transform: rotate(0deg) translate(0, 0); }
         }
 
-        @keyframes iconPanic {
-            0%   { transform: rotate(0deg) translate(0, 0); }
-            6%   { transform: rotate(5deg) translate(2px, 4px); }
-            14%  { transform: rotate(-35deg) translate(-12px, -18px); }
-            22%  { transform: rotate(40deg) translate(15px, -25px); }
-            32%  { transform: rotate(-45deg) translate(-18px, -30px) scale(1.1); }
-            42%  { transform: rotate(38deg) translate(14px, -15px) scale(0.9); }
-            52%  { transform: rotate(-50deg) translate(-20px, -35px) scale(1.15); }
-            62%  { transform: rotate(42deg) translate(16px, -20px); }
-            72%  { transform: rotate(-30deg) translate(-10px, -12px); }
-            82%  { transform: rotate(20deg) translate(6px, -5px); }
-            92%  { transform: rotate(-8deg) translate(-2px, -2px); }
-            100% { transform: rotate(0deg) translate(0, 0); }
+        @keyframes motionLinesDecay {
+            0%, 3%  { opacity: 0; }
+            6%, 10% { opacity: 0.4; }
+            12%     { opacity: 0; }
+            16%, 20% { opacity: 0.3; }
+            24%     { opacity: 0; }
+            28%, 32% { opacity: 0.15; }
+            38%     { opacity: 0; }
+            100%    { opacity: 0; }
         }
 
-        @keyframes motionLines {
-            0%, 100% { opacity: 0; }
-            15%, 40% { opacity: 0.4; }
-            50%      { opacity: 0; }
-        }
-
-        /* Impact stars that burst on landing */
+        /* Impact stars that burst on first two landings */
         .impact-star {
             position: absolute;
             bottom: -8px;
@@ -574,16 +596,19 @@
             pointer-events: none;
         }
         .banner-jumping .impact-star {
-            animation: impactBurst 0.35s ease-out 8;
+            animation: impactBurstDecay 3s ease-out forwards;
         }
         .impact-star.star-l { left: 15%; }
         .impact-star.star-r { right: 15%; }
 
-        @keyframes impactBurst {
-            0%, 60% { opacity: 0; transform: scale(0.3) translateY(0); }
-            75%     { opacity: 0.8; transform: scale(1.3) translateY(-8px); }
-            90%     { opacity: 0.4; transform: scale(0.8) translateY(-2px); }
-            100%    { opacity: 0; transform: scale(0.5) translateY(0); }
+        @keyframes impactBurstDecay {
+            0%, 10% { opacity: 0; transform: scale(0.3) translateY(0); }
+            12%     { opacity: 0.8; transform: scale(1.3) translateY(-8px); }
+            15%     { opacity: 0; transform: scale(0.5) translateY(0); }
+            22%, 23% { opacity: 0; transform: scale(0.3) translateY(0); }
+            25%     { opacity: 0.5; transform: scale(1.1) translateY(-6px); }
+            28%     { opacity: 0; transform: scale(0.5) translateY(0); }
+            100%    { opacity: 0; }
         }
 
         /* ============================================================
@@ -1384,6 +1409,7 @@
                     <span class="badge badge-method badge-method-post">POST</span>
                     <span class="endpoint-path">/configure/session</span>
                     <button class="cheat-btn" onclick="cheatCreateSession()" title="Skip: fake a session">skip</button>
+                    <button class="cheat-btn" onclick="cheatCreateSession()" title="Test crown animation">test crown</button>
                 </div>
                 <div class="card-body">
                     <p class="step-desc mb-3">Upload a document and create a signing session. The response contains a <code>sessionid</code>.<br>
@@ -2405,7 +2431,7 @@ function showSessionSuccessBanner(sid, ownerUrl, requestBody) {
     slot.innerHTML =
         '<div class="step-success-banner banner-session">' +
             '<h3><i class="bi bi-check-circle-fill me-2"></i>Great! You created your first session!</h3>' +
-            '<p><span class="crown-target">\ud83d\udc51</span> You are now the <strong>session owner</strong>. On the left panel you can now see the ' +
+            '<p><span class="crown-target" style="visibility:hidden">\ud83d\udc51</span> You are now the <strong>session owner</strong>. On the left panel you can now see the ' +
             '<strong>live status</strong> of your session at a glance.</p>' +
             '<p>You can also <strong>invite signees</strong> - external participants who each receive their own ' +
             'signing link. They can sign from any device, no account needed. You can invite them now via the API, ' +
@@ -2429,85 +2455,77 @@ function showSessionSuccessBanner(sid, ownerUrl, requestBody) {
     setTimeout(function () { animateCrown(); }, 700);
 }
 
+var crownAnimating = false;
 function animateCrown() {
     var target = document.querySelector('.crown-target');
-    if (!target) return;
+    if (!target || crownAnimating) return;
+    crownAnimating = true;
 
     target.style.visibility = 'hidden';
 
-    // Place phantom as a sibling of the target so it scrolls with the page.
-    // position:absolute relative to .crown-target positions it exactly on top.
-    target.style.position = 'relative';
-    var phantom = document.createElement('span');
+    var phantom = document.createElement('div');
     phantom.className = 'crown-phantom';
     phantom.textContent = '\ud83d\udc51';
-    phantom.style.position = 'absolute';
-    phantom.style.left = '0';
-    phantom.style.top = '0';
+    var ts = window.getComputedStyle(target);
+    phantom.style.fontSize = ts.fontSize;
+    phantom.style.fontFamily = ts.fontFamily;
+    phantom.style.lineHeight = '1';
     phantom.style.willChange = 'transform, opacity';
-    phantom.style.transformOrigin = 'center center';
-    target.appendChild(phantom);
+    document.body.appendChild(phantom);
 
-    // Measure phantom (same size as target since it inherits font)
     var pRect = phantom.getBoundingClientRect();
-    var pw = pRect.width, ph = pRect.height;
+    var pw = pRect.width || 16, ph = pRect.height || 16;
 
-    // Where the target center is in the viewport
-    var tRect = target.getBoundingClientRect();
-    var tcx = tRect.left + tRect.width / 2;
-    var tcy = tRect.top + tRect.height / 2;
-    // Viewport center
-    var vcx = window.innerWidth / 2;
-    var vcy = window.innerHeight / 2;
-    // Offset from target to viewport center (in px, scroll-independent)
-    var dx = vcx - tcx;
-    var dy = vcy - tcy;
+    var startScale = (window.innerWidth * 2) / pw;
+    // Start off-screen to the left, vertically centered
+    var sx = -(pw * startScale) / 2;
+    var sy = window.innerHeight / 2;
 
-    // 5x screen width
-    var startScale = (window.innerWidth * 5) / (pw || 16);
+    var duration = 1400;
+    var startTime = performance.now();
 
-    var dx25 = dx * 0.7, dy25 = dy * 0.6;
-    var dx55 = dx * 0.2, dy55 = dy * 0.15;
+    function lerp(a, b, t) { return a + (b - a) * t; }
 
-    var anim = phantom.animate([
-        {
-            opacity: 0.15,
-            filter: 'brightness(2.5)',
-            transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + startScale + ') rotate(-15deg)',
-            offset: 0
-        },
-        {
-            opacity: 0.85,
-            filter: 'brightness(1.8)',
-            transform: 'translate(' + dx25 + 'px,' + dy25 + 'px) scale(' + (startScale * 0.25) + ') rotate(-8deg)',
-            offset: 0.25
-        },
-        {
-            opacity: 0.95,
-            filter: 'brightness(1.3)',
-            transform: 'translate(' + dx55 + 'px,' + dy55 + 'px) scale(' + (startScale * 0.04) + ') rotate(-3deg)',
-            offset: 0.55
-        },
-        {
-            opacity: 1,
-            filter: 'brightness(1)',
-            transform: 'translate(0px, 0px) scale(1) rotate(0deg)',
-            offset: 1
+    // Smooth ease-out (decelerating)
+    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function tick(now) {
+        var rawT = Math.min(1, (now - startTime) / duration);
+        var t = ease(rawT);
+
+        // Re-read target every frame (scroll-proof)
+        var tRect = target.getBoundingClientRect();
+        var tx = tRect.left + tRect.width / 2;
+        var ty = tRect.top + tRect.height / 2;
+
+        // Smooth single-curve lerp: position, scale, rotation, opacity
+        var cx = lerp(sx, tx, t);
+        var cy = lerp(sy, ty, t);
+        var scale = lerp(startScale, 1, t);
+        var rot = lerp(-15, 0, t);
+        var opacity = Math.min(1, t * 4);           // reaches 1 at t=0.25
+        var bright = lerp(2, 1, Math.min(1, t * 2)); // settles at t=0.5
+
+        phantom.style.left = (cx - pw / 2) + 'px';
+        phantom.style.top = (cy - ph / 2) + 'px';
+        phantom.style.opacity = opacity;
+        phantom.style.filter = 'brightness(' + bright.toFixed(2) + ')';
+        phantom.style.transform = 'scale(' + scale.toFixed(4) + ') rotate(' + rot.toFixed(2) + 'deg)';
+
+        if (rawT < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            phantom.remove();
+            crownAnimating = false;
+            target.style.visibility = '';
+            target.classList.add('crown-landed');
+            target.addEventListener('animationend', function () {
+                target.classList.remove('crown-landed');
+            }, { once: true });
         }
-    ], {
-        duration: 2800,
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        fill: 'forwards'
-    });
+    }
 
-    anim.onfinish = function () {
-        phantom.remove();
-        target.style.visibility = '';
-        target.classList.add('crown-landed');
-        target.addEventListener('animationend', function () {
-            target.classList.remove('crown-landed');
-        }, { once: true });
-    };
+    requestAnimationFrame(tick);
 }
 
 function enrichBannerWithStatus(statusData) {
@@ -2681,7 +2699,7 @@ function showSigningCelebration(sigCount) {
             '</p>' +
             '<p>You can check the session status or download the signed PDF using the steps below.</p>' +
             '<div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">' +
-                '<button class="btn btn-insign btn-insign-primary" onclick="revealStep(3)">' +
+                '<button class="btn btn-insign btn-insign-primary" onclick="revealStep(3);setTimeout(function(){sendStep(3)},900)">' +
                     '<i class="bi bi-clipboard-check me-1"></i>Check Status' +
                 '</button>' +
             '</div>' +

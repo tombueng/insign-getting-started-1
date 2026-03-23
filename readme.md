@@ -22,16 +22,18 @@ This repository contains everything you need to get started with the **inSign** 
 
 | | |
 |---|---|
-| **Getting Started Guide** | [Start here](https://tombueng.github.io/insign-getting-started-1/) |
-| **API Explorer** | [Open the interactive API Explorer](https://tombueng.github.io/insign-getting-started-1/explorer.html) |
-| **Swagger API Reference** | [Browse the API docs](https://sandbox.test.getinsign.show/docs/swagger-ui/index.html) |
-| **inSign Homepage** | [www.getinsign.com](https://www.getinsign.com/) |
+| :rocket: **Getting Started Guide** | [**Start here**](https://tombueng.github.io/insign-getting-started-1/) |
+| :telescope: **API Explorer** | [Open the interactive API Explorer](https://tombueng.github.io/insign-getting-started-1/explorer.html) |
+| :coffee: **Java Sample App** | [src/java/](src/java/) - Spring Boot demo with pluggable API clients |
+| :pen: **Signature Widget Demo** | [src/sign-widget-demo-application/](src/sign-widget-demo-application/) - Embedded signature pad (Node.js) |
+| :book: **Swagger API Reference** | [Browse the API docs](https://sandbox.test.getinsign.show/docs/swagger-ui/index.html) |
+| :globe_with_meridians: **inSign Homepage** | [www.getinsign.com](https://www.getinsign.com/) |
 
 ---
 
-## Start Here - The Getting Started Guide
+## :rocket: Start Here - The Getting Started Guide
 
-> **[https://tombueng.github.io/insign-getting-started-1/](https://tombueng.github.io/insign-getting-started-1/)**
+> :point_right: **[https://tombueng.github.io/insign-getting-started-1/](https://tombueng.github.io/insign-getting-started-1/)** :point_left:
 
 The Getting Started Guide is a single-page interactive walkthrough hosted via GitHub Pages (served from the [`docs/`](docs/) directory). It is the best starting point for anyone new to the inSign API.
 
