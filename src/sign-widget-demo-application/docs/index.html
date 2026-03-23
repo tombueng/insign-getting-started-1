@@ -1199,19 +1199,11 @@
                   <input class="form-check-input" type="checkbox" id="opt-realname">
                   <label class="form-check-label" for="opt-realname" style="font-size:.8rem;">Name eingeben</label>
                 </div>
-                <div class="form-check ms-4">
-                  <input class="form-check-input" type="checkbox" id="opt-realname-skip">
-                  <label class="form-check-label" for="opt-realname-skip" style="font-size:.76rem;color:#8b8fa3;">&Uuml;berspringbar</label>
-                </div>
               </div>
               <div class="col-6">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="opt-location">
-                  <label class="form-check-label" for="opt-location" style="font-size:.8rem;">Ort eingeben</label>
-                </div>
-                <div class="form-check ms-4">
-                  <input class="form-check-input" type="checkbox" id="opt-location-skip">
-                  <label class="form-check-label" for="opt-location-skip" style="font-size:.76rem;color:#8b8fa3;">&Uuml;berspringbar</label>
+                  <input class="form-check-input" type="checkbox" id="opt-realname-skip">
+                  <label class="form-check-label" for="opt-realname-skip" style="font-size:.8rem;">&Uuml;berspringbar</label>
                 </div>
               </div>
             </div>
@@ -1257,21 +1249,10 @@
           <div id="embedded-mode">
             <!-- Real name input (shown if realNameInputRequired) -->
             <div id="realname-panel" class="realinput-panel d-none">
-              <label><i class="bi bi-person me-1"></i> Vollst&auml;ndiger Name</label>
+              <label><i class="bi bi-person me-1"></i> Vollst&auml;ndiger Name <span id="realname-optional" class="d-none" style="font-weight:normal;color:#8b8fa3">(optional)</span></label>
               <div class="input-row">
                 <input type="text" class="form-control" id="realNameInput" placeholder="Bitte Ihren vollst&auml;ndigen Namen eingeben">
                 <button class="btn btn-sm btn-brand" id="realname-ok" onclick="submitRealName()">OK</button>
-                <button class="btn btn-sm btn-outline-secondary d-none" id="realname-skip" onclick="skipRealName()">&Uuml;berspringen</button>
-              </div>
-            </div>
-
-            <!-- Real location input (shown if realLocationInputRequired) -->
-            <div id="reallocation-panel" class="realinput-panel d-none">
-              <label><i class="bi bi-geo-alt me-1"></i> Ort der Unterschrift</label>
-              <div class="input-row">
-                <input type="text" class="form-control" id="realLocationInput" placeholder="z.B. Frankfurt am Main">
-                <button class="btn btn-sm btn-brand" id="reallocation-ok" onclick="submitRealLocation()">OK</button>
-                <button class="btn btn-sm btn-outline-secondary d-none" id="reallocation-skip" onclick="skipRealLocation()">&Uuml;berspringen</button>
               </div>
             </div>
 
@@ -1658,8 +1639,6 @@ docker run -p 3000:3000 sig-funnel</code></pre>
   let INSIGN_ROOT = '';        // inSign server base URL (set after session creation)
   let userRequestedNameInput = false;
   let userRequestedNameSkippable = false;
-  let userRequestedLocationInput = false;
-  let userRequestedLocationSkippable = false;
 
   function showToast(msg) {
     document.getElementById('toast-msg').textContent = msg;
@@ -1761,15 +1740,13 @@ docker run -p 3000:3000 sig-funnel</code></pre>
         contract3:   $('#contract3').val().trim() || undefined,
         nameInputRequired:      $('#opt-realname').is(':checked') || undefined,
         nameInputSkippable:     $('#opt-realname-skip').is(':checked') || undefined,
-        locationInputRequired:  $('#opt-location').is(':checked') || undefined,
-        locationInputSkippable: $('#opt-location-skip').is(':checked') || undefined
+        locationInputRequired:  false,
+        locationInputSkippable: false
       };
 
       // Remember checkbox choices for step 3 panel visibility
       userRequestedNameInput = $('#opt-realname').is(':checked');
       userRequestedNameSkippable = $('#opt-realname-skip').is(':checked');
-      userRequestedLocationInput = $('#opt-location').is(':checked');
-      userRequestedLocationSkippable = $('#opt-location-skip').is(':checked');
 
       // POST to our backend — this triggers the inSign /configure/session call
       const res = await $.post({ url: '/api/session', data: JSON.stringify(payload), contentType: 'application/json' });
@@ -2143,7 +2120,7 @@ docker run -p 3000:3000 sig-funnel</code></pre>
   // Real Name & Location Input handling
   // ==========================================================================
   //
-  // When realNameInputRequired / realLocationInputRequired are set in the
+  // When realNameInputRequired is set in the
   // inSign session config, we show our own UI for collecting these values.
   // The inSign JS library handles this via:
   //   INSIGNAPP.embedded.waitForRealNameInput(field)  — shows the name prompt
@@ -2153,67 +2130,37 @@ docker run -p 3000:3000 sig-funnel</code></pre>
   // We wire our custom UI to these library functions.
   //
   function setupRealInputPanels() {
-    // Use the user's checkbox choices (stored at form submit time) instead of
-    // INSIGNAPP.config, because the sandbox server may have its own defaults
-    // that override what was sent in /configure/session.
-    //
-    // We manage visibility ourselves (d-none) and only wire up the submit/skip
-    // buttons via the inSign library so sendSignature includes the values.
-    // Do NOT call waitForRealNameInput/waitForRealLocationInput - those methods
-    // hide the element and manage visibility on the library's own schedule.
+    if (typeof INSIGNAPP === 'undefined' || !INSIGNAPP.config) return;
 
-    // Wire up via inSign library so sendSignature includes name/location.
-    // The waitFor* calls hide the elements, so we force-show them afterward
-    // with setTimeout(0) to run after the library's DOM changes settle.
+    // The inSign embedded API only supports realName (via $wrap.data('realname')).
+    // There is no embedded API for location - it's only in the full inSign UI.
+    // Override the server config so sendSignature doesn't block on missing input.
+    INSIGNAPP.config.realNameInputRequired = false;
+    INSIGNAPP.config.realLocationInputRequired = false;
+
+    // Show our custom name panel when the user requested it.
+    // We handle it ourselves: store the value via $wrap.data('realname')
+    // which sendSignature reads internally.
     if (userRequestedNameInput) {
-      INSIGNAPP.embedded.waitForRealNameInput($('#realNameInput'));
-      INSIGNAPP.embedded.submitRealName($('#realname-ok'));
+      document.getElementById('realname-panel').classList.remove('d-none');
       if (userRequestedNameSkippable) {
-        INSIGNAPP.embedded.skipRealName($('#realname-skip'));
+        document.getElementById('realname-optional').classList.remove('d-none');
+        document.getElementById('realNameInput').placeholder = 'Name eingeben oder leer lassen';
       }
     }
-    if (userRequestedLocationInput) {
-      INSIGNAPP.embedded.waitForRealLocationInput($('#realLocationInput'));
-      INSIGNAPP.embedded.submitRealLocation($('#reallocation-ok'));
-      if (userRequestedLocationSkippable) {
-        INSIGNAPP.embedded.skipRealLocation($('#reallocation-skip'));
-      }
-    }
-
-    // Force-show after library hides them
-    setTimeout(function() {
-      if (userRequestedNameInput) {
-        $('#realname-panel').removeClass('d-none').css('display', '');
-        if (userRequestedNameSkippable) $('#realname-skip').removeClass('d-none').css('display', '');
-      }
-      if (userRequestedLocationInput) {
-        $('#reallocation-panel').removeClass('d-none').css('display', '');
-        if (userRequestedLocationSkippable) $('#reallocation-skip').removeClass('d-none').css('display', '');
-      }
-    }, 0);
   }
 
   function submitRealName() {
     var name = document.getElementById('realNameInput').value.trim();
     if (!name) { showToast('Bitte geben Sie Ihren Namen ein.'); return; }
-    // Click the button wired to INSIGNAPP.embedded.submitRealName
-    document.getElementById('realname-ok').click();
+    $('#sig-container .sig-field-wrap').each(function () {
+      $(this).data('realname', name);
+    });
+    document.getElementById('realname-panel').style.opacity = '.5';
+    document.getElementById('realname-panel').style.pointerEvents = 'none';
+    document.getElementById('realname-ok').innerHTML = '<i class="bi bi-check-lg"></i>';
   }
 
-  function skipRealName() {
-    document.getElementById('realname-skip').click();
-  }
-
-  function submitRealLocation() {
-    var loc = document.getElementById('realLocationInput').value.trim();
-    if (!loc) { showToast('Bitte geben Sie den Ort ein.'); return; }
-    // Click the button wired to INSIGNAPP.embedded.submitRealLocation
-    document.getElementById('reallocation-ok').click();
-  }
-
-  function skipRealLocation() {
-    document.getElementById('reallocation-skip').click();
-  }
 
   // ==========================================================================
   // Status Polling — track signature completion client-side
@@ -2291,25 +2238,15 @@ docker run -p 3000:3000 sig-funnel</code></pre>
       return;
     }
 
-    // Validate required name/location inputs before sending
+    // Validate name input before sending (skip validation if skippable)
     if (userRequestedNameInput) {
       var name = document.getElementById('realNameInput').value.trim();
-      if (!name) {
+      if (!name && !userRequestedNameSkippable) {
         showToast('Bitte geben Sie Ihren Namen ein.');
         document.getElementById('realNameInput').focus();
         return;
       }
-      // Auto-submit if user forgot to click OK
-      if (!pads.first().data('realname')) submitRealName();
-    }
-    if (userRequestedLocationInput) {
-      var loc = document.getElementById('realLocationInput').value.trim();
-      if (!loc) {
-        showToast('Bitte geben Sie den Ort ein.');
-        document.getElementById('realLocationInput').focus();
-        return;
-      }
-      if (!pads.first().data('reallocation')) submitRealLocation();
+      if (name && !pads.first().data('realname')) submitRealName();
     }
 
     // Send all signatures sequentially (wait for each /store/document to return before sending the next)
