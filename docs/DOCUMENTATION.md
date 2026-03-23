@@ -309,7 +309,7 @@ After creating a session, use Step 3 to execute API operations and inspect their
 | Finish | `/configure/fertig` | POST | Mark session complete |
 | Restart | `/configure/restartsession` | POST | Reset session to signing state |
 | Reject | `/configure/ablehnen` | POST | Reject and delete documents |
-| Delete Session | `/persistence/delete` | DELETE | Completely remove session |
+| Delete Session | `/persistence/purge` | POST | Completely remove session |
 | Audit | `/get/audit` | POST | Audit trail of session activities |
 | SSO Token | `/configure/createSSOForApiuser` | POST | Create SSO session for API user |
 | Version | `/version` | GET | Server version info |
@@ -565,7 +565,7 @@ http://your-worker.workers.dev/?https://your-insign.com/api/path
 | `POST` | `/configure/fertig` | Mark session as complete |
 | `POST` | `/configure/restartsession` | Restart session (reset to signing state) |
 | `POST` | `/configure/ablehnen` | Reject session and delete documents |
-| `DELETE` | `/persistence/delete` | Permanently delete a session |
+| `POST` | `/persistence/purge` | Permanently delete a session |
 | `POST` | `/persistence/loadsession` | Load/reactivate a previously saved session |
 
 ### External Signing

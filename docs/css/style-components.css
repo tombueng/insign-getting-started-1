@@ -1,3 +1,30 @@
+/* === OpenAPI schema badge ================================================= */
+.openapi-badge {
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(1, 101, 188, 0.08);
+    color: var(--insign-blue);
+    white-space: nowrap;
+    transition: opacity 0.6s ease;
+}
+.openapi-badge.fade-out {
+    opacity: 0;
+}
+.openapi-badge-spin {
+    display: inline-block;
+    animation: openapi-spin 1s linear infinite;
+    margin-right: 4px;
+    font-size: 0.72rem;
+}
+.openapi-badge.done .openapi-badge-spin {
+    animation: none;
+}
+@keyframes openapi-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* === CORS Proxy dropdown ================================================= */
 .proxy-dd-icon-wrap {
     width: 40px;

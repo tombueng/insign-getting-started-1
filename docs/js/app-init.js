@@ -5,6 +5,85 @@
    ========================================================================== */
 
 // =====================================================================
+// Generate Step 3 operation tabs from operations.json + templates
+// =====================================================================
+
+function generateOperationTabs(tabOrder) {
+    var $tabList = $('#operation-tabs');
+    var $tabContent = $('#operation-tab-content');
+    var tabTpl = document.getElementById('tpl-operation-tab');
+    var paneTpl = document.getElementById('tpl-operation-pane');
+    if (!$tabList.length || !tabTpl || !paneTpl) return;
+
+    var isFirst = true;
+
+    tabOrder.forEach(function (key) {
+        var op = OPERATIONS[key];
+        if (!op || !op.icon) return;
+
+        // --- Tab button (always generated) ---
+        var $tab = $(tabTpl.content.cloneNode(true));
+        var $btn = $tab.find('button');
+        $btn.attr('data-bs-target', '#op-' + key);
+        $btn.find('i').addClass(op.icon);
+        $btn.find('.op-tab-label').text(op.label || key);
+        if (isFirst) $btn.addClass('active');
+        $tabList.append($tab);
+
+        // --- Tab pane: skip if already in HTML (special cases) ---
+        if (op.type === 'special') {
+            // Special-case panes are already in the HTML.
+            // Just mark the first one active if needed.
+            if (isFirst) $('#op-' + key).addClass('show active');
+            isFirst = false;
+            return;
+        }
+
+        // --- Standard tab pane (generated from template) ---
+        var $pane = $(paneTpl.content.cloneNode(true));
+        var $root = $pane.children().first();
+        $root.attr('id', 'op-' + key);
+        if (isFirst) $root.addClass('show active');
+
+        // Header
+        var $badge = $root.find('.badge-method');
+        $badge.addClass('badge-method-' + (op.method || 'post').toLowerCase());
+        $badge.text(op.method || 'POST');
+        $root.find('.endpoint-path').text(op.path || '');
+        $root.find('h5').html(op.title || key);
+
+        // Description
+        $root.find('.op-description').html(op.description || '');
+
+        // Headers display
+        $root.find('.op-headers').attr('data-op', key);
+
+        // Editor (hide for GET requests with no body)
+        var $editor = $root.find('.op-editor');
+        $editor.attr('id', 'editor-op-' + key);
+        if (!op.getBody) {
+            $root.find('.op-body-section').remove();
+        }
+
+        // Send button
+        var $sendBtn = $root.find('.op-send-btn');
+        var handler = op.handler || "executeOperation('" + key + "')";
+        $sendBtn.attr('onclick', 'window.app.' + handler);
+        if (op.buttonIcon) $sendBtn.find('i').attr('class', 'bi ' + op.buttonIcon);
+        if (op.buttonLabel) $sendBtn.find('span').text(op.buttonLabel);
+        if (op.buttonStyle === 'danger') $sendBtn.css('background', 'var(--insign-danger)');
+
+        // Response
+        $root.find('.op-response').attr('data-op', key);
+        $root.find('.response-status').attr('data-op', key);
+        $root.find('.op-response-editor').attr('id', 'editor-op-' + key + '-response');
+
+        $tabContent.append($pane);
+        isFirst = false;
+    });
+}
+
+// =====================================================================
 // Initialization
 // =====================================================================
 
@@ -21,7 +100,10 @@ async function init() {
     if (whResp.ok) WEBHOOK_PROVIDERS = await whResp.json();
     if (docResp.ok) DOCUMENTS = await docResp.json();
     if (opsResp.ok) {
-        OPERATIONS = await opsResp.json();
+        var opsData = await opsResp.json();
+        var tabOrder = opsData.tabOrder || [];
+        delete opsData.tabOrder;
+        OPERATIONS = opsData;
         // Hydrate bodyFn strings into actual function references
         var bodyFns = {
             getSessionIdBody: getSessionIdBody,
@@ -31,9 +113,12 @@ async function init() {
             getUserSessionsBody: getUserSessionsBody
         };
         for (var op of Object.values(OPERATIONS)) {
+            if (typeof op !== 'object') continue;
             op.getBody = op.bodyFn ? bodyFns[op.bodyFn] : null;
             delete op.bodyFn;
         }
+        // Generate operation tabs from template + data
+        generateOperationTabs(tabOrder);
     }
 
     // Restore saved state before populating defaults
@@ -318,6 +403,7 @@ async function init() {
         if ($('#cfg-webhooks').is(':checked') && state.webhookViewer) {
             reinitWebhook();
         }
+        updateSelectedProfile();
     });
 
     $('#cfg-cors-proxy-url').on('change', () => {
@@ -328,6 +414,7 @@ async function init() {
             var proxy = $corsToggle.is(':checked') ? ($('#cfg-cors-proxy-url').val() || 'http://localhost:9009/?') : null;
             state.webhookViewer.setCorsProxy(proxy);
         }
+        updateSelectedProfile();
     });
 
     // Show actual origin in CORS config hint
@@ -442,6 +529,8 @@ async function init() {
             }
 
             reconcileWebhookCorsState();
+            saveAppState();
+            updateSelectedProfile();
         });
         // Show warning if already enabled on load
         if ($webhooksToggle.is(':checked')) {

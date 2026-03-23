@@ -82,23 +82,116 @@ function addEditorCopyButton(editor, container) {
  * detailsVisible editor option. This workaround ensures the docs panel is
  * visible on the very first Ctrl+Space without requiring a second press.
  */
-function forceSuggestDetails(editor) {
-    // Use a MutationObserver on the editor DOM to detect when the suggest
-    // widget appears and force-expand the details panel if it is collapsed.
+/**
+ * Add a mouse-following hover tooltip to a Monaco JSON editor.
+ * Disables Monaco's built-in hover widget and instead shows the same
+ * floating tooltip used by trace/polling panels (#json-hover-tooltip).
+ */
+function addFloatingHover(editor, schemaKey) {
+    if (!schemaKey) return;
+    const tooltip = document.getElementById('json-hover-tooltip');
+    if (!tooltip) return;
+
+    // Disable Monaco's built-in hover widget
+    editor.updateOptions({ hover: { enabled: false } });
+
+    let lastKey = null;
+
     const editorDom = editor.getDomNode();
-    if (!editorDom) return;
-
-    const observer = new MutationObserver(() => {
-        const widget = editorDom.querySelector('.suggest-widget');
-        if (!widget) return;
-
-        // If the widget is visible but details are not shown, expand them
-        if (widget.classList.contains('visible') && !widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
-            try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch {}
+    editorDom.addEventListener('mousemove', function (e) {
+        const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
+        if (!target || !target.position) {
+            if (lastKey !== null) { lastKey = null; tooltip.style.display = 'none'; }
+            return;
         }
+
+        const model = editor.getModel();
+        if (!model) return;
+
+        // Resolve the JSON property path at this position
+        const pos = target.position;
+        const line = model.getLineContent(pos.lineNumber);
+
+        // Check if cursor is on a JSON key (quoted string before a colon)
+        const keyMatch = line.match(/^\s*"([^"]+)"\s*:/);
+        if (!keyMatch) {
+            if (lastKey !== null) { lastKey = null; tooltip.style.display = 'none'; }
+            return;
+        }
+
+        // Build the full dotted path by walking up from current line
+        const propPath = _resolveJsonPath(model, pos.lineNumber);
+        if (!propPath || propPath === lastKey) {
+            if (propPath) _positionFloatTooltip(e, tooltip);
+            return;
+        }
+
+        lastKey = propPath;
+
+        // Look up the schema description
+        if (!state.schemaLoader) { tooltip.style.display = 'none'; return; }
+        const info = state.schemaLoader.resolvePropertyDescription(schemaKey, propPath);
+        if (!info || (!info.description && !info.markdownDescription)) {
+            tooltip.style.display = 'none';
+            return;
+        }
+
+        const typeBadge = info.type ? ' (' + info.type + ')' : '';
+        const enumInfo = info.enum ? '\nenum: ' + info.enum.join(', ') : '';
+        const leafKey = propPath.includes('.') ? propPath.split('.').pop() : propPath;
+        tooltip.textContent = leafKey + typeBadge + ': ' + (info.description || '') + enumInfo;
+        tooltip.style.display = 'block';
+        _positionFloatTooltip(e, tooltip);
     });
 
-    observer.observe(editorDom, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    editorDom.addEventListener('mouseleave', function () {
+        lastKey = null;
+        tooltip.style.display = 'none';
+    });
+}
+
+/**
+ * Resolve the full dotted JSON path for the key at a given line.
+ * Walks upward through the model to find parent keys by indentation.
+ */
+function _resolveJsonPath(model, lineNumber) {
+    const segments = [];
+    let currentIndent = Infinity;
+
+    for (let i = lineNumber; i >= 1; i--) {
+        const line = model.getLineContent(i);
+        const match = line.match(/^(\s*)"([^"]+)"\s*:/);
+        if (!match) continue;
+
+        const indent = match[1].length;
+        if (indent < currentIndent) {
+            segments.unshift(match[2]);
+            currentIndent = indent;
+            if (indent === 0) break;
+        }
+    }
+
+    return segments.length ? segments.join('.') : null;
+}
+
+function forceSuggestDetails(editor) {
+    // Force the details/docs panel open whenever the suggest widget appears.
+    // Monaco persists collapsed state internally and may ignore detailsVisible.
+    // We use the suggest controller's onDidShow event to toggle exactly once
+    // per show - avoiding the infinite loop a MutationObserver would cause.
+    try {
+        var ctrl = editor.getContribution('editor.contrib.suggestController');
+        var w = ctrl && (ctrl.widget?.value || ctrl.widget);
+        if (w && typeof w.toggleDetails === 'function') {
+            w.onDidShow(() => {
+                var dom = editor.getDomNode();
+                var el = dom && dom.querySelector('.suggest-widget');
+                if (el && !el.classList.contains('docs-side')) {
+                    try { w.toggleDetails(); } catch {}
+                }
+            });
+        }
+    } catch {}
 }
 
 function createEditor(id, defaultValue, schemaKey, opts) {
@@ -130,6 +223,7 @@ function createEditor(id, defaultValue, schemaKey, opts) {
         renderLineHighlight: 'none',
         overviewRulerLanes: 0,
         hideCursorInOverviewRuler: true,
+        fixedOverflowWidgets: true,
         scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
         suggest: {
             showInlineDetails: true,
@@ -152,6 +246,7 @@ function createEditor(id, defaultValue, schemaKey, opts) {
     const editor = monaco.editor.create(container, editorOpts);
 
     forceSuggestDetails(editor);
+    addFloatingHover(editor, schemaKey);
     addEditorCopyButton(editor, container);
     autoResizeEditor(editor, container, uncapped);
     state.editors[id] = editor;
@@ -188,6 +283,7 @@ function createReadOnlyEditor(id, content, language, opts) {
         renderLineHighlight: 'none',
         overviewRulerLanes: 0,
         hideCursorInOverviewRuler: true,
+        fixedOverflowWidgets: true,
         scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, alwaysConsumeMouseWheel: false },
         suggest: {
             showInlineDetails: true,
@@ -215,6 +311,7 @@ function createReadOnlyEditor(id, content, language, opts) {
     const editor = monaco.editor.create(container, editorOpts);
 
     forceSuggestDetails(editor);
+    addFloatingHover(editor, schemaKey);
     addEditorCopyButton(editor, container);
     autoResizeEditor(editor, container, uncapped);
     state.editors[id] = editor;

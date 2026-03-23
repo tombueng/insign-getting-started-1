@@ -149,6 +149,26 @@
     border-top-color: var(--insign-border);
 }
 
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--insign-card-bg);
+    border-color: var(--insign-border);
+    color: var(--insign-text);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--insign-text);
+}
+
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--insign-text);
+}
+
+[data-theme="dark"] .dropdown-divider {
+    border-color: var(--insign-border);
+}
+
 /* === Base ============================================================== */
 
 body {

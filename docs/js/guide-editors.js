@@ -55,32 +55,22 @@ var EDITOR_OPTS = {
  * suggest widget becomes visible.
  */
 function forceSuggestDetails(editor) {
-    var editorDom = editor.getDomNode();
-    if (!editorDom) return;
-
-    var rafId = 0;
-    var tryExpand = function () {
-        if (rafId) return;
-        rafId = requestAnimationFrame(function () {
-            rafId = 0;
-            var containers = [editorDom];
-            var overflow = editorDom.querySelector('.overflow-guard');
-            if (overflow) containers.push(overflow);
-
-            for (var c = 0; c < containers.length; c++) {
-                var widget = containers[c].querySelector('.suggest-widget');
-                if (widget && widget.classList.contains('visible')) {
-                    if (!widget.classList.contains('docs-side') && !widget.classList.contains('docs-below')) {
-                        try { editor.trigger('forceSuggestDetails', 'toggleSuggestionDetails', {}); } catch (_) {}
-                    }
-                    return;
+    // Force the details/docs panel open whenever the suggest widget appears.
+    // Uses the suggest controller's onDidShow event to toggle exactly once
+    // per show - avoiding the infinite loop a MutationObserver would cause.
+    try {
+        var ctrl = editor.getContribution('editor.contrib.suggestController');
+        var w = ctrl && (ctrl.widget && (ctrl.widget.value || ctrl.widget));
+        if (w && typeof w.toggleDetails === 'function') {
+            w.onDidShow(function () {
+                var dom = editor.getDomNode();
+                var el = dom && dom.querySelector('.suggest-widget');
+                if (el && !el.classList.contains('docs-side')) {
+                    try { w.toggleDetails(); } catch (e) {}
                 }
-            }
-        });
-    };
-
-    var observer = new MutationObserver(tryExpand);
-    observer.observe(editorDom, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+            });
+        }
+    } catch (e) {}
 }
 
 function autoResizeEditor(editor) {

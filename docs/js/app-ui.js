@@ -88,7 +88,7 @@ function applyDarkMode(dark) {
 
     // Update button icon
     const $btn = $('#btn-dark-mode');
-    if ($btn.length) $btn.html(dark ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon"></i>');
+    if ($btn.length) $btn.html(dark ? '<i class="bi bi-sun me-2"></i>Toggle light mode' : '<i class="bi bi-moon me-2"></i>Toggle dark mode');
 
     // Switch Monaco theme (global - applies to all editor instances)
     if (state.monacoReady && window.monaco) {
@@ -297,6 +297,7 @@ function setWebhookProvider(provider) {
     }
 
     saveAppState();
+    updateSelectedProfile();
 }
 
 function onWebhookCustomUrlChange() {

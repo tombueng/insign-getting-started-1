@@ -1,322 +1,13 @@
             <div id="step-3-panel" class="d-none">
 
-                <!-- Operation Tabs -->
+                <!-- Operation tabs (generated at runtime by app-init.js from operations.json) -->
                 <ul class="nav nav-operations" id="operation-tabs" role="tablist">
-                    <!-- Priority tabs -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#op-status" type="button">
-                            <i class="bi bi-info-circle"></i> Status
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-checkstatus" type="button">
-                            <i class="bi bi-check2-square"></i> Check Status
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern" type="button">
-                            <i class="bi bi-people"></i> External Signing
-                        </button>
-                    </li>
-                    <!-- External signing related -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern-users" type="button">
-                            <i class="bi bi-person-lines-fill"></i> Extern Users
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-extern-info" type="button">
-                            <i class="bi bi-info-square"></i> Extern Info
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-send-reminder" type="button">
-                            <i class="bi bi-bell"></i> Send Reminder
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-abort-extern" type="button">
-                            <i class="bi bi-x-circle"></i> Abort External
-                        </button>
-                    </li>
-                    <!-- Documents -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-documents" type="button">
-                            <i class="bi bi-file-earmark-text"></i> Documents
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-document-single" type="button">
-                            <i class="bi bi-file-earmark-pdf"></i> Single Doc
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-download" type="button">
-                            <i class="bi bi-download"></i> Download All
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-upload" type="button">
-                            <i class="bi bi-upload"></i> Upload Doc
-                        </button>
-                    </li>
-                    <!-- Session lifecycle -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-load" type="button">
-                            <i class="bi bi-arrow-repeat"></i> Load
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-finish" type="button">
-                            <i class="bi bi-check-circle"></i> Finish
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-restart" type="button">
-                            <i class="bi bi-arrow-clockwise"></i> Restart
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-delete" type="button">
-                            <i class="bi bi-x-octagon"></i> Reject
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-delete-session" type="button">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    </li>
-                    <!-- Info & debug -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-audit" type="button">
-                            <i class="bi bi-journal-text"></i> Audit
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-sso" type="button">
-                            <i class="bi bi-key"></i> SSO Token
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-version" type="button">
-                            <i class="bi bi-tag"></i> Version
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-usersessions" type="button">
-                            <i class="bi bi-list-ul"></i> User Sessions
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#op-free" type="button">
-                            <i class="bi bi-terminal"></i> Free Request
-                        </button>
-                    </li>
                 </ul>
 
-                <!-- Tab Content -->
-                <div class="tab-content mt-3">
+                <!-- Tab content: standard panes generated at runtime, special cases inline below -->
+                <div class="tab-content mt-3" id="operation-tab-content">
 
-                    <!-- Status -->
-                    <div class="tab-pane fade show active" id="op-status" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/status</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get session status</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns the current status of the session including signing progress, handout status, and document information.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="status"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-status"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('status')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="status">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="status"></div>
-                                        <div class="editor-container" id="editor-op-status-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Check Status -->
-                    <div class="tab-pane fade" id="op-checkstatus" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/checkstatus</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Check session status</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Lightweight status check for a session. Returns the current signing state without full document details.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="checkstatus"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-checkstatus"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('checkstatus')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="checkstatus">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="checkstatus"></div>
-                                        <div class="editor-container" id="editor-op-checkstatus-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Load Session -->
-                    <div class="tab-pane fade" id="op-load" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/persistence/loadsession</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Load / reactivate session</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">
-                                    Reactivates a session so the owner can open it again via the <code>accessURL</code> (<code>/index</code> link).
-                                    The access link is <strong>consumed on first use</strong> &mdash; after the owner opens the session,
-                                    this endpoint must be called again to generate a fresh link.
-                                    This is only needed while the session is <strong>not</strong> in external mode.
-                                </p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="load"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-load"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('load')">
-                                        <i class="bi bi-arrow-repeat"></i> Load Session
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="load">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="load"></div>
-                                        <div class="editor-container" id="editor-op-load-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Documents Full -->
-                    <div class="tab-pane fade" id="op-documents" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/documents/full</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get all documents metadata</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Retrieves complete metadata about all session documents including annotations, signatures, and form fields.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="documents"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-documents"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('documents')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="documents">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="documents"></div>
-                                        <div class="editor-container" id="editor-op-documents-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Single Document Download -->
-                    <div class="tab-pane fade" id="op-document-single" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/document</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Download single document</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">
-                                    Downloads a single PDF document by its <code>docid</code>.
-                                    Unlike <em>Download All</em> (which returns a ZIP for multi-doc sessions),
-                                    this always returns the individual PDF file.
-                                </p>
-                                <div class="form-check form-switch mb-3">
-                                    <input class="form-check-input" type="checkbox" id="includeBiodata" checked
-                                           onchange="window.app.toggleIncludeBiodata(this.checked)">
-                                    <label class="form-check-label" for="includeBiodata">
-                                        Include biodata <small class="text-muted">(signature images, timestamps, biometric data)</small>
-                                    </label>
-                                </div>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="document-single"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-document-single"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.downloadDocumentSingle()">
-                                        <i class="bi bi-download"></i> Download
-                                    </button>
-                                    <button class="btn btn-insign btn-insign-outline" onclick="window.app.previewDocumentSingle()">
-                                        <i class="bi bi-eye"></i> Preview
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="document-single">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="document-single"></div>
-                                        <div class="editor-container" id="editor-op-document-single-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download All -->
-                    <div class="tab-pane fade" id="op-download" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/documents/download</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Download all documents</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Downloads all session documents as a ZIP file (or PDF for single document). Includes signed versions with all signatures applied.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="download"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-download"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeDownload()">
-                                        <i class="bi bi-download"></i> Download
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="download">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="download"></div>
-                                        <div class="editor-container" id="editor-op-download-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- External Signing -->
+                    <!-- SPECIAL: External Signing (custom signing options UI) -->
                     <div class="tab-pane fade" id="op-extern" role="tabpanel">
                         <div class="card-insign">
                             <div class="card-header">
@@ -418,37 +109,51 @@
                         </div>
                     </div>
 
-                    <!-- Abort External -->
-                    <div class="tab-pane fade" id="op-abort-extern" role="tabpanel">
+                    <!-- SPECIAL: Single Document Download (biodata toggle + dual buttons) -->
+                    <div class="tab-pane fade" id="op-document-single" role="tabpanel">
                         <div class="card-insign">
                             <div class="card-header">
                                 <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/extern/abort</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Abort external mode</h5>
+                                <span class="endpoint-path">/get/document</span>
+                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Download single document</h5>
                             </div>
                             <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns the session from external state back to normal. All external signing links become invalid.</p>
+                                <p class="text-muted-sm mb-3">
+                                    Downloads a single PDF document by its <code>docid</code>.
+                                    Unlike <em>Download All</em> (which returns a ZIP for multi-doc sessions),
+                                    this always returns the individual PDF file.
+                                </p>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="includeBiodata" checked
+                                           onchange="window.app.toggleIncludeBiodata(this.checked)">
+                                    <label class="form-check-label" for="includeBiodata">
+                                        Include biodata <small class="text-muted">(signature images, timestamps, biometric data)</small>
+                                    </label>
+                                </div>
                                 <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="abort-extern"></div>
+                                <div class="headers-display mb-3 op-headers" data-op="document-single"></div>
                                 <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-abort-extern"></div>
+                                <div class="editor-container" id="editor-op-document-single"></div>
                                 <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('abort-extern')">
-                                        <i class="bi bi-send"></i> Send
+                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.downloadDocumentSingle()">
+                                        <i class="bi bi-download"></i> Download
+                                    </button>
+                                    <button class="btn btn-insign btn-insign-outline" onclick="window.app.previewDocumentSingle()">
+                                        <i class="bi bi-eye"></i> Preview
                                     </button>
                                 </div>
-                                <div class="op-response d-none" data-op="abort-extern">
+                                <div class="op-response d-none" data-op="document-single">
                                     <div class="section-title mt-3">Response</div>
                                     <div class="response-panel">
-                                        <div class="response-status" data-op="abort-extern"></div>
-                                        <div class="editor-container" id="editor-op-abort-extern-response"></div>
+                                        <div class="response-status" data-op="document-single"></div>
+                                        <div class="editor-container" id="editor-op-document-single-response"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Upload Document -->
+                    <!-- SPECIAL: Upload Document (file input, no JSON editor) -->
                     <div class="tab-pane fade" id="op-upload" role="tabpanel">
                         <div class="card-insign">
                             <div class="card-header">
@@ -484,341 +189,7 @@
                         </div>
                     </div>
 
-                    <!-- Delete Session -->
-                    <div class="tab-pane fade" id="op-delete" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/configure/ablehnen</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Delete / reject session</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Aborts and deletes the session. All documents and signing data are removed. This action cannot be undone.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="delete"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-delete"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" style="background:var(--insign-danger)" onclick="window.app.executeOperation('delete')">
-                                        <i class="bi bi-trash"></i> Delete Session
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="delete">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="delete"></div>
-                                        <div class="editor-container" id="editor-op-delete-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Extern Users -->
-                    <div class="tab-pane fade" id="op-extern-users" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/extern/users</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">List external users</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns all external users and their signing status for this session.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="extern-users"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-extern-users"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('extern-users')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="extern-users">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="extern-users"></div>
-                                        <div class="editor-container" id="editor-op-extern-users-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Extern Info -->
-                    <div class="tab-pane fade" id="op-extern-info" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/externInfos</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">External signing info</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns additional status information about a session that is currently in external signing state, including per-user progress and link status.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="extern-info"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-extern-info"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('extern-info')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="extern-info">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="extern-info"></div>
-                                        <div class="editor-container" id="editor-op-extern-info-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Send Manual Reminder -->
-                    <div class="tab-pane fade" id="op-send-reminder" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/load/sendManualReminder</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Send manual reminder</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Manually sends a reminder notification (email/SMS) to all pending external signers of this session.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="send-reminder"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-send-reminder"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('send-reminder')">
-                                        <i class="bi bi-bell"></i> Send Reminder
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="send-reminder">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="send-reminder"></div>
-                                        <div class="editor-container" id="editor-op-send-reminder-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Finish -->
-                    <div class="tab-pane fade" id="op-finish" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/configure/fertig</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Finish session</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Marks the session as finished. Triggers final processing: emails, archiving, and cleanup according to session configuration.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="finish"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-finish"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('finish')">
-                                        <i class="bi bi-send"></i> Finish
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="finish">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="finish"></div>
-                                        <div class="editor-container" id="editor-op-finish-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Restart -->
-                    <div class="tab-pane fade" id="op-restart" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/configure/restartsession</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Restart session</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Restarts a closed or finished session, allowing new signatures and modifications. Resets completion state.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="restart"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-restart"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('restart')">
-                                        <i class="bi bi-send"></i> Restart
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="restart">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="restart"></div>
-                                        <div class="editor-container" id="editor-op-restart-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Delete Session (permanent) -->
-                    <div class="tab-pane fade" id="op-delete-session" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-delete">DELETE</span>
-                                <span class="endpoint-path">/persistence/delete</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Delete session permanently</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Permanently deletes the session from the database. Unlike reject, this removes persisted sessions. Cannot be undone.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="delete-session"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-delete-session"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" style="background:var(--insign-danger)" onclick="window.app.executeOperation('delete-session')">
-                                        <i class="bi bi-trash"></i> Delete Permanently
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="delete-session">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="delete-session"></div>
-                                        <div class="editor-container" id="editor-op-delete-session-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Audit -->
-                    <div class="tab-pane fade" id="op-audit" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/audit</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get audit trail</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns the complete audit trail for the session: every action, timestamp, user, and IP address.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="audit"></div>
-                                <div class="section-title">Request Body</div>
-                                <div class="editor-container" id="editor-op-audit"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('audit')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="audit">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="audit"></div>
-                                        <div class="editor-container" id="editor-op-audit-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SSO Token -->
-                    <div class="tab-pane fade" id="op-sso" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/configure/createSSOForApiuser</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Create SSO JWT token</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">
-                                    Creates a JWT token for a user to access the inSign start module (gallery/process manager).
-                                    Body is a <code>UserInfo</code> object with at least <code>id</code> (the user identifier).
-                                    Returns a plain-text JWT. Redirect user to <code>/startmodule/?jwt=&lt;token&gt;</code>.
-                                </p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="sso"></div>
-                                <div class="section-title">Request Body <span class="text-muted-sm">(UserInfo)</span></div>
-                                <div class="editor-container mb-3" id="editor-op-sso" style="min-height:120px"></div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('sso')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="sso">
-                                    <div class="section-title mt-3">Response <span class="text-muted-sm">(JWT token - text/plain)</span></div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="sso"></div>
-                                        <div class="editor-container" id="editor-op-sso-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Version -->
-                    <div class="tab-pane fade" id="op-version" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-get">GET</span>
-                                <span class="endpoint-path">/version</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">Get API version</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">Returns the current inSign application version.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="version"></div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('version')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="version">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="version"></div>
-                                        <div class="editor-container" id="editor-op-version-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- User Sessions -->
-                    <div class="tab-pane fade" id="op-usersessions" role="tabpanel">
-                        <div class="card-insign">
-                            <div class="card-header">
-                                <span class="badge-method badge-method-post">POST</span>
-                                <span class="endpoint-path">/get/usersessions</span>
-                                <h5 class="ms-auto mb-0" style="font-size:0.9rem">List user sessions</h5>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted-sm mb-3">List sessions belonging to a user. You can pass multiple user IDs separated by a configurable separator.</p>
-                                <div class="section-title">Request Headers</div>
-                                <div class="headers-display mb-3 op-headers" data-op="usersessions"></div>
-                                <div class="section-title">Query Parameters (editable as JSON)</div>
-                                <div class="editor-container" id="editor-op-usersessions"></div>
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-insign btn-insign-primary" onclick="window.app.executeOperation('usersessions')">
-                                        <i class="bi bi-send"></i> Send
-                                    </button>
-                                </div>
-                                <div class="op-response d-none" data-op="usersessions">
-                                    <div class="section-title mt-3">Response</div>
-                                    <div class="response-panel">
-                                        <div class="response-status" data-op="usersessions"></div>
-                                        <div class="editor-container" id="editor-op-usersessions-response"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Free Request -->
+                    <!-- SPECIAL: Free API Request (custom method, endpoint, headers) -->
                     <div class="tab-pane fade" id="op-free" role="tabpanel">
                         <div class="card-insign">
                             <div class="card-header">
@@ -889,4 +260,5 @@
                     </div>
 
                 </div><!-- /tab-content -->
+
             </div>

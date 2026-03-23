@@ -54,13 +54,29 @@ function updateApiClient() {
     // Load OpenAPI schemas from the server (non-blocking)
     if (baseUrl && !state.schemaLoader.loaded) {
         const proxy = corsProxy ? (state.apiClient.corsProxyUrl || 'https://corsproxy.io/?') : null;
+        var $badge = $('#openapi-badge');
+        var showTime = Date.now();
+        $badge.removeClass('d-none fade-out done');
         state.schemaLoader.load(baseUrl, proxy).then(ok => {
+            var guiCount = Object.keys(state.schemaLoader.guiPropertyKeys || {}).length;
             if (ok) {
                 state.schemaLoader.enrichGuiProperties(FEATURE_GROUPS);
                 if (state.monacoReady) {
                     state.schemaLoader.registerWithMonaco(monaco);
                 }
             }
+            // Update badge: show result, then fade out after min 3s visible
+            $badge.addClass('done');
+            $badge.find('.openapi-badge-spin').removeClass('bi-arrow-repeat').addClass(ok ? 'bi-check-lg' : 'bi-x-lg');
+            $badge.find('.openapi-badge-text').text(
+                ok ? 'API schema loaded (' + guiCount + ' GUI properties)' : 'API schema unavailable'
+            );
+            var elapsed = Date.now() - showTime;
+            var delay = Math.max(0, 3000 - elapsed);
+            setTimeout(function () {
+                $badge.addClass('fade-out');
+                setTimeout(function () { $badge.addClass('d-none'); }, 600);
+            }, delay);
         });
     }
 }

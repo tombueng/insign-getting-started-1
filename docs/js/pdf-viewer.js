@@ -66,7 +66,7 @@ window.PdfViewer = class PdfViewer {
 
     async _ensureLib() {
         if (this.lib) return;
-        this.lib = await import('vendor/pdfjs-dist/build/pdf.min.mjs');
+        this.lib = await import('../vendor/pdfjs-dist/build/pdf.min.mjs');
         this.lib.GlobalWorkerOptions.workerSrc =
             'vendor/pdfjs-dist/build/pdf.worker.min.mjs';
     }

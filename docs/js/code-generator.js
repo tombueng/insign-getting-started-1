@@ -26,108 +26,37 @@
   // Property → Java setter mapping for inSign API client
   // ---------------------------------------------------------------------------
 
-  // Known InSignGUIConstants enum values (from InSignGUIConstants.java source)
-  var INSIGN_GUI_CONSTANTS = [
-    'changeSessionNameOnFirstUpload', 'guiActionFinishIgnoresignstatus',
-    'vorgangsverwaltungPrivateProcess', 'vorgangsverwaltungPrivateProcessGroup',
-    'guiAllowChangeSmsEmail', 'guiOnnextopentosign', 'guiUpdateThumbSignHint',
-    'guiAfterSignOpenNextSignatureField', 'guiDisableMonitorChoice',
-    'guiSignatureQualityscaleDouble', 'guiHintAllsigned', 'guiHintAllsignedSkipSaveDialog',
-    'signAvailable', 'addformfieldAvailable', 'addformfieldFoto', 'addFormFavDefault',
-    'dualscreenFavDefault', 'dualscreenGuiAvailable',
-    'addformfieldAllowAes', 'addformfieldAllowAesSms', 'addformfieldAllowSes',
-    'addformfieldAllowQes', 'addformfieldAllowEveryOption',
-    'formfieldSizeSes', 'formfieldSizeAessms', 'formfieldSizeAes',
-    'formfieldSizeQes', 'formfieldSizeQesIdnow',
-    'zoomAvailable', 'pageOverlayAvailable', 'externPageOverlayAvailable',
-    'addMarkAvailable', 'nextMarkAvailable', 'nextSignAvailable',
-    'deleteSignAvailable', 'deleteSignFavDefault', 'vorgangDialogAvailable',
-    'zoomFavDefault', 'pageOverlayFavDefault', 'addMarkFavDefault',
-    'nextMarkFavDefault', 'nextSignFavDefault', 'externDelegateAvailable',
-    'externAvailable', 'navtoolbarAvailable', 'externMultiAvailable',
-    'externMultiShowOtherSignaturefields', 'externMultiOrderDefault',
-    'saveDocAvailable', 'aushaendigenMustbereadAvailable', 'aushaendigenAvailable',
-    'aushaendigenFile', 'aushaendigenPaper', 'aushaendigenMail', 'aushaendigenSms',
-    'aushaendigenDialogEditable', 'finishAvailable', 'finishFile', 'finishPaper', 'finishMail',
-    'externFavDefault', 'externExitEnabled', 'addDocFavDefault', 'addFotoFavDefault',
-    'saveDocFavDefault', 'aushaendigenFavDefault', 'aushaendigenMustbereadFavDefault',
-    'aushaendigenMustbereadIgnoreSignature', 'finishFavDefault',
-    'burgerAvailable', 'settingsAvailable', 'aboutAvailable', 'helpAvailable',
-    'saveAsTemplateAvailable', 'exitAvailable', 'exitResetSignature',
-    'searchAvailable', 'settingsFavDefault', 'aboutFavDefault', 'helpFavDefault',
-    'saveAsTemplateFavDefault', 'exitFavDefault', 'searchFavDefault',
-    'guiLeavepagewarning', 'guiVorgangsverwaltungenabled', 'pdfSaveAlert',
-    'vorgangsverwaltungDownloadBiometricDocsAvailable', 'vorgangsverwaltungDeleteAvailable',
-    'guiAutoRetrieveProcess', 'guiFertigbuttonSkipModalDialog',
-    'guiFertigbuttonSkipModalDialogExtern', 'guiNoGPS',
-    'guiProgressEnabled', 'guiProgressOptional',
-    'guiSessionDisplaynameAndCustomerEditable', 'guiEmbeddedHotspotdisabled',
-    'customerFocusSigField', 'externSaveDocAvailable',
-    'vorgangsverwaltungActionAvailable', 'vorgangsverwaltungActionFavDefault',
-    'helpUrl', 'settingsFirmAvailable', 'settingsNameAvailable',
-    'settingsLogoUploadAvailable', 'externRejectAvailable',
-    'settingsExternMultiShowOtherSignaturefieldsAvailable',
-    'settingsOtpActivationAvailable', 'settingsCompanystampUploadAvailable',
-    'settingsSignaturestampUploadAvailable', 'settingsForcedSigfieldsAvailable',
-    'settingsTrustlinkAvailable', 'settingsTimestampAvailable',
-    'settingsRealnameAvailable', 'settingsRealLocationAvailable',
-    'settingsForcecolorAvailable', 'settingsSaveForAutocompleteAvailable',
-    'settingsAuditreportAvailable', 'settingsOwnMailasSenderAvailable',
-    'settingsPrivacyLinkAvailable', 'settingsImprintLinkAvailable',
-    'guiTemplateWeblinkAvailable', 'settingsMaskAuditreportAvailable',
-    'keepmessagetokens', 'settingsSubstituteAvailable',
-    'settingsExaminerMailCommentAvailable',
-    'restarchiveSettingsAvailable', 'restarchiveSettingsFavDefault',
-    'serialProcessAvailable', 'serialProcessFavDefault',
-    'hideApisessionsInVvw', 'archivePagesize', 'vorgangsverwaltungPagesize',
-    'vorgangsverwaltungExternDelayReminderAvailable',
-    'guiFertigbuttonModalDialogExternSkipSendMail',
-    'changeOrderDocumentAvailable', 'batchSignatureAvailable',
-    'settingsQuicktipsResetAvailable', 'quicktipsEnabled',
-    'rejectAvailable', 'rejectFavDefault', 'offlineButtonAvailable',
-    'faviconIco', 'faviconPng', 'faviconSvg',
-    'quicktipsTutorialEnabled', 'externUseDomain', 'externShowAssigned'
-  ];
-  var INSIGN_GUI_CONSTANTS_SET = {};
-  INSIGN_GUI_CONSTANTS.forEach(function (c) { INSIGN_GUI_CONSTANTS_SET[c] = true; });
+  // GUI property keys parsed from the OpenAPI spec at runtime.
+  // Used to decide whether to emit InSignGUIConstants.xxx (type-safe) or "xxx" (string literal).
+  // Falls back to feature-descriptions.json if the OpenAPI spec hasn't been loaded yet.
+  var _guiConstantsCache = null;
+  var _guiConstantsFromOpenApi = false;
+  function getGuiConstantsSet() {
+    // Rebuild if not yet populated from OpenAPI (may have loaded since last call)
+    if (_guiConstantsCache && _guiConstantsFromOpenApi) return _guiConstantsCache;
 
-  var INSIGN_PROPERTY_MAP = {
-    foruser:                        { setter: 'setForuser',                      type: 'String' },
-    displayname:                    { setter: 'setDisplayname',                  type: 'String' },
-    userEmail:                      { setter: 'setUserEmail',                    type: 'String' },
-    userFullName:                   { setter: 'setUserFullName',                 type: 'String' },
-    externEnabled:                  { setter: 'setExternEnabled',                type: 'boolean' },
-    externEditAllowed:              { setter: 'setExternEditAllowed',            type: 'boolean' },
-    externCompleteOnFinish:         { setter: 'setExternCompleteOnFinish',       type: 'boolean' },
-    externSendDocsOnFinish:         { setter: 'setExternSendDocsOnFinish',       type: 'boolean' },
-    externSendDocsOnFinishCustomer: { setter: 'setExternSendDocsOnFinishCustomer', type: 'boolean' },
-    externLoginRequired:            { setter: 'setExternLoginRequired',          type: 'boolean' },
-    externUploadEnabled:            { setter: 'setExternUploadEnabled',          type: 'boolean' },
-    externPhotoUploadEnabled:       { setter: 'setExternPhotoUploadEnabled',     type: 'boolean' },
-    serverSidecallbackURL:          { setter: 'setServerSidecallbackURL',        type: 'String' },
-    serversideCallbackMethod:       { setter: 'setServersideCallbackMethod',     type: 'String' },
-    serversideCallbackContenttype:  { setter: 'setServersideCallbackContenttype',type: 'String' },
-    serversideCallbackUsername:     { setter: 'setServersideCallbackUsername',   type: 'String' },
-    serversideCallbackPassword:     { setter: 'setServersideCallbackPassword',   type: 'String' },
-    callbackURL:                    { setter: 'setCallbackURL',                  type: 'String' },
-    senderEmail:                    { setter: 'setSenderEmail',                  type: 'String' },
-    replyTo:                        { setter: 'setReplyTo',                      type: 'String' },
-    logoExtern:                     { setter: 'setLogoExtern',                   type: 'String' },
-    signatureLevel:                 { setter: 'setSignatureLevel',               type: 'String' },
-    embedBiometricData:             { setter: 'setEmbedBiometricData',           type: 'boolean' },
-    makeFieldsMandatory:            { setter: 'setMakeFieldsMandatory',          type: 'boolean' },
-    allSignaturesRequired:          { setter: 'setAllSignaturesRequired',        type: 'boolean' },
-    sessionid:                      { setter: 'setSessionid',                    type: 'String' },
-    prefix:                         { setter: 'setPrefix',                       type: 'String' },
-    template:                       { setter: 'setTemplate',                     type: 'boolean' },
-    privateProcess:                 { setter: 'setPrivateProcess',               type: 'boolean' },
-    writeAuditReport:               { setter: 'setWriteAuditReport',             type: 'boolean' },
-    apitrace:                       { setter: 'setApitrace',                     type: 'boolean' },
-    dokumente:                      { setter: null, type: 'documents' },
-    documents:                      { setter: null, type: 'documents' },
-    guiProperties:                  { setter: null, type: 'guiProperties' },
-    signConfig:                     { setter: null, type: 'signConfig' },
-    deliveryConfig:                 { setter: null, type: 'deliveryConfig' }
+    var result = {};
+    // Primary: OpenAPI spec (parsed by openapi-schema-loader.js)
+    var loader = window.state && window.state.schemaLoader;
+    if (loader && loader.guiPropertyKeys && Object.keys(loader.guiPropertyKeys).length) {
+      Object.keys(loader.guiPropertyKeys).forEach(function (k) { result[k] = true; });
+      _guiConstantsFromOpenApi = true;
+    }
+    // Fallback: feature-descriptions.json property catalog
+    if (!_guiConstantsFromOpenApi && propertyCatalog && propertyCatalog.guiProperties) {
+      propertyCatalog.guiProperties.forEach(function (f) { result[f.key] = true; });
+    }
+    _guiConstantsCache = result;
+    return result;
+  }
+
+  // Properties that need special (non-setter) handling in the Java code generator.
+  // Everything else is auto-mapped: key -> session.set<Key>(...) with type from typeof.
+  var INSIGN_COMPLEX_TYPES = {
+    documents:      'documents',
+    guiProperties:  'guiProperties',
+    signConfig:     'signConfig',
+    deliveryConfig: 'deliveryConfig'
   };
 
   // ---------------------------------------------------------------------------
@@ -533,7 +462,7 @@
       if (val === null || val === undefined || val === '') return;
       if (includeDocs) { var dc = getDocComment(key, langKey); if (dc) code += pad + dc + '\n'; }
       if (typeof val === 'boolean') {
-        var keyArg = INSIGN_GUI_CONSTANTS_SET[key]
+        var keyArg = getGuiConstantsSet()[key]
           ? 'InSignGUIConstants.' + key
           : '"' + escapeJava(key) + '"';
         code += pad + 'InSignConfigurationBuilder.addGUIProperty(configData, ' + keyArg + ', ' + val + ');\n';
@@ -555,15 +484,6 @@
     var guiProps = null;
     var signCfg = null;
     var deliveryCfg = null;
-    var unmapped = [];
-
-    var docKnownKeys = {
-      id: 'setId', displayname: 'setDisplayname', fileURL: 'setFileURL', file: 'setFile',
-      mustberead: 'setMustberead', mustbesigned: 'setMustbesigned', mustbereadText: 'setMustbereadText',
-      scanSigTags: 'setScanSigTags', allowFormEditing: 'setAllowFormEditing',
-      additionalInfo: 'setAdditionalInfo', maybedeletedbyuser: 'setMaybedeletedbyuser',
-      disableAppendMode: 'setDisableAppendMode'
-    };
 
     // Classify properties
     var rootLines = [];
@@ -571,25 +491,27 @@
       var val = body[key];
       if (val === null || val === undefined || val === '') return;
 
-      var mapping = INSIGN_PROPERTY_MAP[key];
-      if (mapping && mapping.setter) {
+      var complexType = INSIGN_COMPLEX_TYPES[key];
+      if (complexType === 'documents') {
+        docsList = val;
+      } else if (complexType === 'guiProperties') {
+        guiProps = val;
+      } else if (complexType === 'signConfig') {
+        signCfg = val;
+      } else if (complexType === 'deliveryConfig') {
+        deliveryCfg = val;
+      } else if (typeof val === 'object') {
+        // Skip unknown complex objects
+      } else {
+        // Auto-map: key -> session.set<Key>(value)
         needsSession = true;
+        var setter = setterName(key);
         if (includeDocs) {
           var dc = getDocComment(key, langKey);
           if (dc) rootLines.push('        ' + dc);
         }
-        if (mapping.type === 'boolean') rootLines.push('        session.' + mapping.setter + '(' + val + ');');
-        else rootLines.push('        session.' + mapping.setter + '("' + escapeJava(String(val)) + '");');
-      } else if (mapping && mapping.type === 'documents') {
-        docsList = val;
-      } else if (mapping && mapping.type === 'guiProperties') {
-        guiProps = val;
-      } else if (mapping && mapping.type === 'signConfig') {
-        signCfg = val;
-      } else if (mapping && mapping.type === 'deliveryConfig') {
-        deliveryCfg = val;
-      } else {
-        unmapped.push(key);
+        if (typeof val === 'boolean') rootLines.push('        session.' + setter + '(' + val + ');');
+        else rootLines.push('        session.' + setter + '("' + escapeJava(String(val)) + '");');
       }
     });
 
@@ -603,7 +525,7 @@
     }
 
     // Emit local variable declarations
-    if (needsSession || needsSignConfig || needsDeliveryConfig || needsGuiProps || unmapped.length > 0) {
+    if (needsSession || needsSignConfig || needsDeliveryConfig || needsGuiProps) {
       code += '        var session = configData.getConfigureSession();\n';
     }
     if (needsSignConfig) {
@@ -659,29 +581,17 @@
           if (dk === 'id' || dk === 'fileURL' || dk === 'file') return;
           var dv = doc[dk];
           if (dv === null || dv === undefined || dv === '') return;
-          var setter = docKnownKeys[dk];
-          if (setter) {
-            if (typeof dv === 'boolean') code += '        ' + docVar + '.' + setter + '(' + dv + ');\n';
-            else code += '        ' + docVar + '.' + setter + '("' + escapeJava(String(dv)) + '");\n';
-          } else if (dk === 'signatures' && Array.isArray(dv)) {
+          if (dk === 'signatures' && Array.isArray(dv)) {
             dv.forEach(function () {
               code += '        // Signature field: see InSignConfigurationBuilder.addSignature()\n';
             });
+          } else if (typeof dv !== 'object') {
+            var docSetter = setterName(dk);
+            if (typeof dv === 'boolean') code += '        ' + docVar + '.' + docSetter + '(' + dv + ');\n';
+            else code += '        ' + docVar + '.' + docSetter + '("' + escapeJava(String(dv)) + '");\n';
           }
         });
         code += '\n';
-      });
-    }
-
-    if (unmapped.length > 0) {
-      code += '\n';
-      code += '        // Additional fields - consult insign-java-api Javadoc for setters:\n';
-      unmapped.forEach(function (key) {
-        var val = body[key];
-        var setter = setterName(key);
-        if (typeof val === 'boolean') code += '        // session.' + setter + '(' + val + ');\n';
-        else if (typeof val === 'string') code += '        // session.' + setter + '("' + escapeJava(val) + '");\n';
-        else code += '        // session.' + setter + '(...); // ' + JSON.stringify(val) + '\n';
       });
     }
 
@@ -883,6 +793,8 @@
 
   /** Parse the property catalog from already-fetched JSON data */
   function parsePropertyCatalog(data) {
+    _guiConstantsCache = null;
+    _guiConstantsFromOpenApi = false;
     propertyCatalog = { root: [], guiProperties: [], signConfig: [], deliveryConfig: [] };
     data.featureGroups.forEach(function (group) {
       group.features.forEach(function (f) {
@@ -922,9 +834,18 @@
   /** Get a doc comment for a property key, or empty string if unknown */
   function getDocComment(key, langKey) {
     var info = propertyDocs[key];
-    if (!info) return '';
+    var desc = info && info.desc;
+    // Fallback to OpenAPI spec description
+    if (!desc) {
+      var loader = window.state && window.state.schemaLoader;
+      if (loader && loader.guiPropertyKeys && loader.guiPropertyKeys[key]) {
+        desc = loader.guiPropertyKeys[key].description;
+      }
+    }
+    if (!info && !desc) return '';
     var cmt = (langKey === 'python' || langKey === 'curl') ? '# ' : '// ';
-    return cmt + info.label + ': ' + info.desc;
+    var label = info ? info.label : key;
+    return desc ? (cmt + label + ': ' + desc) : '';
   }
 
   /** Generate a shell comment block documenting all body keys (for curl, since JSON has no comments) */
@@ -1051,7 +972,7 @@
             if (sec.path === 'root') {
               line = pad + cmt + 'session.' + setterName(p.key) + '(' + val + ');';
             } else if (sec.path === 'guiProperties') {
-              var keyArg = INSIGN_GUI_CONSTANTS_SET[p.key]
+              var keyArg = getGuiConstantsSet()[p.key]
                 ? 'InSignGUIConstants.' + p.key
                 : '"' + p.key + '"';
               line = pad + cmt + 'InSignConfigurationBuilder.addGUIProperty(configData, ' + keyArg + ', ' + val + ');';
@@ -1102,7 +1023,7 @@
 
   window.CodeGenerator = {
     LANGUAGES: LANGUAGES,
-    INSIGN_PROPERTY_MAP: INSIGN_PROPERTY_MAP,
+    INSIGN_COMPLEX_TYPES: INSIGN_COMPLEX_TYPES,
 
     /** Pre-load templates and property catalog (call on page init) */
     preload: function () { preloadTemplates(); preloadPropertyCatalog(); },

@@ -32,12 +32,24 @@ async function loadFeatureData() {
 
 function getFeatureDesc(key, fallback) {
     const entry = featureDescriptions[key];
-    return entry ? entry.description : fallback;
+    if (entry && entry.description) return entry.description;
+    // Fallback to OpenAPI spec description
+    var loader = window.state && window.state.schemaLoader;
+    if (loader && loader.guiPropertyKeys && loader.guiPropertyKeys[key]) {
+        return loader.guiPropertyKeys[key].description;
+    }
+    return fallback;
 }
 
 function getGlobalProperty(key) {
     const entry = featureDescriptions[key];
-    return entry ? entry.globalProperty : null;
+    if (entry && entry.globalProperty) return entry.globalProperty;
+    // Fallback to OpenAPI spec
+    var loader = window.state && window.state.schemaLoader;
+    if (loader && loader.guiPropertyKeys && loader.guiPropertyKeys[key]) {
+        return loader.guiPropertyKeys[key].globalProperty;
+    }
+    return null;
 }
 
 const FEATURE_STORE_KEY = 'insign-feature-settings';
@@ -245,12 +257,34 @@ function selectProfile(p) {
     if (p.webhookCustomUrl) {
         $('#cfg-webhook-custom-url').val(p.webhookCustomUrl);
     }
+    // Sync OAuth2 credentials (programmatic .val() doesn't fire change events)
+    syncOAuth2Credentials();
     // Trigger base URL change to update API client and CORS visibility
     $('#cfg-base-url').trigger('change');
     _profileSelecting = false;
     renderProfiles();
     updateSaveButtonState();
     saveAppState();
+}
+
+/** Update the currently selected profile's CORS/webhook settings in-place */
+function updateSelectedProfile() {
+    if (!_selectedProfileKey || _profileSelecting) return;
+    var profiles = loadProfiles();
+    var changed = false;
+    for (var i = 0; i < profiles.length; i++) {
+        var key = profiles[i].baseUrl.replace(/\/+$/, '').toLowerCase() + '|' + profiles[i].username.toLowerCase();
+        if (key === _selectedProfileKey) {
+            profiles[i].corsProxy = $('#cfg-cors-proxy').is(':checked');
+            profiles[i].corsProxyUrl = $('#cfg-cors-proxy-url').val() || '';
+            profiles[i].webhooksEnabled = $('#cfg-webhooks').is(':checked');
+            profiles[i].webhookProvider = state.webhookProvider || 'smee';
+            profiles[i].webhookCustomUrl = $('#cfg-webhook-custom-url').val() || '';
+            changed = true;
+            break;
+        }
+    }
+    if (changed) saveProfiles(profiles);
 }
 
 function getAllProfiles() {

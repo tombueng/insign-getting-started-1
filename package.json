@@ -13,8 +13,11 @@
   },
   "scripts": {
     "build:vendor": "node scripts/build-vendor.js",
-    "build:explorer": "node scripts/build-explorer.js",
-    "test:ui": "node test/ui-smoke.test.js",
-    "test:ui:headed": "node test/ui-smoke.test.js --headed"
+    "test:index": "node test/index-smoke.test.js",
+    "test:index:headed": "node test/index-smoke.test.js --headed",
+    "test:explorer": "node test/explorer-smoke.test.js",
+    "test:explorer:headed": "node test/explorer-smoke.test.js --headed",
+    "test:ui": "node test/index-smoke.test.js && node test/explorer-smoke.test.js",
+    "test:ui:headed": "node test/index-smoke.test.js --headed && node test/explorer-smoke.test.js --headed"
   }
 }

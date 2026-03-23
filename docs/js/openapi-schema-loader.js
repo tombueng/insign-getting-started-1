@@ -8,6 +8,7 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
     constructor() {
         this.schemas = {};       // camelCase key -> { uri, schema }
         this.paths = {};         // path -> { method -> { summary, description } }
+        this.guiPropertyKeys = {};  // key -> { globalProperty, description } parsed from OpenAPI spec
         this.loaded = false;
     }
 
@@ -54,9 +55,35 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
             const converted = this._convertRefs(structuredClone(schema));
             this._addMarkdownDescriptions(converted);
             result[key] = { uri, schema: converted };
+
+            // Extract GUI property keys from the guiProperties description table
+            const guiDesc = schema?.properties?.guiProperties?.description;
+            if (guiDesc && guiDesc.includes('|key')) {
+                this._parseGuiPropertyKeys(guiDesc);
+            }
         }
 
         return result;
+    }
+
+    /**
+     * Parse the pipe-delimited table from the guiProperties description field.
+     * Format: |keyName (global.property.name)|description text
+     * Populates this.guiPropertyKeys with { key: { globalProperty, description } }
+     */
+    _parseGuiPropertyKeys(desc) {
+        for (const line of desc.split('\n')) {
+            if (!line.startsWith('|') || line.startsWith('|key') || line.startsWith('|--')) continue;
+            const parts = line.split('|').map(s => s.trim()).filter(Boolean);
+            if (parts.length < 2) continue;
+            const m = parts[0].match(/^(\w+)\s*\(([^)]+)\)/);
+            if (m) {
+                this.guiPropertyKeys[m[1]] = {
+                    globalProperty: m[2],
+                    description: parts[1]
+                };
+            }
+        }
     }
 
     /**
@@ -218,36 +245,63 @@ window.OpenApiSchemaLoader = class OpenApiSchemaLoader {
      * @param {Array} featureGroups - The featureGroups array from feature-descriptions.json
      */
     enrichGuiProperties(featureGroups) {
-        if (!this.loaded || !featureGroups?.length || this._guiPropsEnriched) return;
+        if (!this.loaded || this._guiPropsEnriched) return;
         this._guiPropsEnriched = true;
 
-        // Build a JSON-Schema "properties" map from the feature groups
+        // Build a JSON-Schema "properties" map from all known GUI properties.
+        // Primary source: OpenAPI spec table (this.guiPropertyKeys, parsed from description).
+        // Secondary: feature-descriptions.json (labels, types, options for the explorer UI subset).
         const props = {};
-        for (const group of featureGroups) {
-            for (const f of group.features) {
-                if (f.path !== 'guiProperties') continue;
 
-                const propSchema = {};
-
-                if (f.type === 'bool') {
-                    propSchema.type = 'boolean';
-                } else if (f.type === 'select' && f.options) {
-                    propSchema.enum = f.options;
-                } else {
-                    propSchema.type = 'string';
+        // Index feature-descriptions by key for quick lookup
+        const featureIndex = {};
+        if (featureGroups?.length) {
+            for (const group of featureGroups) {
+                for (const f of group.features) {
+                    if (f.path === 'guiProperties') featureIndex[f.key] = f;
                 }
-
-                // Build a rich description: label + global property + description
-                const parts = [];
-                if (f.label) parts.push(`**${f.label}**`);
-                if (f.globalProperty) parts.push(`\`${f.globalProperty}\``);
-                if (f.desc) parts.push('\n\n' + f.desc);
-                propSchema.markdownDescription = parts.join(' - ');
-                // Plain description fallback for validators that don't support markdown
-                propSchema.description = f.desc || f.label || f.key;
-
-                props[f.key] = propSchema;
             }
+        }
+
+        // All keys from the OpenAPI spec
+        for (const [key, info] of Object.entries(this.guiPropertyKeys)) {
+            const f = featureIndex[key];
+            const propSchema = {};
+
+            // Type from feature-descriptions if available, else default boolean
+            if (f && f.type === 'select' && f.options) {
+                propSchema.enum = f.options;
+            } else if (f && f.type !== 'bool') {
+                propSchema.type = 'string';
+            } else {
+                propSchema.type = 'boolean';
+            }
+
+            // Description from OpenAPI spec, label from feature-descriptions
+            const parts = [];
+            if (f && f.label) parts.push(`**${f.label}**`);
+            parts.push(`\`${info.globalProperty}\``);
+            parts.push('\n\n' + info.description);
+            propSchema.markdownDescription = parts.join(' - ');
+            propSchema.description = info.description;
+
+            props[key] = propSchema;
+        }
+
+        // Add any feature-descriptions keys not in OpenAPI (shouldn't happen, but safe)
+        for (const [key, f] of Object.entries(featureIndex)) {
+            if (props[key]) continue;
+            const propSchema = {};
+            if (f.type === 'bool') propSchema.type = 'boolean';
+            else if (f.type === 'select' && f.options) propSchema.enum = f.options;
+            else propSchema.type = 'string';
+            const parts = [];
+            if (f.label) parts.push(`**${f.label}**`);
+            if (f.globalProperty) parts.push(`\`${f.globalProperty}\``);
+            if (f.desc) parts.push('\n\n' + f.desc);
+            propSchema.markdownDescription = parts.join(' - ');
+            propSchema.description = f.desc || f.label || f.key;
+            props[key] = propSchema;
         }
 
         if (!Object.keys(props).length) return;

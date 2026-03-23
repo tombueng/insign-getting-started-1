@@ -111,7 +111,7 @@ async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 106) {
         // Reuse pdf.js lib from PdfViewer if loaded, otherwise import
         let pdfjsLib = state.pdfViewer?.lib;
         if (!pdfjsLib) {
-            pdfjsLib = await import('vendor/pdfjs-dist/build/pdf.min.mjs');
+            pdfjsLib = await import('../vendor/pdfjs-dist/build/pdf.min.mjs');
             pdfjsLib.GlobalWorkerOptions.workerSrc =
                 'vendor/pdfjs-dist/build/pdf.worker.min.mjs';
         }
@@ -134,6 +134,7 @@ async function renderPdfThumbnail(pdfUrl, canvas, maxHeight = 106) {
             data: canvas.toDataURL()
         };
     } catch (e) {
+        console.warn('PDF thumbnail failed for', pdfUrl, e);
         // Show a placeholder icon on failure
         const cssW = 56, cssH = maxHeight;
         canvas.width = cssW * dpr; canvas.height = cssH * dpr;
