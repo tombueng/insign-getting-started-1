@@ -330,6 +330,7 @@ function resetAllFeatures() {
     $('input[type="radio"][id$="-default"]').prop('checked', true);
     // Reset all text/select inputs
     $('.feature-input').val('');
+    $('select[id^="ft-"]').each(function() { this.selectedIndex = 0; });
     // Remove feature keys from JSON body
     if (state.editors['create-session']) {
         const body = getEditorValue('create-session');
@@ -337,6 +338,17 @@ function resetAllFeatures() {
             delete body.guiProperties;
             delete body.signConfig;
             delete body.deliveryConfig;
+            // Remove root-level feature keys
+            for (const group of FEATURE_GROUPS) {
+                for (const f of group.features) {
+                    if (f.path === 'root') delete body[f.key];
+                }
+            }
+            // Remove any uncovered root-level keys that were set
+            $('#uncovered-properties input[id^="ft-"], #uncovered-properties select[id^="ft-"]').each(function() {
+                const key = this.id.substring(3);
+                delete body[key];
+            });
             setEditorValue('create-session', body);
         }
     }

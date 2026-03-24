@@ -11,6 +11,7 @@
 // Feature groups & descriptions loaded from external JSON
 var featureDescriptions = {}; // key -> { globalProperty, description }
 var FEATURE_GROUPS = [];
+var UNCOVERED_FEATURES = []; // spec-derived features not in FEATURE_GROUPS (populated after schema loads)
 
 async function loadFeatureData() {
     try {
@@ -38,7 +39,7 @@ function getFeatureDesc(key, fallback) {
     if (loader && loader.guiPropertyKeys && loader.guiPropertyKeys[key]) {
         return loader.guiPropertyKeys[key].description;
     }
-    return fallback;
+    return fallback || '';
 }
 
 function getGlobalProperty(key) {

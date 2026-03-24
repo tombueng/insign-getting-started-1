@@ -33,42 +33,45 @@ function _doSyncEditorToUI() {
         if (navVal !== String(body.foruser)) { $('#navbar-foruser-id').val(body.foruser); _updateNavSub('navbar-foruser-id-display', body.foruser); }
     }
 
-    // Sync feature toggles
+    // Sync feature toggles (both FEATURE_GROUPS and UNCOVERED_FEATURES)
     const saved = loadFeatureSettings();
     let settingsChanged = false;
 
+    const allFeatures = [];
     for (const group of FEATURE_GROUPS) {
-        for (const f of group.features) {
-            let jsonVal;
-            if (f.path === 'guiProperties') {
-                jsonVal = body.guiProperties ? body.guiProperties[f.key] : undefined;
-            } else if (f.path === 'signConfig') {
-                jsonVal = body.signConfig ? body.signConfig[f.key] : undefined;
-            } else if (f.path === 'deliveryConfig') {
-                jsonVal = body.deliveryConfig ? body.deliveryConfig[f.key] : undefined;
-            } else if (f.path === 'doc') {
-                jsonVal = (body.documents && body.documents[0]) ? body.documents[0][f.key] : undefined;
-            } else {
-                jsonVal = body[f.key];
-            }
+        for (const f of group.features) allFeatures.push(f);
+    }
+    for (const f of UNCOVERED_FEATURES) allFeatures.push(f);
 
-            // Skip fields that are handled as owner inputs
-            if (['displayname', 'userFullName'].includes(f.key) && f.path === 'root') continue;
+    for (const f of allFeatures) {
+        let jsonVal;
+        if (f.path === 'guiProperties') {
+            jsonVal = body.guiProperties ? body.guiProperties[f.key] : undefined;
+        } else if (f.path === 'signConfig') {
+            jsonVal = body.signConfig ? body.signConfig[f.key] : undefined;
+        } else if (f.path === 'deliveryConfig') {
+            jsonVal = body.deliveryConfig ? body.deliveryConfig[f.key] : undefined;
+        } else if (f.path === 'doc') {
+            jsonVal = (body.documents && body.documents[0]) ? body.documents[0][f.key] : undefined;
+        } else {
+            jsonVal = body[f.key];
+        }
 
-            if (f.type === 'bool') {
-                const uiState = jsonVal === true ? 'on' : jsonVal === false ? 'off' : 'default';
-                const $radio = $(`#ft-${f.key}-${uiState === 'on' ? 'on' : uiState === 'off' ? 'off' : 'default'}`);
-                if ($radio.length && !$radio.is(':checked')) $radio.prop('checked', true);
-                // Update saved settings
-                if (jsonVal === undefined) { if (saved[f.key] !== undefined) { delete saved[f.key]; settingsChanged = true; } }
-                else { if (saved[f.key] !== jsonVal) { saved[f.key] = jsonVal; settingsChanged = true; } }
-            } else if (f.type === 'select' || f.type === 'text') {
-                const $el = $(`#ft-${f.key}`);
-                if ($el.length && jsonVal !== undefined && $el.val() !== String(jsonVal)) $el.val(String(jsonVal));
-                else if ($el.length && jsonVal === undefined && $el.val() !== '') $el.val('');
-                if (jsonVal === undefined) { if (saved[f.key] !== undefined) { delete saved[f.key]; settingsChanged = true; } }
-                else { if (saved[f.key] !== jsonVal) { saved[f.key] = jsonVal; settingsChanged = true; } }
-            }
+        // Skip fields that are handled as owner inputs
+        if (['displayname', 'userFullName'].includes(f.key) && f.path === 'root') continue;
+
+        if (f.type === 'bool') {
+            const uiState = jsonVal === true ? 'on' : jsonVal === false ? 'off' : 'default';
+            const $radio = $(`#ft-${f.key}-${uiState}`);
+            if ($radio.length && !$radio.is(':checked')) $radio.prop('checked', true);
+            if (jsonVal === undefined) { if (saved[f.key] !== undefined) { delete saved[f.key]; settingsChanged = true; } }
+            else { if (saved[f.key] !== jsonVal) { saved[f.key] = jsonVal; settingsChanged = true; } }
+        } else if (f.type === 'select' || f.type === 'text') {
+            const $el = $(`#ft-${f.key}`);
+            if ($el.length && jsonVal !== undefined && $el.val() !== String(jsonVal)) $el.val(String(jsonVal));
+            else if ($el.length && jsonVal === undefined && $el.val() !== '') $el.val('');
+            if (jsonVal === undefined) { if (saved[f.key] !== undefined) { delete saved[f.key]; settingsChanged = true; } }
+            else { if (saved[f.key] !== jsonVal) { saved[f.key] = jsonVal; settingsChanged = true; } }
         }
     }
     if (settingsChanged) saveFeatureSettings(saved);

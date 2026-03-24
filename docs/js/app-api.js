@@ -58,25 +58,34 @@ function updateApiClient() {
         var showTime = Date.now();
         $badge.removeClass('d-none fade-out done');
         state.schemaLoader.load(baseUrl, proxy).then(ok => {
-            var guiCount = Object.keys(state.schemaLoader.guiPropertyKeys || {}).length;
             if (ok) {
                 state.schemaLoader.enrichGuiProperties(FEATURE_GROUPS);
+                refreshFeatureDescriptions();
                 if (state.monacoReady) {
                     state.schemaLoader.registerWithMonaco(monaco);
                 }
             }
-            // Update badge: show result, then fade out after min 3s visible
+            var elapsed = Date.now() - showTime;
             $badge.addClass('done');
             $badge.find('.openapi-badge-spin').removeClass('bi-arrow-repeat').addClass(ok ? 'bi-check-lg' : 'bi-x-lg');
-            $badge.find('.openapi-badge-text').text(
-                ok ? 'API schema loaded (' + guiCount + ' GUI properties)' : 'API schema unavailable'
-            );
-            var elapsed = Date.now() - showTime;
-            var delay = Math.max(0, 3000 - elapsed);
-            setTimeout(function () {
-                $badge.addClass('fade-out');
-                setTimeout(function () { $badge.addClass('d-none'); }, 600);
-            }, delay);
+            if (ok) {
+                // Success: show load time, then fade out after min 3s visible
+                $badge.find('.openapi-badge-text').text(
+                    'API schema loaded (' + (elapsed / 1000).toFixed(1) + 's)'
+                );
+                var delay = Math.max(0, 3000 - elapsed);
+                setTimeout(function () {
+                    $badge.addClass('fade-out');
+                    setTimeout(function () { $badge.addClass('d-none'); }, 600);
+                }, delay);
+            } else {
+                // Error: keep badge visible, show toast with details
+                $badge.addClass('openapi-badge-error');
+                $badge.find('.openapi-badge-text').text('API schema unavailable');
+                showToast('OpenAPI schema could not be loaded from ' + baseUrl + '/v3/api-docs'
+                    + (proxy ? ' (via CORS proxy)' : '')
+                    + ' - autocomplete and tooltips will be limited.', 'warning');
+            }
         });
     }
 }

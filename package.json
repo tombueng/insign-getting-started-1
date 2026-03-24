@@ -13,11 +13,11 @@
   },
   "scripts": {
     "build:vendor": "node scripts/build-vendor.js",
-    "test:index": "node test/index-smoke.test.js",
-    "test:index:headed": "node test/index-smoke.test.js --headed",
-    "test:explorer": "node test/explorer-smoke.test.js",
-    "test:explorer:headed": "node test/explorer-smoke.test.js --headed",
-    "test:ui": "node test/index-smoke.test.js && node test/explorer-smoke.test.js",
-    "test:ui:headed": "node test/index-smoke.test.js --headed && node test/explorer-smoke.test.js --headed"
+    "test:getting-started": "node test/getting-started.test.js",
+    "test:getting-started:headed": "node test/getting-started.test.js --headed",
+    "test:api-explorer": "node test/api-explorer.test.js",
+    "test:api-explorer:headed": "node test/api-explorer.test.js --headed",
+    "test:ui": "node test/getting-started.test.js && node test/api-explorer.test.js",
+    "test:ui:headed": "node test/getting-started.test.js --headed && node test/api-explorer.test.js --headed"
   }
 }

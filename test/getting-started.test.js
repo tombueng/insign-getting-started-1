@@ -1,5 +1,5 @@
 /**
- * UI Smoke Test for the iSign Getting Started demo app (docs/index.html).
+ * Integration test for the Getting Started demo app (docs/index.html).
  *
  * Loads the application, clicks through visible interactive elements, and
  * watches the browser console for errors. The app is a multi-step wizard UI
@@ -16,7 +16,7 @@
  *   - Waits for confetti #2 (signing celebration with 3x particles)
  * All other sandbox requests pass through untouched.
  *
- * Usage:  node test/index-smoke.test.js [--headed]
+ * Usage:  node test/getting-started.test.js [--headed]
  *
  * Requires: npx playwright install chromium
  * The script starts a local static server (npx serve docs/) automatically.
@@ -468,7 +468,7 @@ async function waitForConfettiEnd(page, timeoutMs = 20000) {
         // Report
         // -----------------------------------------------------------------------
         console.log('\n' + '='.repeat(70));
-        console.log('  UI SMOKE TEST REPORT');
+        console.log('  GETTING STARTED TEST REPORT');
         console.log('='.repeat(70));
 
         console.log(`\n  Buttons clicked:   ${results.clickedButtons.length}`);

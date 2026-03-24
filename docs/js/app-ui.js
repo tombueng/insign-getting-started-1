@@ -648,8 +648,10 @@ function addPollChangeCard(diffs, schemaKey) {
 // Feature Search / Filter
 // =====================================================================
 
+var _featureContainers = '#feature-toggles, #uncovered-properties';
+
 function expandAllGroups() {
-    $('#feature-toggles .feature-group .collapse').each(function () {
+    $(_featureContainers).find('.feature-group .collapse').each(function () {
         if (!this.classList.contains('show')) {
             new bootstrap.Collapse(this, { toggle: true });
         }
@@ -657,7 +659,7 @@ function expandAllGroups() {
 }
 
 function collapseAllGroups() {
-    $('#feature-toggles .feature-group .collapse.show').each(function () {
+    $(_featureContainers).find('.feature-group .collapse.show').each(function () {
         new bootstrap.Collapse(this, { toggle: true });
     });
 }
@@ -668,20 +670,16 @@ function filterFeatures(query) {
     const countEl = document.getElementById('feature-search-count');
     if (clearBtn) clearBtn.style.display = q ? '' : 'none';
 
-    const toggles = document.querySelectorAll('#feature-toggles .feature-toggle');
-    const groups = document.querySelectorAll('#feature-toggles .feature-group');
+    const $containers = $(_featureContainers);
+    const toggles = $containers.find('.feature-toggle').get();
+    const groups = $containers.find('.feature-group').get();
     let matchCount = 0;
     let totalCount = toggles.length;
 
     if (!q) {
-        // No query - show everything, restore collapsed state
         toggles.forEach(t => t.style.display = '');
         groups.forEach(g => {
             g.style.display = '';
-            const collapse = g.querySelector('.collapse');
-            if (collapse && collapse.classList.contains('show')) {
-                // leave open groups open
-            } // collapsed groups stay collapsed
         });
         if (countEl) countEl.style.display = 'none';
         return;
@@ -696,14 +694,13 @@ function filterFeatures(query) {
         if (match) matchCount++;
     });
 
-    // Show/hide groups based on whether they have visible toggles; force-open matching groups
     groups.forEach(g => {
         const visible = g.querySelectorAll('.feature-toggle:not([style*="display: none"])');
         if (visible.length > 0) {
             g.style.display = '';
             const collapse = g.querySelector('.collapse');
             if (collapse && !collapse.classList.contains('show')) {
-                collapse.classList.add('show'); // expand groups with matches
+                collapse.classList.add('show');
             }
         } else {
             g.style.display = 'none';

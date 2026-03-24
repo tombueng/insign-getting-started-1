@@ -433,17 +433,22 @@ function goToStep(step, skipHash) {
     $('#section-polling').toggleClass('d-none', step < 3);
     // Reconcile webhook sidebar + CORS hint state
     reconcileWebhookCorsState();
+
+    // Once a session exists or step 3 has been visited, the sidebar stays visible
+    // (user can still collapse/expand it manually). On first visit to step 3,
+    // auto-open the sidebar.
     if (step === 3) {
-        // Auto-open sidebar on "Operate and trace" tab (unless user collapsed it)
+        state.sidebarActivated = true;
         if (!state.sidebarCollapsed) {
             $('#trace-column').removeClass('d-none');
             $('#expand-right-sidebar').addClass('d-none');
         }
         updateSidebarMode();
-    } else {
-        // Auto-hide sidebar on other steps, but keep expand button visible so user can open it
+    }
+    // If sidebar was never activated yet, keep it hidden on other steps
+    if (!state.sidebarActivated) {
         $('#trace-column').addClass('d-none');
-        $('#expand-right-sidebar').removeClass('d-none');
+        $('#expand-right-sidebar').addClass('d-none');
     }
 
     updateMainColumnWidth();
@@ -503,6 +508,12 @@ function setSessionId(sessionId, accessURL, fromCreateSession, accessURLProcessM
     state.sessionId = sessionId;
     state.accessURL = accessURL;
     if (accessURLProcessManagement) state.accessURLProcessManagement = accessURLProcessManagement;
+
+    // Activate sidebar once a session exists
+    if (sessionId && !state.sidebarActivated) {
+        state.sidebarActivated = true;
+        showTraceColumn();
+    }
     // Save session ID for callback page lookup
     if (typeof saveCallbackSession === 'function') saveCallbackSession();
 

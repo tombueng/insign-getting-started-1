@@ -1,5 +1,5 @@
 /**
- * UI Smoke Test for the inSign API Explorer (docs/explorer.html).
+ * Integration test for the API Explorer (docs/explorer.html).
  *
  * Tests the full API flow against the real sandbox for both Basic Auth
  * and OAuth2 authentication modes:
@@ -17,7 +17,7 @@
  * On test failure, request/response bodies and headers of the failed
  * request are printed for diagnosis.
  *
- * Usage:  node test/explorer-smoke.test.js [--headed]
+ * Usage:  node test/api-explorer.test.js [--headed]
  *
  * Requires: npx playwright install chromium
  * The script starts a local static server (npx serve docs/) automatically.
@@ -413,11 +413,41 @@ function assert(condition, testName, details) {
                     });
                     assert(docSelectorItems > 0, 'Document selector has items',
                         `  Found ${docSelectorItems} document options`);
+
+                    // --- PDF thumbnail rendering ---
+                    console.log('[*] Testing PDF thumbnail rendering...');
+                    // Scroll first thumbnail into view to trigger IntersectionObserver
+                    await page.evaluate(() => {
+                        const c = document.querySelector('canvas.doc-dd-thumb[data-pdf]');
+                        if (c) c.scrollIntoView({ block: 'center' });
+                    });
+                    await page.waitForTimeout(5000); // pdf.js needs time to import + render
+                    const thumbResult = await page.evaluate(() => {
+                        const canvases = document.querySelectorAll('canvas.doc-dd-thumb[data-pdf]');
+                        let rendered = 0;
+                        for (const c of canvases) {
+                            if (!c.classList.contains('skeleton-pulse')) {
+                                const ctx = c.getContext('2d');
+                                const d = ctx.getImageData(0, 0, c.width, c.height).data;
+                                let hasPixels = false;
+                                for (let i = 3; i < d.length; i += 4) {
+                                    if (d[i] > 0) { hasPixels = true; break; }
+                                }
+                                if (hasPixels) rendered++;
+                            }
+                        }
+                        return { total: canvases.length, rendered };
+                    });
+                    assert(thumbResult.rendered > 0,
+                        'PDF thumbnails render actual content (not placeholder)',
+                        `  ${thumbResult.rendered}/${thumbResult.total} thumbnails rendered`);
+
                     // Collapse back
                     await docHeader.click();
                     await page.waitForTimeout(300);
                 } else {
                     assert(true, 'Document selector (header not visible - skipped)');
+                    assert(true, 'PDF thumbnails (skipped - doc header not visible)');
                 }
 
                 // --- Operation tabs (Step 3) ---
@@ -877,7 +907,7 @@ function assert(condition, testName, details) {
         // Report
         // ---------------------------------------------------------------
         console.log('\n' + '='.repeat(70));
-        console.log('  EXPLORER SMOKE TEST REPORT');
+        console.log('  API EXPLORER TEST REPORT');
         console.log('='.repeat(70));
 
         console.log(`\n  Passed: ${passes.length}`);
