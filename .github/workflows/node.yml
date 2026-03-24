@@ -92,8 +92,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  ui-smoke:
-    name: UI smoke tests (root)
+  ui-tests:
+    name: UI integration tests (root)
     runs-on: ubuntu-latest
 
     steps:
@@ -122,5 +122,5 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run UI smoke tests
+      - name: Run UI integration tests
         run: npm run test:ui

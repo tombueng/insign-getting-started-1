@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * UI smoke test using Selenium + headless Chromium.
+ * UI integration test using Selenium + headless Chromium.
  * Starts the Spring Boot app on a random port, opens the browser,
  * and clicks through the main workflow: create session, check status,
  * send invitations, then purge.
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 )
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class UiSmokeTest {
+class UiIntegrationTest {
 
     @LocalServerPort
     private int port;
