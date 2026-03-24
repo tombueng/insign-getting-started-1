@@ -1,7 +1,12 @@
 const { defineConfig } = require('@playwright/test');
 
+const viewport = process.env.DEMO_VIDEO
+  ? { width: 1920, height: 1080 }
+  : { width: 1280, height: 900 };
+
 module.exports = defineConfig({
   testDir: '.',
+  outputDir: '../.target/test-results',
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -10,10 +15,13 @@ module.exports = defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     headless: true,
-    viewport: { width: 1280, height: 900 },
+    viewport,
     actionTimeout: 15_000,
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
+    video: {
+      mode: process.env.DEMO_VIDEO ? 'on' : 'retain-on-failure',
+      size: viewport
+    }
   },
   webServer: {
     command: 'node ../src/server.js',
