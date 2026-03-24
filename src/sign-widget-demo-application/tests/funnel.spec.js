@@ -168,10 +168,10 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
               } else if (!penDown) {
                 fire('pointerdown', p.x, p.y);
                 penDown = true;
-                setTimeout(step, 12);
+                setTimeout(step, 8);
               } else {
                 fire('pointermove', p.x, p.y);
-                setTimeout(step, 12);
+                setTimeout(step, 8);
               }
             }
             step();
