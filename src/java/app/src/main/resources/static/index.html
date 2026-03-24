@@ -383,10 +383,28 @@
     }
 
     // -- API helpers --
+    function formatErrorDetail(body) {
+        var msg = body.message || 'Unknown error';
+        if (body.httpStatus) {
+            msg = 'HTTP ' + body.httpStatus + ' - ' + msg;
+        }
+        var detail = msg;
+        if (body.responseBody) {
+            try {
+                detail = msg + '\n\nServer response:\n' + JSON.stringify(JSON.parse(body.responseBody), null, 2);
+            } catch(e) {
+                detail = msg + '\n\nServer response:\n' + body.responseBody;
+            }
+        }
+        return { msg: msg, detail: detail };
+    }
+
     function apiGet(url, title) {
         $.get(url).done(function(data) {
             if (data && data.error) {
-                addResponseCard(title || url, data.message || 'Unknown error', true);
+                var err = formatErrorDetail(data);
+                addResponseCard(title || url, err.detail, true);
+                showAlert(err.msg, 'danger');
                 return;
             }
             addResponseCard(title || url, data, false);
@@ -398,7 +416,9 @@
                  data: data ? JSON.stringify(data) : null
         }).done(function(resp) {
             if (resp && resp.error) {
-                addResponseCard(title || url, resp.message || 'Unknown error', true);
+                var err = formatErrorDetail(resp);
+                addResponseCard(title || url, err.detail, true);
+                showAlert(err.msg, 'danger');
                 return;
             }
             addResponseCard(title || url, resp, false);
@@ -416,16 +436,9 @@
         if (xhr.responseText) {
             try {
                 var body = JSON.parse(xhr.responseText);
-                msg = body.message || msg;
-                if (body.responseBody) {
-                    try {
-                        detail = msg + '\n\n' + JSON.stringify(JSON.parse(body.responseBody), null, 2);
-                    } catch(e) {
-                        detail = msg + '\n\n' + body.responseBody;
-                    }
-                } else {
-                    detail = msg;
-                }
+                var err = formatErrorDetail(body);
+                msg = err.msg;
+                detail = err.detail;
             } catch(e) {
                 detail = msg + '\n\n' + xhr.responseText;
             }

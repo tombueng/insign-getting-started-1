@@ -11,6 +11,14 @@
           "path": "guiProperties"
         },
         {
+          "key": "burgerExit",
+          "label": "Custom exit text",
+          "type": "text",
+          "path": "root",
+          "desc": "Custom text for the exit/close button displayed in the burger menu and toolbar. This property allows overriding the default translated exit button label with custom text specific to the integration context. If left empty or not specified, the default localized message is shown based on the session's locale setting. Useful for providing context-specific button labels such as 'Return to Portal', 'Back to Dashboard', or 'Close and Return'. The custom text applies wherever the exit action label is displayed in the UI, including the burger menu dropdown and any toolbar exit button instances.",
+          "globalProperty": "burger.exit"
+        },
+        {
           "key": "finishAvailable",
           "label": "Finish button",
           "type": "bool",
@@ -585,14 +593,6 @@
           "desc": "The body text for emails sent to all recipients (non-external). This deliveryConfig property customizes the email content for session participants who are not external signers. Supports dynamic placeholders such as {name} for personalization and HTML formatting. If not specified, the system uses a default translated email body. This property complements alleEmailBetreff.",
           "globalProperty": null
         },
-        {
-          "key": "burgerExit",
-          "label": "Custom exit text",
-          "type": "text",
-          "path": "root",
-          "desc": "Custom text for the exit/close button displayed in the burger menu and toolbar. This property allows overriding the default translated exit button label with custom text specific to the integration context. If left empty or not specified, the default localized message is shown based on the session's locale setting. Useful for providing context-specific button labels such as 'Return to Portal', 'Back to Dashboard', or 'Close and Return'. The custom text applies wherever the exit action label is displayed in the UI, including the burger menu dropdown and any toolbar exit button instances.",
-          "globalProperty": "burger.exit"
-        }
       ]
     },
     {

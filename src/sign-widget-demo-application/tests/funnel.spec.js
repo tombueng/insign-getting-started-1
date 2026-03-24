@@ -1,4 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const { buildSignaturePath } = require('./signature-path');
+const path = require('path');
+
+// Signature text and font - change these to use a different name or style
+const SIGNATURE_TEXT = 'Chris Signlord';
+const SIGNATURE_FONT = path.join(__dirname, 'fonts', 'DancingScript.ttf');
 
 test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
 
@@ -81,20 +87,24 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
 
   test('Full flow — Fill → Draw signature → Finish', async ({ page }) => {
     test.setTimeout(180_000);
+    // DEMO_VIDEO=1 adds pauses before clicks so screen recordings look natural
+    const demoDelay = process.env.DEMO_VIDEO ? 5000 : 0;
     await page.goto('/');
 
     // Step 1
+    await page.waitForTimeout(demoDelay);
     await page.click('#btn-start');
     await expect(page.locator('#step-2-panel')).toBeVisible();
 
     // Step 2: Fill form
-    await page.fill('#firstName', 'Integration');
-    await page.fill('#lastName', 'Testuser');
+    await page.fill('#firstName', 'Chris');
+    await page.fill('#lastName', 'Signlord');
     await page.fill('#street', 'Playwright-Allee 1');
     await page.fill('#zip', '80331');
-    await page.fill('#city', 'München');
+    await page.fill('#city', 'Teststadt');
     await page.fill('#birthdate', '1985-12-01');
 
+    await page.waitForTimeout(demoDelay);
     await page.click('#btn-submit');
     await expect(page.locator('#step-3-panel')).toBeVisible({ timeout: 30000 });
 
@@ -105,43 +115,82 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
       .catch(() => false);
 
     if (hasCanvas) {
-      // Draw a signature on the canvas
+      // Draw "Chris Signlord" as a realistic cursive signature using pointer
+      // events. The inSign pad detects 'onpointermove' in modern browsers and
+      // switches to pointer events internally.
       const canvas = page.locator('#sig-container canvas.pad').first();
+      await canvas.scrollIntoViewIfNeeded();
       const box = await canvas.boundingBox();
 
       if (box) {
-        // Draw a wavy signature
-        await page.mouse.move(box.x + 30, box.y + box.height / 2);
-        await page.mouse.down();
-        for (let i = 0; i < 200; i += 3) {
-          await page.mouse.move(
-            box.x + 30 + i * 2,
-            box.y + box.height / 2 + Math.sin(i / 8) * 30
-          );
-        }
-        await page.mouse.up();
+        const points = buildSignaturePath(SIGNATURE_TEXT, {
+          fontPath: SIGNATURE_FONT,
+          canvasBox: box
+        });
 
-        // Click Confirm (may not appear if inSign sandbox doesn't accept the signature)
-        const hasConfirm = await page.locator('.btn-confirm').first()
-          .waitFor({ state: 'visible', timeout: 15000 })
-          .then(() => true)
-          .catch(() => false);
+        // Dispatch pointer events on the canvas at realistic handwriting speed.
+        // null entries = pen lifts between strokes, numbers = pause in ms.
+        await canvas.evaluate((el, pts) => {
+          function fire(type, x, y) {
+            el.dispatchEvent(new PointerEvent(type, {
+              pointerId: 1,
+              pointerType: 'pen',
+              clientX: x,
+              clientY: y,
+              pageX: x + window.scrollX,
+              pageY: y + window.scrollY,
+              screenX: x,
+              screenY: y,
+              pressure: type === 'pointerup' ? 0 : 0.5,
+              bubbles: true,
+              cancelable: true,
+              isPrimary: true
+            }));
+          }
+          return new Promise(resolve => {
+            let i = 0;
+            let penDown = false;
+            function step() {
+              if (i >= pts.length) {
+                if (penDown) fire('pointerup', pts[i - 1].x, pts[i - 1].y);
+                resolve();
+                return;
+              }
+              const p = pts[i];
+              i++;
+              if (p === null) {
+                if (penDown) fire('pointerup', pts[i - 2].x, pts[i - 2].y);
+                penDown = false;
+                setTimeout(step, 80); // brief pause between words
+              } else if (typeof p === 'number') {
+                setTimeout(step, p);
+                return;
+              } else if (!penDown) {
+                fire('pointerdown', p.x, p.y);
+                penDown = true;
+                setTimeout(step, 12);
+              } else {
+                fire('pointermove', p.x, p.y);
+                setTimeout(step, 12);
+              }
+            }
+            step();
+          });
+        }, points);
 
-        if (hasConfirm) {
-          await page.locator('.btn-confirm').first().click();
-          // Wait a moment for the signature to be sent
-          await page.waitForTimeout(3000);
+        // Click Confirm if it appears (some inSign configs show a confirm button)
+        const confirmBtn = page.locator('.btn-confirm').first();
+        if (await confirmBtn.isVisible().catch(() => false)) {
+          await confirmBtn.click();
         }
       }
     }
 
-    // Enable finish button if not already (may need all sigs)
-    // Force-enable for test flow (signature may or may not have been accepted)
-    await page.evaluate(() => {
-      document.getElementById('btn-finish').disabled = false;
-    });
+    // Wait for finish button to become enabled (inSign processes the signature)
+    await expect(page.locator('#btn-finish')).toBeEnabled({ timeout: 15000 });
 
     // Click finish
+    await page.waitForTimeout(demoDelay);
     await page.click('#btn-finish');
     await expect(page.locator('#step-4-panel')).toBeVisible({ timeout: 15000 });
 

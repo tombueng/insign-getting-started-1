@@ -4,6 +4,7 @@ import com.example.insign.model.*;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.is2.insign.javapi.*;
+import de.is2.insign.javapi.InSignAdapterRESTException;
 import de.is2.sign.service.rest.json.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -117,7 +118,7 @@ public class InsignJavaApiClient implements InsignApiService {
             // Use ObjectMapper to convert between typed classes (field names match)
             return mapper.convertValue(status, InsignStatusResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get status: " + e.getMessage(), e);
+            throw toInsignApiException("get status", e);
         }
     }
 
@@ -127,7 +128,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONCheckStatusResult status = adapter.getCheckStatus(sessionHandle(sessionId));
             return mapper.convertValue(status, InsignStatusResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to check status: " + e.getMessage(), e);
+            throw toInsignApiException("check status", e);
         }
     }
 
@@ -146,7 +147,7 @@ public class InsignJavaApiClient implements InsignApiService {
                     sessionHandle(config.getSessionid()), users);
             return mapper.convertValue(result, InsignExternResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to begin extern: " + e.getMessage(), e);
+            throw toInsignApiException("begin extern", e);
         }
     }
 
@@ -156,7 +157,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONBasicResult result = adapter.abortExternal(sessionHandle(sessionId));
             return mapper.convertValue(result, InsignBasicResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to revoke extern: " + e.getMessage(), e);
+            throw toInsignApiException("revoke extern", e);
         }
     }
 
@@ -167,7 +168,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONSessionStatusResult result = adapter.getStatus(sessionHandle(sessionId));
             return mapper.convertValue(result, InsignExternResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get extern users: " + e.getMessage(), e);
+            throw toInsignApiException("get extern users", e);
         }
     }
 
@@ -177,7 +178,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONSessionStatusResult result = adapter.getStatus(sessionHandle(sessionId));
             return mapper.convertValue(result, InsignExternInfosResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get extern infos: " + e.getMessage(), e);
+            throw toInsignApiException("get extern infos", e);
         }
     }
 
@@ -194,7 +195,7 @@ public class InsignJavaApiClient implements InsignApiService {
         try {
             return adapter.createJWTTokenForApiUser(forUser, null, null, null, null);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to create SSO link: " + e.getMessage(), e);
+            throw toInsignApiException("create SSO link", e);
         }
     }
 
@@ -206,7 +207,7 @@ public class InsignJavaApiClient implements InsignApiService {
             result.setAdditionalProperty("audit", audit);
             return result;
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get audit: " + e.getMessage(), e);
+            throw toInsignApiException("get audit", e);
         }
     }
 
@@ -216,7 +217,7 @@ public class InsignJavaApiClient implements InsignApiService {
             InputStream is = adapter.getAuditPDF(sessionHandle(sessionId));
             return is.readAllBytes();
         } catch (Exception e) {
-            throw new InsignApiException("Failed to download audit report: " + e.getMessage(), e);
+            throw toInsignApiException("download audit report", e);
         }
     }
 
@@ -226,7 +227,7 @@ public class InsignJavaApiClient implements InsignApiService {
             InputStream is = adapter.getDocumentsZIP(sessionHandle(sessionId));
             return is.readAllBytes();
         } catch (Exception e) {
-            throw new InsignApiException("Failed to download documents: " + e.getMessage(), e);
+            throw toInsignApiException("download documents", e);
         }
     }
 
@@ -236,7 +237,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONSessionData data = adapter.getDocumentsFull(sessionHandle(sessionId));
             return mapper.convertValue(data, InsignSessionDataResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get metadata: " + e.getMessage(), e);
+            throw toInsignApiException("get metadata", e);
         }
     }
 
@@ -245,7 +246,7 @@ public class InsignJavaApiClient implements InsignApiService {
         try {
             adapter.unloadSession(sessionHandle(sessionId));
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to unload session: " + e.getMessage(), e);
+            throw toInsignApiException("unload session", e);
         }
     }
 
@@ -254,7 +255,7 @@ public class InsignJavaApiClient implements InsignApiService {
         try {
             adapter.deleteinSignSessionImmediately(sessionHandle(sessionId));
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to purge session: " + e.getMessage(), e);
+            throw toInsignApiException("purge session", e);
         }
     }
 
@@ -264,7 +265,7 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONSessionsResult result = adapter.getAllUserSessions(user);
             return mapper.convertValue(result, InsignBasicResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to get user sessions: " + e.getMessage(), e);
+            throw toInsignApiException("get user sessions", e);
         }
     }
 
@@ -274,11 +275,53 @@ public class InsignJavaApiClient implements InsignApiService {
             JSONSessionsResult result = adapter.getInfoForSessions(sessionIds);
             return mapper.convertValue(result, InsignBasicResult.class);
         } catch (InSignAdapterException e) {
-            throw new InsignApiException("Failed to query sessions: " + e.getMessage(), e);
+            throw toInsignApiException("query sessions", e);
         }
     }
 
     private InSignSessionHandle sessionHandle(String sessionId) {
         return new InSignSessionHandle(sessionId, null);
+    }
+
+    /** Extracts HTTP status, error details, and response body from adapter exceptions. */
+    private InsignApiException toInsignApiException(String operation, Exception e) {
+        if (e instanceof InSignAdapterRESTException restEx) {
+            int httpStatus = restEx.getStatus();
+            String responseBody = null;
+            String msg = "HTTP " + httpStatus + " " + operation;
+            JSONResult result = restEx.getResult();
+            if (result != null) {
+                if (result.getMessage() != null && !result.getMessage().isEmpty()) {
+                    msg += " | error=" + result.getError() + " | " + result.getMessage();
+                }
+                try {
+                    responseBody = mapper.writeValueAsString(result);
+                } catch (Exception ignored) {
+                    responseBody = restEx.toString();
+                }
+            } else {
+                msg += " | " + restEx.getMessage();
+            }
+            return new InsignApiException(httpStatus > 0 ? httpStatus : 500, msg, responseBody);
+        }
+
+        // Network-level errors
+        Throwable root = e;
+        while (root.getCause() != null) root = root.getCause();
+
+        if (root instanceof javax.net.ssl.SSLException) {
+            return new InsignApiException(503,
+                    "SSL error during " + operation + " - " + root.getMessage(), e);
+        }
+        if (root instanceof java.net.ConnectException) {
+            return new InsignApiException(503,
+                    "Connection refused during " + operation + " - " + root.getMessage(), e);
+        }
+        if (root instanceof java.net.SocketTimeoutException) {
+            return new InsignApiException(504,
+                    "Connection timed out during " + operation + " - " + root.getMessage(), e);
+        }
+
+        return new InsignApiException("Failed to " + operation + ": " + e.getMessage(), e);
     }
 }

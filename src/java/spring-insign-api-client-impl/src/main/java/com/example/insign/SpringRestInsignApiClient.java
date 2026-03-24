@@ -13,10 +13,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.SSLException;
 
 /**
  * inSign API client using Spring RestClient with direct JSON serialization.
@@ -160,7 +163,7 @@ public class SpringRestInsignApiClient implements InsignApiService {
             }
         } catch (InsignApiException e) { throw e; }
         catch (Exception e) {
-            throw new InsignApiException("API call failed: /get/externInfos - " + e.getMessage(), e);
+            throw toInsignApiException("/get/externInfos", e);
         }
     }
 
@@ -180,7 +183,7 @@ public class SpringRestInsignApiClient implements InsignApiService {
                     .retrieve().body(String.class);
         } catch (InsignApiException e) { throw e; }
         catch (Exception e) {
-            throw new InsignApiException("Failed to create SSO link: " + e.getMessage(), e);
+            throw toInsignApiException("/configure/createSSOForApiuser", e);
         }
     }
 
@@ -207,7 +210,7 @@ public class SpringRestInsignApiClient implements InsignApiService {
                     .retrieve().body(byte[].class);
         } catch (InsignApiException e) { throw e; }
         catch (Exception e) {
-            throw new InsignApiException("Failed to download documents: " + e.getMessage(), e);
+            throw toInsignApiException("/get/documents/download", e);
         }
     }
 
@@ -253,8 +256,33 @@ public class SpringRestInsignApiClient implements InsignApiService {
             return checkAndParse(path, res, responseType);
         } catch (InsignApiException e) { throw e; }
         catch (Exception e) {
-            throw new InsignApiException("API call failed: " + path + " - " + e.getMessage(), e);
+            throw toInsignApiException(path, e);
         }
+    }
+
+    /** Translates network/IO exceptions into InsignApiException with useful detail. */
+    private InsignApiException toInsignApiException(String path, Exception e) {
+        Throwable root = e;
+        while (root.getCause() != null) root = root.getCause();
+
+        if (root instanceof SSLException) {
+            return new InsignApiException(503,
+                    "SSL error connecting to " + baseUrl + path + " - " + root.getMessage(), e);
+        }
+        if (root instanceof ConnectException) {
+            return new InsignApiException(503,
+                    "Connection refused: " + baseUrl + path + " - " + root.getMessage(), e);
+        }
+        if (root instanceof java.net.SocketTimeoutException) {
+            return new InsignApiException(504,
+                    "Connection timed out: " + baseUrl + path + " - " + root.getMessage(), e);
+        }
+        if (root instanceof java.net.UnknownHostException) {
+            return new InsignApiException(503,
+                    "Unknown host: " + baseUrl + path + " - " + root.getMessage(), e);
+        }
+        return new InsignApiException(500,
+                "API call failed: " + path + " - " + e.getMessage(), e);
     }
 
     /** Checks for application-level errors (error != 0) and deserializes to the target POJO. */

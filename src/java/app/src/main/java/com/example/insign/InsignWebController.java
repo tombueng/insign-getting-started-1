@@ -262,19 +262,24 @@ public class InsignWebController {
 
     @ExceptionHandler(InsignApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiError(InsignApiException e) {
+        int status = e.getHttpStatus() >= 400 ? e.getHttpStatus() : 400;
         var body = new LinkedHashMap<String, Object>();
         body.put("error", true);
+        body.put("httpStatus", status);
         body.put("message", e.getMessage());
         if (e.getResponseBody() != null) {
             body.put("responseBody", e.getResponseBody());
         }
-        return ResponseEntity.status(e.getHttpStatus() >= 400 ? e.getHttpStatus() : 400).body(body);
+        return ResponseEntity.status(status).body(body);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-        return ResponseEntity.badRequest()
-                .body(Map.of("error", true, "message", e.getMessage()));
+        var body = new LinkedHashMap<String, Object>();
+        body.put("error", true);
+        body.put("httpStatus", 400);
+        body.put("message", e.getMessage());
+        return ResponseEntity.badRequest().body(body);
     }
 
     // ==================== Helpers ====================

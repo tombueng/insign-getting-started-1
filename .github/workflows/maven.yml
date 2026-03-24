@@ -16,6 +16,7 @@ on:
 permissions:
   contents: read
   checks: write
+  pull-requests: write
 
 jobs:
   build:
@@ -79,3 +80,14 @@ jobs:
         name: Test Results (${{ matrix.profile }})
         path: src/java/**/target/surefire-reports/*.xml
         reporter: java-junit
+
+    - name: JaCoCo Coverage Report
+      uses: madrapps/jacoco-report@v1.7.2
+      if: always()
+      with:
+        paths: src/java/**/target/site/jacoco/jacoco.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title: Coverage (${{ matrix.profile }})
+        update-comment: true
+        min-coverage-overall: 0
+        min-coverage-changed-files: 0

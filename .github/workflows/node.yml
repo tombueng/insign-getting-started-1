@@ -62,6 +62,7 @@ jobs:
 
   docker:
     name: Docker build & push (sign-widget-demo)
+    needs: sign-widget-demo
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
