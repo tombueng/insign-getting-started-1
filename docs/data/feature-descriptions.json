@@ -592,7 +592,7 @@
           "path": "deliveryConfig",
           "desc": "The body text for emails sent to all recipients (non-external). This deliveryConfig property customizes the email content for session participants who are not external signers. Supports dynamic placeholders such as {name} for personalization and HTML formatting. If not specified, the system uses a default translated email body. This property complements alleEmailBetreff.",
           "globalProperty": null
-        },
+        }
       ]
     },
     {

@@ -28,7 +28,19 @@ async function loadFeatureData() {
                 featureDescriptions[item.key] = item;
             }
         }
-    } catch { /* feature data is optional - graceful fallback */ }
+    } catch (e) {
+        console.error('Failed to load feature-descriptions.json:', e);
+        var container = document.getElementById('feature-toggles');
+        if (container) {
+            var alert = document.createElement('div');
+            alert.className = 'alert alert-danger d-flex align-items-center gap-2 my-2';
+            alert.style.fontSize = '0.82rem';
+            alert.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> '
+                + 'Could not load feature descriptions (<code>data/feature-descriptions.json</code>): '
+                + (e.message || 'unknown error');
+            container.appendChild(alert);
+        }
+    }
 }
 
 function getFeatureDesc(key, fallback) {

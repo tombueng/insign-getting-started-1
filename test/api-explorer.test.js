@@ -247,6 +247,17 @@ function assert(condition, testName, details) {
                 const page = await ctx.newPage();
                 page.on('pageerror', e => {
                     if (e.message.includes('lipboard')) return;
+                    console.log(`  [browser-error] ${e.message}`);
+                });
+                page.on('console', msg => {
+                    if (msg.type() === 'error') {
+                        console.log(`  [browser-console] ${msg.text().substring(0, 300)}`);
+                    }
+                });
+                page.on('response', res => {
+                    if (!res.ok() && res.status() !== 304) {
+                        console.log(`  [browser-net] ${res.status()} ${res.url()}`);
+                    }
                 });
 
                 await page.goto(EXPLORER_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -353,11 +364,14 @@ function assert(condition, testName, details) {
                     // Test search - wait for feature toggles to be populated first
                     const searchInput = page.locator('#feature-search');
                     if (await searchInput.isVisible()) {
-                        // Feature toggles load async; wait for at least one to appear
-                        await page.waitForFunction(
-                            () => document.querySelectorAll('#feature-toggles .feature-toggle').length > 0,
-                            { timeout: 10000 }
-                        );
+                        // Feature toggles load async (fetch + DOM build); poll up to 15s
+                        for (let i = 0; i < 30; i++) {
+                            const count = await page.evaluate(() =>
+                                document.querySelectorAll('#feature-toggles .feature-toggle').length);
+                            if (count > 0) break;
+                            await page.waitForTimeout(500);
+                        }
+
                         await searchInput.fill('signature');
                         await page.waitForTimeout(300);
                         const visibleToggles = await page.evaluate(() => {
