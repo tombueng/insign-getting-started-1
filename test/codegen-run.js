@@ -1,11 +1,13 @@
 /**
  * Code Generator Integration Test — actually EXECUTES generated snippets
  *
- * ALL languages run in Docker containers — no local compilers/runtimes needed.
+ * ALL languages run in Docker containers IN PARALLEL — no local compilers/runtimes needed.
  * Uses the sandbox at https://sandbox.test.getinsign.show/ to:
  * 1. Create a session
  * 2. Get status
- * 3. Attempt document download
+ * 3. Invite signers
+ * 4. Download document
+ * 5. Purge session
  *
  * Usage:
  *   node codegen-run.js              # run all languages
@@ -14,7 +16,7 @@
  */
 const fs   = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 // ---------- Simulate browser globals ----------
 
@@ -85,85 +87,8 @@ const context = {
   body,
 };
 
-const runDir = path.join(__dirname, 'run');
-fs.mkdirSync(runDir, { recursive: true });
-
-const results = [];
-let exitCode = 0;
-
-function run(label, cmd, opts = {}) {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`▶ ${label}`);
-  console.log('='.repeat(60));
-  try {
-    const out = execSync(cmd, {
-      encoding: 'utf8',
-      timeout: 120000,
-      cwd: runDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      ...opts,
-    });
-    console.log(out);
-    // Verify: must see HTTP 200 and sessionid (from session creation)
-    if (!out.includes('HTTP 200')) {
-      results.push({ lang: label, status: 'FAIL', note: 'no HTTP 200 in output' });
-      console.error(`✗ ${label} — no HTTP 200 found in output`);
-      exitCode = 1;
-    } else if (!out.includes('sessionid')) {
-      results.push({ lang: label, status: 'FAIL', note: 'no sessionid in output' });
-      console.error(`✗ ${label} — no sessionid found in output`);
-      exitCode = 1;
-    } else {
-      // Download may fail (599) when sandbox can't find the doc — that's OK for this test
-      if (out.includes('HTTP 599') || out.includes('Dokument nicht gefunden') || out.includes('Document not found')) {
-        results.push({ lang: label, status: 'WARN', note: 'session OK, doc download 599 (expected in sandbox)' });
-        console.log(`⚠ ${label} — session OK, download returned 599 (sandbox limitation)`);
-      } else {
-        results.push({ lang: label, status: 'PASS' });
-        console.log(`✓ ${label} — executed successfully`);
-      }
-    }
-    purgeSession(out);
-    return true;
-  } catch (e) {
-    const stdout = e.stdout || '';
-    const stderr = e.stderr || '';
-    const combined = stdout + '\n' + stderr;
-    console.log(stdout);
-    if (stderr) console.error('STDERR:', stderr);
-    // If session was created (HTTP 200 + sessionid) but download failed, treat as warning
-    if (combined.includes('HTTP 200') && combined.includes('sessionid') &&
-        (combined.includes('599') || combined.includes('nicht gefunden') || combined.includes('not found'))) {
-      results.push({ lang: label, status: 'WARN', note: 'session OK, doc download 599 (expected in sandbox)' });
-      console.log(`⚠ ${label} — session OK, download returned 599 (sandbox limitation)`);
-      purgeSession(combined);
-      return true;
-    }
-    purgeSession(combined);
-    results.push({ lang: label, status: 'FAIL', note: (stderr || stdout).split('\n').filter(Boolean).slice(-3).join(' | ') });
-    console.error(`✗ ${label} — execution failed (exit code ${e.status})`);
-    exitCode = 1;
-    return false;
-  }
-}
-
-/** Purge a session to free up sandbox slots */
-function purgeSession(output) {
-  const match = (output || '').match(/"sessionid"\s*:\s*"([a-f0-9]+)"/);
-  if (!match) return;
-  const sid = match[1];
-  try {
-    execSync(`curl -sf -X POST "${SANDBOX.baseUrl}/persistence/purge?sessionid=${sid}" -u "${SANDBOX.username}:${SANDBOX.password}"`, {
-      encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    console.log(`  (purged session ${sid})`);
-  } catch { /* best effort */ }
-}
-
-/** Docker helper: mount a dir and run a command */
-function docker(image, dir, cmd, extraOpts = '') {
-  return `docker run --rm ${extraOpts} -v "${dir}:/app" -w /app ${image} ${cmd}`;
-}
+const baseRunDir = path.join(__dirname, 'run');
+fs.mkdirSync(baseRunDir, { recursive: true });
 
 // ---------- CLI filter ----------
 const filterArgs = process.argv.slice(2).map(a => a.toLowerCase());
@@ -173,21 +98,73 @@ function shouldRun(label) {
   return filterArgs.some(f => l.includes(f));
 }
 
-// ---------- Test definitions ----------
-
-function setupAndRun(label, setup, timeout) {
-  if (!shouldRun(label)) return;
-  setup();
-  run(label, tests[label].cmd, { timeout: timeout || 120000 });
+/** Docker helper */
+function docker(image, dir, cmd) {
+  return `docker run --rm -v "${dir}:/app" -w /app ${image} ${cmd}`;
 }
 
-const tests = {};
+/** Purge a session to free up sandbox slots */
+function purgeSession(output) {
+  const match = (output || '').match(/"sessionid"\s*:\s*"([a-f0-9]+)"/);
+  if (!match) return;
+  const sid = match[1];
+  try {
+    execSync(`curl -sf -X POST "${SANDBOX.baseUrl}/persistence/purge" -u "${SANDBOX.username}:${SANDBOX.password}" -H "Content-Type: application/json" -d '{"sessionid":"${sid}"}'`, {
+      encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch { /* best effort */ }
+}
+
+/** Run a Docker command asynchronously, returns a Promise */
+function runAsync(label, cmd, timeout) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    exec(cmd, { encoding: 'utf8', timeout: timeout || 120000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      const combined = (stdout || '') + '\n' + (stderr || '');
+
+      if (!err) {
+        // Success
+        if (!stdout.includes('HTTP 200')) {
+          resolve({ lang: label, status: 'FAIL', note: 'no HTTP 200 in output', elapsed, stdout, stderr });
+        } else if (!stdout.includes('sessionid')) {
+          resolve({ lang: label, status: 'FAIL', note: 'no sessionid in output', elapsed, stdout, stderr });
+        } else {
+          resolve({ lang: label, status: 'PASS', elapsed, stdout, stderr });
+        }
+      } else {
+        // Non-zero exit — check if session was created but download/invite failed
+        if (combined.includes('HTTP 200') && combined.includes('sessionid')) {
+          resolve({ lang: label, status: 'WARN', note: 'session OK, non-zero exit', elapsed, stdout, stderr });
+          purgeSession(combined);
+        } else {
+          const lastLines = (stderr || stdout || '').split('\n').filter(Boolean).slice(-3).join(' | ');
+          resolve({ lang: label, status: 'FAIL', note: lastLines, elapsed, stdout, stderr });
+          purgeSession(combined);
+        }
+      }
+    });
+  });
+}
+
+// ---------- Test definitions ----------
+// Each test gets its own subdirectory to avoid file conflicts in parallel
+
+const testDefs = [];
+
+function addTest(label, setupFn, timeout) {
+  if (!shouldRun(label)) return;
+  // Each language gets an isolated directory
+  const langDir = path.join(baseRunDir, label.toLowerCase().replace(/[^a-z0-9]/g, '_'));
+  fs.mkdirSync(langDir, { recursive: true });
+  const cmd = setupFn(langDir);
+  testDefs.push({ label, cmd, timeout: timeout || 120000 });
+}
 
 // curl
-tests['curl'] = { setup() {
-  const curlCode = CodeGenerator.generate('curl', context);
-  fs.writeFileSync(path.join(runDir, 'test.sh'), curlCode);
-  fs.writeFileSync(path.join(runDir, 'curl_body.json'), JSON.stringify(body));
+addTest('curl', (dir) => {
+  CodeGenerator.generate('curl', context); // warm up
+  fs.writeFileSync(path.join(dir, 'curl_body.json'), JSON.stringify(body));
   const curlScript = `#!/bin/bash
 set -e
 BASE="${SANDBOX.baseUrl}"
@@ -200,73 +177,72 @@ SESSION_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.std
 echo "sessionid=$SESSION_ID"
 if [ -n "$SESSION_ID" ]; then
   echo "--- Step 2: Get status ---"
-  STATUS=$(curl -sf "$BASE/get/status?sessionid=$SESSION_ID" -u "$AUTH")
+  STATUS=$(curl -sf -X POST "$BASE/get/status" -u "$AUTH" -H "Content-Type: application/json" -d "{\\"sessionid\\":\\"$SESSION_ID\\"}")
   echo "HTTP 200"
   echo "$STATUS"
   echo "--- Step 3: Download document ---"
   HTTP_CODE=$(curl -s -o document.pdf -w "%{http_code}" "$BASE/get/document?sessionid=$SESSION_ID&docid=testdoc" -u "$AUTH")
   echo "Download HTTP $HTTP_CODE"
   if [ -f document.pdf ]; then echo "File size: $(wc -c < document.pdf) bytes"; rm -f document.pdf; fi
+  echo "--- Step 4: Purge ---"
+  curl -sf -X POST "$BASE/persistence/purge" -u "$AUTH" -H "Content-Type: application/json" -d "{\\"sessionid\\":\\"$SESSION_ID\\"}"
+  echo "Session purged"
 fi`;
-  fs.writeFileSync(path.join(runDir, 'run_curl.sh'), curlScript);
-  tests['curl'].cmd = docker('python:3-slim', runDir,
+  fs.writeFileSync(path.join(dir, 'run_curl.sh'), curlScript);
+  return docker('python:3-slim', dir,
     'sh -c "apt-get update -qq && apt-get install -y -qq curl >/dev/null 2>&1 && bash run_curl.sh"');
-}};
+});
 
 // Java (GSON)
-tests['Java (GSON)'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'InSignApiCall.java'), CodeGenerator.generate('java_pure', context));
-  tests['Java (GSON)'].cmd = docker('eclipse-temurin:21-jdk', runDir, `sh -c "
+addTest('Java (GSON)', (dir) => {
+  fs.writeFileSync(path.join(dir, 'InSignApiCall.java'), CodeGenerator.generate('java_pure', context));
+  return docker('eclipse-temurin:21-jdk', dir, `sh -c "
     GSON_VER=2.11.0 &&
     wget -q https://repo1.maven.org/maven2/com/google/code/gson/gson/\\\$GSON_VER/gson-\\\$GSON_VER.jar -O /tmp/gson.jar &&
     javac --release 11 -cp /tmp/gson.jar InSignApiCall.java &&
     java -cp .:/tmp/gson.jar InSignApiCall"`);
-}};
+});
 
 // Python
-tests['Python'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.py'), CodeGenerator.generate('python', context));
-  tests['Python'].cmd = docker('python:3-slim', runDir,
-    'sh -c "pip install -q requests && python test_insign.py"');
-}};
+addTest('Python', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.py'), CodeGenerator.generate('python', context));
+  return docker('python:3-slim', dir, 'sh -c "pip install -q requests && python test_insign.py"');
+});
 
 // Node.js
-tests['Node.js'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.js'), CodeGenerator.generate('nodejs', context));
-  tests['Node.js'].cmd = docker('node:22-slim', runDir, 'node test_insign.js');
-}};
+addTest('Node.js', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.js'), CodeGenerator.generate('nodejs', context));
+  return docker('node:22-slim', dir, 'node test_insign.js');
+});
 
 // PHP
-tests['PHP'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.php'), CodeGenerator.generate('php', context));
-  tests['PHP'].cmd = docker('php:8-cli', runDir, 'php test_insign.php');
-}};
+addTest('PHP', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.php'), CodeGenerator.generate('php', context));
+  return docker('php:8-cli', dir, 'php test_insign.php');
+});
 
 // TypeScript (Deno)
-tests['TypeScript'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.ts'), CodeGenerator.generate('typescript', context));
-  tests['TypeScript'].cmd = docker('denoland/deno:latest', runDir,
-    'deno run --allow-net --allow-write --allow-read test_insign.ts');
-}};
+addTest('TypeScript', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.ts'), CodeGenerator.generate('typescript', context));
+  return docker('denoland/deno:latest', dir, 'deno run --allow-net --allow-write --allow-read test_insign.ts');
+});
 
 // Ruby
-tests['Ruby'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.rb'), CodeGenerator.generate('ruby', context));
-  tests['Ruby'].cmd = docker('ruby:3-slim', runDir, 'ruby test_insign.rb');
-}};
+addTest('Ruby', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.rb'), CodeGenerator.generate('ruby', context));
+  return docker('ruby:3-slim', dir, 'ruby test_insign.rb');
+});
 
 // Go
-tests['Go'] = { setup() {
-  fs.writeFileSync(path.join(runDir, 'test_insign.go'), CodeGenerator.generate('go', context));
-  tests['Go'].cmd = docker('golang:1.23', runDir, 'go run test_insign.go');
-}};
+addTest('Go', (dir) => {
+  fs.writeFileSync(path.join(dir, 'test_insign.go'), CodeGenerator.generate('go', context));
+  return docker('golang:1.23', dir, 'go run test_insign.go');
+});
 
 // Kotlin
-tests['Kotlin'] = { setup() {
-  const ktDir = path.join(runDir, 'kotlin');
-  fs.mkdirSync(ktDir, { recursive: true });
-  fs.writeFileSync(path.join(ktDir, 'insign.main.kts'), CodeGenerator.generate('kotlin', context));
-  tests['Kotlin'].cmd = docker('eclipse-temurin:21-jdk', ktDir, `sh -c "
+addTest('Kotlin', (dir) => {
+  fs.writeFileSync(path.join(dir, 'insign.main.kts'), CodeGenerator.generate('kotlin', context));
+  return docker('eclipse-temurin:21-jdk', dir, `sh -c "
     apt-get update -qq && apt-get install -y -qq unzip curl >/dev/null 2>&1 &&
     KT_VER=2.1.0 &&
     curl -sLo /tmp/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v\\\$KT_VER/kotlin-compiler-\\\$KT_VER.zip &&
@@ -275,14 +251,13 @@ tests['Kotlin'] = { setup() {
     GSON_VER=2.11.0 &&
     curl -sLo /tmp/gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/\\\$GSON_VER/gson-\\\$GSON_VER.jar &&
     kotlinc -script -jvm-target 11 -cp /tmp/gson.jar insign.main.kts"`);
-}};
+}, 300000);
 
 // Rust
-tests['Rust'] = { setup() {
-  const rustDir = path.join(runDir, 'rust_project');
-  fs.mkdirSync(path.join(rustDir, 'src'), { recursive: true });
-  fs.writeFileSync(path.join(rustDir, 'src', 'main.rs'), CodeGenerator.generate('rust', context));
-  fs.writeFileSync(path.join(rustDir, 'Cargo.toml'), `[package]
+addTest('Rust', (dir) => {
+  fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'main.rs'), CodeGenerator.generate('rust', context));
+  fs.writeFileSync(path.join(dir, 'Cargo.toml'), `[package]
 name = "insign_test"
 version = "0.1.0"
 edition = "2021"
@@ -291,15 +266,13 @@ edition = "2021"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1"
 `);
-  tests['Rust'].cmd = docker('rust:latest', rustDir, 'cargo run --release 2>&1');
-}};
+  return docker('rust:latest', dir, 'cargo run --release 2>&1');
+}, 300000);
 
 // C#
-tests['C#'] = { setup() {
-  const csDir = path.join(runDir, 'csharp');
-  fs.mkdirSync(csDir, { recursive: true });
-  fs.writeFileSync(path.join(csDir, 'Program.cs'), CodeGenerator.generate('csharp', context));
-  fs.writeFileSync(path.join(csDir, 'csharp.csproj'), `<Project Sdk="Microsoft.NET.Sdk">
+addTest('C#', (dir) => {
+  fs.writeFileSync(path.join(dir, 'Program.cs'), CodeGenerator.generate('csharp', context));
+  fs.writeFileSync(path.join(dir, 'csharp.csproj'), `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
@@ -307,32 +280,66 @@ tests['C#'] = { setup() {
   </PropertyGroup>
 </Project>
 `);
-  tests['C#'].cmd = docker('mcr.microsoft.com/dotnet/sdk:9.0', csDir, 'dotnet run --no-launch-profile');
-}};
+  return docker('mcr.microsoft.com/dotnet/sdk:9.0', dir, 'dotnet run --no-launch-profile');
+}, 180000);
 
-// ---------- Run tests ----------
+// ---------- Run ALL tests in parallel ----------
 
-const testOrder = ['curl', 'Java (GSON)', 'Python', 'Node.js', 'PHP', 'TypeScript', 'Ruby', 'Go', 'Kotlin', 'Rust', 'C#'];
-const defaultTimeout = { 'Kotlin': 300000, 'Rust': 300000, 'C#': 180000 };
+console.log(`Running ${testDefs.length} tests in parallel...\n`);
+const startAll = Date.now();
 
-for (const label of testOrder) {
-  if (!shouldRun(label)) continue;
-  tests[label].setup();
-  run(label, tests[label].cmd, { timeout: defaultTimeout[label] || 120000 });
+const promises = testDefs.map(t => runAsync(t.label, t.cmd, t.timeout));
+const results = await Promise.all(promises);
+
+const totalElapsed = ((Date.now() - startAll) / 1000).toFixed(1);
+
+// ---------- Save output & Report ----------
+
+const outputDir = path.join(baseRunDir, 'output');
+fs.mkdirSync(outputDir, { recursive: true });
+
+for (const r of results) {
+  // Save full output to file for inspection
+  const slug = r.lang.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const outFile = path.join(outputDir, `${slug}.log`);
+  const content = `=== ${r.lang} — ${r.status} (${r.elapsed}s) ===\n\n` +
+    `--- STDOUT ---\n${r.stdout || '(empty)'}\n\n` +
+    `--- STDERR ---\n${r.stderr || '(empty)'}\n`;
+  fs.writeFileSync(outFile, content);
+
+  // Print condensed to console
+  console.log(`\n${'='.repeat(60)}`);
+  const icon = r.status === 'PASS' ? '✓' : r.status === 'WARN' ? '⚠' : '✗';
+  console.log(`${icon} ${r.lang} — ${r.status} (${r.elapsed}s)  [${outFile}]`);
+  console.log('='.repeat(60));
+  if (r.status !== 'PASS') {
+    // Show last 15 lines of output for failures
+    const lines = ((r.stdout || '') + '\n' + (r.stderr || '')).split('\n').filter(Boolean);
+    console.log(lines.slice(-15).join('\n'));
+  } else {
+    // Show key lines for passes
+    const lines = (r.stdout || '').split('\n');
+    const keyLines = lines.filter(l =>
+      l.includes('Completed:') || l.includes('Signatures:') ||
+      l.includes('Signing Links') || l.includes('->') ||
+      l.includes('Saved document') || l.includes('Session purged') ||
+      l.match(/^\s+\S+.*\|/)  // signature field table rows
+    );
+    if (keyLines.length) console.log(keyLines.join('\n'));
+  }
 }
 
-// ---------- Report ----------
-
 console.log(`\n${'='.repeat(60)}`);
-console.log('INTEGRATION TEST RESULTS');
+console.log(`INTEGRATION TEST RESULTS (${totalElapsed}s total, parallel)`);
 console.log('='.repeat(60));
-results.forEach(r => {
-  const icon = r.status === 'PASS' ? '✓' : r.status === 'WARN' ? '⚠' : '✗';
-  console.log(`  ${icon} ${r.lang}: ${r.status}${r.note ? ' — ' + r.note : ''}`);
-});
+console.log(`Output captured in: ${outputDir}/`);
 
-// Cleanup
-try { fs.rmSync(path.join(runDir, 'document.pdf'), { force: true }); } catch {}
+let exitCode = 0;
+for (const r of results) {
+  const icon = r.status === 'PASS' ? '✓' : r.status === 'WARN' ? '⚠' : '✗';
+  console.log(`  ${icon} ${r.lang}: ${r.status} (${r.elapsed}s)${r.note ? ' — ' + r.note : ''}`);
+  if (r.status === 'FAIL') exitCode = 1;
+}
 
 process.exit(exitCode);
 

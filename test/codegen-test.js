@@ -126,10 +126,16 @@ Object.keys(CodeGenerator.LANGUAGES).forEach(langKey => {
     });
   }
 
-  // Must include the 3-step flow
+  // Must include the 5-step flow
   if (langKey !== 'java_insign') {
     if (!code.includes('/get/status')) errors.push(`${langKey}: missing /get/status call`);
     if (!code.includes('/get/document')) errors.push(`${langKey}: missing /get/document call`);
+    if (!code.includes('/extern/beginmulti')) errors.push(`${langKey}: missing /extern/beginmulti call`);
+    if (!code.includes('/persistence/purge')) errors.push(`${langKey}: missing /persistence/purge call`);
+    // /get/status must NOT use sessionid as URL param (except /get/document which should)
+    if (code.match(/\/get\/status\?sessionid=/) || code.match(/\/get\/status\?.*sessionid/)) {
+      errors.push(`${langKey}: /get/status still uses sessionid as URL parameter (must be in JSON body)`);
+    }
   } else {
     if (!code.includes('getStatus')) errors.push(`${langKey}: missing adapter.getStatus call`);
     if (!code.includes('downloadDocument')) errors.push(`${langKey}: missing adapter.downloadDocument call`);

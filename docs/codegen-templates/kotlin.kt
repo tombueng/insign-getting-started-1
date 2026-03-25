@@ -10,10 +10,22 @@ import java.util.Base64
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
+import com.google.gson.Gson
 
 val base = "{{BASE_URL}}"
 val auth = "Basic " + Base64.getEncoder().encodeToString("{{USERNAME}}:{{PASSWORD}}".toByteArray())
 val client = HttpClient.newHttpClient()
+val gson = Gson()
+
+fun postJson(url: String, body: Any): HttpResponse<String> {
+    val req = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .header("Authorization", auth)
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(body)))
+        .build()
+    return client.send(req, HttpResponse.BodyHandlers.ofString())
+}
 
 {{#if HAS_BODY}}
 // Build request body
@@ -40,21 +52,73 @@ println(res.body())
 check(res.statusCode() == 200) { "FAILED: expected 200, got ${res.statusCode()}" }
 val data = JsonParser.parseString(res.body()).asJsonObject
 
-// 2) Get status
+// 2) Get status (sessionid in JSON body)
 val sid = data.get("sessionid")?.asString
 if (sid != null) {
-    val req2 = HttpRequest.newBuilder()
-        .uri(URI.create("$base/get/status?sessionid=$sid"))
-        .header("Authorization", auth)
-        .POST(HttpRequest.BodyPublishers.noBody())
-        .build()
-    val res2 = client.send(req2, HttpResponse.BodyHandlers.ofString())
+    val res2 = postJson("$base/get/status", mapOf("sessionid" to sid))
     println("\n=== Status (HTTP ${res2.statusCode()}) ===")
     println(res2.body())
     check(res2.statusCode() == 200) { "FAILED: get/status returned HTTP ${res2.statusCode()}" }
     val status = JsonParser.parseString(res2.body()).asJsonObject
 
-    // 3) Download document (first doc)
+    // Print detailed status info
+    println("=== Session Status ===")
+    println("Completed: ${status.get("sucessfullyCompleted").asBoolean}")
+    println("Signatures: ${status.get("numberOfSignatures").asInt}")
+    println("Signature Fields:")
+    for (f in status.getAsJsonArray("signaturFieldsStatusList")) {
+        val obj = f.asJsonObject
+        val externRole = if (obj.get("externRole").isJsonNull) "null" else obj.get("externRole").asString
+        println("  ${obj.get("fieldID").asString} | ${obj.get("role").asString} | ${obj.get("displayname").asString} | signed=${obj.get("signed").asBoolean} | mandatory=${obj.get("mandatory").asBoolean} | externRole=$externRole")
+    }
+
+    // 3) Invite signers via /extern/beginmulti
+    val fields = status.getAsJsonArray("signaturFieldsStatusList")
+    val roles = mutableMapOf<String, String>()
+    for (f in fields) {
+        val obj = f.asJsonObject
+        val signed = obj.get("signed").asBoolean
+        val role = obj.get("role").asString
+        if (!signed && role.isNotEmpty() && role !in roles) {
+            roles[role] = obj.get("displayname").asString
+        }
+    }
+    val externUsers = JsonArray()
+    for ((role, name) in roles) {
+        val email = role.lowercase().replace(" ", "-") + "@example.test"
+        val user = JsonObject().apply {
+            addProperty("recipient", email)
+            addProperty("realName", name)
+            add("roles", JsonArray().apply { add(role) })
+            addProperty("singleSignOnEnabled", true)
+            addProperty("sendEmails", false)
+        }
+        externUsers.add(user)
+    }
+    val beginBody = JsonObject().apply {
+        addProperty("sessionid", sid)
+        add("externUsers", externUsers)
+        addProperty("inOrder", false)
+    }
+    val res4 = postJson("$base/extern/beginmulti", beginBody)
+    println("\n=== Invite Signers (HTTP ${res4.statusCode()}) ===")
+    if (res4.statusCode() == 200) {
+        val inviteData = JsonParser.parseString(res4.body()).asJsonObject
+        val respUsers = inviteData.getAsJsonArray("externUsers")
+        println("=== Signing Links ===")
+        for (i in 0 until respUsers.size()) {
+            val reqUser = externUsers.get(i).asJsonObject
+            val name = reqUser.get("realName").asString
+            val role = reqUser.getAsJsonArray("roles").get(0).asString
+            val url = respUsers.get(i).asJsonObject.get("externAccessLink").asString
+            println("  $name ($role) -> $url")
+        }
+    } else {
+        System.err.println("Invite failed: ${res4.body()}")
+        kotlin.system.exitProcess(1)
+    }
+
+    // 4) Download document (first doc — URL params)
     val docId = status.getAsJsonArray("documentData")
         ?.get(0)?.asJsonObject
         ?.get("docid")?.asString ?: "0"
@@ -70,6 +134,15 @@ if (sid != null) {
         println("Saved document.pdf (${res3.body().size} bytes)")
     } else {
         System.err.println("Download failed: ${String(res3.body())}")
+        kotlin.system.exitProcess(1)
+    }
+
+    // 5) Purge session
+    val res5 = postJson("$base/persistence/purge", mapOf("sessionid" to sid))
+    if (res5.statusCode() == 200) {
+        println("\nSession purged")
+    } else {
+        System.err.println("Purge failed: ${res5.body()}")
         kotlin.system.exitProcess(1)
     }
 }
