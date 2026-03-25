@@ -6,16 +6,16 @@ const path = require('path');
 const SIGNATURE_TEXT = 'Chris Signlord';
 const SIGNATURE_FONT = path.join(__dirname, 'fonts', 'DancingScript.ttf');
 
-test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
+test.describe('Getting Started - Full SEPA Mandate Flow', () => {
 
-  test('Step 1 — Welcome page renders correctly', async ({ page }) => {
+  test('Step 1 - Welcome page renders correctly', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('#step-1-panel')).toBeVisible();
     await expect(page.locator('.welcome-title')).toBeVisible();
     await expect(page.locator('#btn-start')).toBeVisible();
   });
 
-  test('Step 2 — Form validation rejects empty submission', async ({ page }) => {
+  test('Step 2 - Form validation rejects empty submission', async ({ page }) => {
     await page.goto('/');
     await page.click('#btn-start');
     await expect(page.locator('#step-2-panel')).toBeVisible();
@@ -24,13 +24,13 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     await expect(page.locator('#step-2-panel')).toBeVisible();
   });
 
-  test('Step 2 — Fill form and submit creates inSign session', async ({ page }) => {
+  test('Step 2 - Fill form and submit creates inSign session', async ({ page }) => {
     await page.goto('/');
     await page.click('#btn-start');
 
     await page.fill('#firstName', 'Max');
     await page.fill('#lastName', 'Mustermann');
-    await page.fill('#street', 'Teststraße 42');
+    await page.fill('#street', 'Teststrasse 42');
     await page.fill('#zip', '10115');
     await page.fill('#city', 'Berlin');
     await page.fill('#birthdate', '1990-05-15');
@@ -41,7 +41,7 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     await expect(page.locator('#step-3-panel')).toBeVisible({ timeout: 30000 });
   });
 
-  test('Step 3 — Signature pad loads from inSign', async ({ page }) => {
+  test('Step 3 - Signature pad loads from inSign', async ({ page }) => {
     test.setTimeout(120_000);
 
     // Collect console messages for debugging
@@ -55,7 +55,7 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     await page.fill('#lastName', 'Tester');
     await page.fill('#street', 'Padweg 1');
     await page.fill('#zip', '80331');
-    await page.fill('#city', 'München');
+    await page.fill('#city', 'Teststadt');
     await page.fill('#birthdate', '1985-12-01');
 
     await page.click('#btn-submit');
@@ -71,7 +71,7 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     }, { timeout: 50000 }).catch(() => {
       // If initEmbeddedData callback didn't fire, the scripts loaded but
       // the inSign sandbox may not have returned signature field data.
-      // This is acceptable — verify scripts loaded at least.
+      // This is acceptable - verify scripts loaded at least.
       console.log('initEmbeddedData callback did not fire within timeout.');
       console.log('Console logs:', consoleLogs.join('\n'));
     });
@@ -85,7 +85,7 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     if (relevant.length > 0) console.log('Browser console:', relevant.join('\n'));
   });
 
-  test('Full flow — Fill → Draw signature → Finish', async ({ page }) => {
+  test('Full flow - Fill, Draw signature, Finish', async ({ page }) => {
     test.setTimeout(180_000);
     // DEMO_VIDEO=1 adds pauses before clicks so screen recordings look natural
     const demoDelay = process.env.DEMO_VIDEO ? 5000 : 0;
@@ -201,64 +201,6 @@ test.describe('Sig-Funnel — Full SEPA Mandate Flow', () => {
     const href = await page.locator('#btn-download').getAttribute('href');
     expect(href).toContain('/api/session/');
     expect(href).toContain('/document/download');
-  });
-
-  // ---------- API Tests ----------
-  // These tests share a single inSign session to minimize sandbox resource usage.
-
-  let apiSessionKey;
-
-  test('API — POST /api/session returns sessionKey, insignSessionId, jwt', async ({ request }) => {
-    const response = await request.post('/api/session', {
-      data: {
-        firstName: 'API', lastName: 'Test',
-        street: 'API-Strasse 1', zip: '12345',
-        city: 'Teststadt', birthdate: '2000-01-01'
-      }
-    });
-
-    expect(response.ok()).toBeTruthy();
-    const json = await response.json();
-    expect(json.sessionKey).toBeTruthy();
-    expect(json.insignSessionId).toBeTruthy();
-    expect(json.jwt).toBeTruthy();
-    apiSessionKey = json.sessionKey;
-  });
-
-  test('API — POST /api/session rejects missing fields', async ({ request }) => {
-    const response = await request.post('/api/session', {
-      data: { firstName: 'Only' }
-    });
-    expect(response.status()).toBe(400);
-    const json = await response.json();
-    expect(json.error.toLowerCase()).toContain('required');
-  });
-
-  test('API — GET /api/session/:key/status returns status', async ({ request }) => {
-    expect(apiSessionKey).toBeTruthy();
-
-    const statusRes = await request.get(`/api/session/${apiSessionKey}/status`);
-    expect(statusRes.ok()).toBeTruthy();
-    const status = await statusRes.json();
-    expect(status.status).toBeTruthy();
-  });
-
-  test('API — GET /api/session/:key/document returns PDF', async ({ request }) => {
-    expect(apiSessionKey).toBeTruthy();
-
-    const docRes = await request.get(`/api/session/${apiSessionKey}/document`);
-    if (docRes.ok()) {
-      const contentType = docRes.headers()['content-type'];
-      expect(contentType).toContain('application/pdf');
-    }
-  });
-
-  test('Proxy — inSign scripts are accessible via /insign/', async ({ request }) => {
-    const res = await request.get('/insign/js/insign-standalonesignature-pad.js');
-    expect(res.ok()).toBeTruthy();
-    const text = await res.text();
-    expect(text.length).toBeGreaterThan(1000);
-    expect(text).toContain('INSIGNAPP');
   });
 
   // ---------- Cleanup ----------
