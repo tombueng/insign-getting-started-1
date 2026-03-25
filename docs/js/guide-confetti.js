@@ -42,20 +42,11 @@ function launchConfetti(multiplier) {
     if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
 
     var pieces = [];
-    var colors = [
-        { h: '#ff4757', s: '#ff6b81' }, // red
-        { h: '#ffd93d', s: '#fff56d' }, // gold
-        { h: '#2ed573', s: '#7bed9f' }, // green
-        { h: '#1e90ff', s: '#70a1ff' }, // blue
-        { h: '#ff6b6b', s: '#ff9f9f' }, // coral
-        { h: '#a55eea', s: '#d2b4ff' }, // purple
-        { h: '#ff9f43', s: '#ffc873' }, // orange
-        { h: '#00d2d3', s: '#55efc4' }, // teal
-        { h: '#f368e0', s: '#ff9ff3' }  // pink
-    ];
+    var colors = ['#ff4757', '#ffd93d', '#2ed573', '#1e90ff', '#ff6b6b', '#a55eea', '#ff9f43', '#00d2d3', '#f368e0'];
 
     // Shapes: 0=ribbon, 1=circle, 2=star, 3=streamer
-    var count = Math.round(500 * mul);
+    // Reduced count: 150 base (was 500) — still looks full, much lighter
+    var count = Math.round(150 * mul);
 
     // Two cannons: bottom-left and bottom-right
     var cannons = [
@@ -69,9 +60,9 @@ function launchConfetti(multiplier) {
         var speed = 18 + Math.random() * 14;
         var col = colors[Math.floor(Math.random() * colors.length)];
         var shape = Math.random();
-        var shapeType = shape < 0.4 ? 0 : shape < 0.7 ? 1 : shape < 0.85 ? 2 : 3;
+        // Simplified: only ribbons (rects) and circles — drop stars and streamers
+        var shapeType = shape < 0.55 ? 0 : 1;
 
-        // Size variety: mix of tiny (0.3x), normal, and large (2x) pieces
         var sizeRoll = Math.random();
         var sizeMul = sizeRoll < 0.25 ? (0.3 + Math.random() * 0.3) : sizeRoll < 0.75 ? 1 : (1.5 + Math.random() * 1);
 
@@ -80,10 +71,9 @@ function launchConfetti(multiplier) {
             y: cannon.y,
             vx: Math.cos(a) * speed + (Math.random() - 0.5) * 3,
             vy: Math.sin(a) * speed + (Math.random() - 0.5) * 2,
-            w: (shapeType === 3 ? (Math.random() * 3 + 1.5) : (Math.random() * 10 + 6)) * sizeMul,
-            h: (shapeType === 3 ? (Math.random() * 30 + 20) : (Math.random() * 7 + 4)) * sizeMul,
-            color: col.h,
-            shine: col.s,
+            w: (Math.random() * 10 + 6) * sizeMul,
+            h: (Math.random() * 7 + 4) * sizeMul,
+            color: col,
             shape: shapeType,
             rot: Math.random() * 360,
             rotV: (Math.random() - 0.5) * 15,
@@ -91,43 +81,38 @@ function launchConfetti(multiplier) {
             tiltSpeed: 0.03 + Math.random() * 0.06,
             opacity: 1,
             drag: 0.98 + Math.random() * 0.015,
-            shimmerPhase: Math.random() * Math.PI * 2,
-            shimmerSpeed: 3 + Math.random() * 4,
             scale: 0.7 + Math.random() * 0.6
         });
     }
 
-    // Balloons: 20 floating balloons in every celebration
-    {
-        var balloonColors = ['#ff4757', '#ffd93d', '#2ed573', '#1e90ff', '#a55eea', '#ff6b6b', '#ff9f43', '#f368e0', '#00d2d3'];
-        for (var b = 0; b < 20; b++) {
-            var bc = balloonColors[b % balloonColors.length];
-            pieces.push({
-                x: Math.random() * W,
-                y: H + 40 + Math.random() * 200,
-                vx: (Math.random() - 0.5) * 1.5,
-                vy: -(2.5 + Math.random() * 2),
-                w: 18 + Math.random() * 10,
-                h: 22 + Math.random() * 12,
-                color: bc,
-                shine: bc,
-                shape: 4, // balloon
-                rot: 0,
-                rotV: (Math.random() - 0.5) * 2,
-                tiltAngle: Math.random() * Math.PI * 2,
-                tiltSpeed: 0.015 + Math.random() * 0.02,
-                opacity: 1,
-                drag: 0.998,
-                shimmerPhase: Math.random() * Math.PI * 2,
-                shimmerSpeed: 2 + Math.random() * 2,
-                scale: 0.8 + Math.random() * 0.4,
-                isBalloon: true
-            });
-        }
+    // Balloons: reduced from 20 to 8
+    var balloonColors = ['#ff4757', '#ffd93d', '#2ed573', '#1e90ff', '#a55eea', '#ff9f43', '#f368e0', '#00d2d3'];
+    for (var b = 0; b < 8; b++) {
+        pieces.push({
+            x: Math.random() * W,
+            y: H + 40 + Math.random() * 200,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: -(2.5 + Math.random() * 2),
+            w: 18 + Math.random() * 10,
+            h: 22 + Math.random() * 12,
+            color: balloonColors[b],
+            shape: 4, // balloon
+            rot: 0,
+            rotV: (Math.random() - 0.5) * 2,
+            tiltAngle: Math.random() * Math.PI * 2,
+            tiltSpeed: 0.015 + Math.random() * 0.02,
+            opacity: 1,
+            drag: 0.998,
+            scale: 0.8 + Math.random() * 0.4,
+            isBalloon: true
+        });
     }
 
     var startTime = Date.now();
     var duration = Math.round(4500 * Math.min(mul, 3));
+    // Precompute constants
+    var PI180 = Math.PI / 180;
+    var TAU = Math.PI * 2;
 
     function draw() {
         var elapsed = Date.now() - startTime;
@@ -138,153 +123,78 @@ function launchConfetti(multiplier) {
         }
 
         ctx.clearRect(0, 0, W, H);
-        var t = elapsed / 1000;
         var fadeStart = duration * 0.65;
+        var fadeRange = duration - fadeStart;
+        var isFading = elapsed > fadeStart;
 
-        for (var i = 0; i < pieces.length; i++) {
+        for (var i = pieces.length - 1; i >= 0; i--) {
             var p = pieces[i];
 
             // Physics
             p.vx *= p.drag;
             p.vy *= p.drag;
             if (p.isBalloon) {
-                p.vy -= 0.02; // balloons float up gently
-                p.vx += Math.sin(p.tiltAngle) * 0.3; // more sway
+                p.vy -= 0.02;
+                p.vx += Math.sin(p.tiltAngle) * 0.3;
             } else {
-                p.vy += 0.25; // gravity
+                p.vy += 0.25;
             }
-            p.vx += Math.sin(p.tiltAngle) * 0.15; // wind sway
+            p.vx += Math.sin(p.tiltAngle) * 0.15;
             p.x += p.vx;
             p.y += p.vy;
             p.rot += p.rotV;
             p.tiltAngle += p.tiltSpeed;
 
-            // Shimmer: oscillating brightness
-            var shimmer = 0.6 + 0.4 * Math.sin(t * p.shimmerSpeed + p.shimmerPhase);
-
-            // Fade out
-            if (elapsed > fadeStart) {
-                p.opacity = Math.max(0, 1 - (elapsed - fadeStart) / (duration - fadeStart));
+            // Cull off-screen particles (with margin for large scaled pieces)
+            if (p.y > H + 80 || p.y < -80 || p.x < -80 || p.x > W + 80) {
+                pieces.splice(i, 1);
+                continue;
             }
 
-            // 3D tumble effect: scale X based on tilt to fake rotation
+            // Fade out
+            if (isFading) {
+                p.opacity = Math.max(0, 1 - (elapsed - fadeStart) / fadeRange);
+            }
+            if (p.opacity <= 0) { pieces.splice(i, 1); continue; }
+
             var tiltX = Math.cos(p.tiltAngle);
-            var absT = Math.abs(tiltX);
 
             ctx.save();
             ctx.translate(p.x, p.y);
-            if (p.isBalloon) {
-                // Balloons: gentle sway only, no spin or flatten
-                var sway = Math.sin(p.tiltAngle) * 0.15;
-                ctx.rotate(sway);
-                ctx.scale(p.scale, p.scale);
-            } else {
-                ctx.rotate(p.rot * Math.PI / 180);
-                ctx.scale(tiltX * p.scale, p.scale);
-            }
             ctx.globalAlpha = p.opacity;
 
-            var w = p.w, h = p.h;
-
-            if (p.shape === 0) {
-                // Ribbon: rounded rect with shimmer highlight
-                var r = Math.min(w, h) * 0.3;
+            if (p.isBalloon) {
+                ctx.rotate(Math.sin(p.tiltAngle) * 0.15);
+                ctx.scale(p.scale, p.scale);
+                // Simplified balloon: just an ellipse + knot triangle
+                var bw = p.w * 0.5, bh = p.h * 0.55;
                 ctx.beginPath();
-                ctx.moveTo(-w/2 + r, -h/2);
-                ctx.lineTo(w/2 - r, -h/2);
-                ctx.quadraticCurveTo(w/2, -h/2, w/2, -h/2 + r);
-                ctx.lineTo(w/2, h/2 - r);
-                ctx.quadraticCurveTo(w/2, h/2, w/2 - r, h/2);
-                ctx.lineTo(-w/2 + r, h/2);
-                ctx.quadraticCurveTo(-w/2, h/2, -w/2, h/2 - r);
-                ctx.lineTo(-w/2, -h/2 + r);
-                ctx.quadraticCurveTo(-w/2, -h/2, -w/2 + r, -h/2);
-                ctx.closePath();
+                ctx.ellipse(0, 0, bw, bh, 0, 0, TAU);
                 ctx.fillStyle = p.color;
-                ctx.fill();
-                // Shimmer stripe
-                ctx.globalAlpha = p.opacity * shimmer * 0.5;
-                ctx.fillStyle = p.shine;
-                ctx.fillRect(-w/4, -h/2, w/2, h);
-
-            } else if (p.shape === 1) {
-                // Circle with specular highlight
-                var rad = Math.min(w, h) * 0.45;
-                ctx.beginPath();
-                ctx.arc(0, 0, rad, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-                // Specular dot
-                ctx.globalAlpha = p.opacity * shimmer * 0.7;
-                ctx.beginPath();
-                ctx.arc(-rad * 0.25, -rad * 0.25, rad * 0.35, 0, Math.PI * 2);
-                ctx.fillStyle = '#fff';
-                ctx.fill();
-
-            } else if (p.shape === 2) {
-                // 4-point star
-                ctx.beginPath();
-                var s = Math.min(w, h) * 0.5;
-                for (var j = 0; j < 8; j++) {
-                    var sa = (j * Math.PI) / 4;
-                    var sr = j % 2 === 0 ? s : s * 0.4;
-                    ctx.lineTo(Math.cos(sa) * sr, Math.sin(sa) * sr);
-                }
-                ctx.closePath();
-                ctx.fillStyle = p.color;
-                ctx.fill();
-                ctx.globalAlpha = p.opacity * shimmer * 0.6;
-                ctx.fillStyle = p.shine;
-                ctx.fill();
-
-            } else if (p.shape === 3) {
-                // Streamer: long thin wavy strip
-                ctx.beginPath();
-                ctx.moveTo(0, -h/2);
-                var segs = 6;
-                for (var k = 0; k <= segs; k++) {
-                    var sy = -h/2 + (h * k / segs);
-                    var sx = Math.sin(k * 1.2 + t * 5 + p.shimmerPhase) * w;
-                    ctx.lineTo(sx, sy);
-                }
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = Math.max(1.5, w * 0.5 * absT);
-                ctx.lineCap = 'round';
-                ctx.stroke();
-
-            } else {
-                // Balloon: oval body + knot + wavy string
-                var bw = w * 0.5, bh = h * 0.55;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-                // Specular highlight
-                ctx.globalAlpha = p.opacity * shimmer * 0.45;
-                ctx.beginPath();
-                ctx.ellipse(-bw * 0.3, -bh * 0.35, bw * 0.3, bh * 0.25, -0.4, 0, Math.PI * 2);
-                ctx.fillStyle = '#fff';
                 ctx.fill();
                 // Knot
-                ctx.globalAlpha = p.opacity;
                 ctx.beginPath();
                 ctx.moveTo(-2, bh);
                 ctx.lineTo(0, bh + 4);
                 ctx.lineTo(2, bh);
-                ctx.fillStyle = p.color;
                 ctx.fill();
-                // Wavy string
-                ctx.beginPath();
-                ctx.moveTo(0, bh + 4);
-                var strLen = h * 0.8;
-                for (var ks = 0; ks <= 8; ks++) {
-                    var ssy = bh + 4 + (strLen * ks / 8);
-                    var ssx = Math.sin(ks * 0.9 + t * 3 + p.shimmerPhase) * 3;
-                    ctx.lineTo(ssx, ssy);
+            } else {
+                ctx.rotate(p.rot * PI180);
+                ctx.scale(tiltX * p.scale, p.scale);
+                var w = p.w, h = p.h;
+
+                if (p.shape === 0) {
+                    // Ribbon: simple filled rect (no rounded corners — much cheaper)
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-w / 2, -h / 2, w, h);
+                } else {
+                    // Circle
+                    var rad = Math.min(w, h) * 0.45;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, rad, 0, TAU);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
                 }
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
             }
 
             ctx.restore();

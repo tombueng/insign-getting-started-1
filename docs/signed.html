@@ -374,6 +374,13 @@
                 </button>
             </div>
         </div>
+
+        <!-- Navigation links -->
+        <div style="text-align:center;padding:1.5rem 0;font-size:0.85rem;display:flex;justify-content:center;gap:1.25rem">
+            <a href="index.html" style="text-decoration:none"><i class="bi bi-rocket-takeoff me-1"></i>Getting Started</a>
+            <a href="explorer.html" style="text-decoration:none"><i class="bi bi-play-circle me-1"></i>API Explorer</a>
+            <a class="data-github-link" href="#" target="_blank" style="text-decoration:none"><i class="bi bi-github me-1"></i>GitHub</a>
+        </div>
     </div>
 
     <script src="js/api-client.js"></script>
@@ -575,6 +582,19 @@
         d.textContent = s;
         return d.innerHTML;
     }
+
+    // --- Resolve GitHub links ---
+    (function () {
+        var m = location.hostname.match(/^(.+)\.github\.io$/);
+        if (!m) return;
+        var repo = location.pathname.split('/')[1] || '';
+        var base = 'https://github.com/' + m[1] + (repo ? '/' + repo : '');
+        var links = document.querySelectorAll('.data-github-link');
+        for (var i = 0; i < links.length; i++) {
+            var suffix = links[i].getAttribute('data-github-path') || '';
+            links[i].href = base + suffix;
+        }
+    })();
 
     // --- Init ---
     var sid = getSessionIdFromUrl();

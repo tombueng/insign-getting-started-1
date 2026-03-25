@@ -260,8 +260,26 @@ function checkSandboxVersion() {
    INIT
    ========================================================================== */
 
+/**
+ * Derive GitHub repo URL from GitHub Pages hostname and set all
+ * elements with class "data-github-link" to the correct href.
+ * Supports data-github-path for deep links (e.g. "/blob/main/docs/FILE.md").
+ */
+function resolveGitHubLinks() {
+    var m = location.hostname.match(/^(.+)\.github\.io$/);
+    if (!m) return;
+    var repo = location.pathname.split('/')[1] || '';
+    var base = 'https://github.com/' + m[1] + (repo ? '/' + repo : '');
+    var links = document.querySelectorAll('.data-github-link');
+    for (var i = 0; i < links.length; i++) {
+        var suffix = links[i].getAttribute('data-github-path') || '';
+        links[i].href = base + suffix;
+    }
+}
+
 $(function () {
     window.scrollTo(0, 0);
     initMonaco();
     checkSandboxVersion();
+    resolveGitHubLinks();
 });

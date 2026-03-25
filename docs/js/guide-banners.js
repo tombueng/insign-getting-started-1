@@ -102,46 +102,50 @@ function animateCrown() {
     phantom.style.fontFamily = ts.fontFamily;
     phantom.style.lineHeight = '1';
     phantom.style.willChange = 'transform, opacity';
+    phantom.style.position = 'fixed';
     document.body.appendChild(phantom);
 
     var pRect = phantom.getBoundingClientRect();
     var pw = pRect.width || 16, ph = pRect.height || 16;
 
     var startScale = (window.innerWidth * 2) / pw;
-    // Start off-screen to the left, vertically centered
     var sx = -(pw * startScale) / 2;
     var sy = window.innerHeight / 2;
 
     var duration = 1400;
     var startTime = performance.now();
 
-    function lerp(a, b, t) { return a + (b - a) * t; }
-
-    // Smooth ease-out (decelerating)
-    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+    // Cache target rect — only update every ~100ms instead of every frame
+    var tRect = target.getBoundingClientRect();
+    var tx = tRect.left + tRect.width / 2;
+    var ty = tRect.top + tRect.height / 2;
+    var lastRectTime = startTime;
 
     function tick(now) {
-        var rawT = Math.min(1, (now - startTime) / duration);
-        var t = ease(rawT);
+        var rawT = (now - startTime) / duration;
+        if (rawT > 1) rawT = 1;
+        // ease-out cubic
+        var t = 1 - (1 - rawT) * (1 - rawT) * (1 - rawT);
 
-        // Re-read target every frame (scroll-proof)
-        var tRect = target.getBoundingClientRect();
-        var tx = tRect.left + tRect.width / 2;
-        var ty = tRect.top + tRect.height / 2;
+        // Refresh target position every ~100ms (scroll-proof but not every frame)
+        if (now - lastRectTime > 100) {
+            tRect = target.getBoundingClientRect();
+            tx = tRect.left + tRect.width / 2;
+            ty = tRect.top + tRect.height / 2;
+            lastRectTime = now;
+        }
 
-        // Smooth single-curve lerp: position, scale, rotation, opacity
-        var cx = lerp(sx, tx, t);
-        var cy = lerp(sy, ty, t);
-        var scale = lerp(startScale, 1, t);
-        var rot = lerp(-15, 0, t);
-        var opacity = Math.min(1, t * 4);           // reaches 1 at t=0.25
-        var bright = lerp(2, 1, Math.min(1, t * 2)); // settles at t=0.5
+        var cx = sx + (tx - sx) * t;
+        var cy = sy + (ty - sy) * t;
+        var scale = startScale + (1 - startScale) * t;
+        var rot = -15 + 15 * t;
+        var opacity = t < 0.25 ? t * 4 : 1;
 
+        // Single composite transform — no filter (brightness was expensive)
         phantom.style.left = (cx - pw / 2) + 'px';
         phantom.style.top = (cy - ph / 2) + 'px';
         phantom.style.opacity = opacity;
-        phantom.style.filter = 'brightness(' + bright.toFixed(2) + ')';
-        phantom.style.transform = 'scale(' + scale.toFixed(4) + ') rotate(' + rot.toFixed(2) + 'deg)';
+        phantom.style.transform = 'scale(' + scale + ') rotate(' + rot + 'deg)';
 
         if (rawT < 1) {
             requestAnimationFrame(tick);
