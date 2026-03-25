@@ -284,8 +284,15 @@ async function init() {
 
         if (!baseUrl) { setCorsNeeded(false); return; }
 
-        // Sandbox has relaxed CORS - no probe needed
-        if (isSandboxUrl(baseUrl)) { setCorsNeeded(false); return; }
+        // Sandbox has relaxed CORS - no probe needed, but still fetch version
+        if (isSandboxUrl(baseUrl)) {
+            setCorsNeeded(false);
+            fetch(baseUrl + '/version', { method: 'GET', mode: 'cors', cache: 'no-store' })
+                .then(r => r.ok ? r.text() : null)
+                .then(t => { if (t) $('#cors-direct-version').text('inSign ' + t.trim()).removeClass('d-none'); })
+                .catch(() => {});
+            return;
+        }
 
         // Probe the URL directly (no proxy) to see if CORS is an issue
         directProbeAbort = new AbortController();

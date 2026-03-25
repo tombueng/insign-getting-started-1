@@ -212,26 +212,6 @@
         })(i);
     }
 
-    // Scroll-linked: highlight the item closest to vertical center
-    var rafId = null;
-    window.addEventListener('scroll', function () {
-        if (rafId) return;
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            var vh = window.innerHeight;
-            var center = vh * 0.45;
-            var bestIdx = 0;
-            var bestDist = Infinity;
-            for (var j = 0; j < items.length; j++) {
-                var r = items[j].getBoundingClientRect();
-                var mid = r.top + r.height / 2;
-                var dist = Math.abs(mid - center);
-                if (dist < bestDist) { bestDist = dist; bestIdx = j; }
-            }
-            activateItem(bestIdx);
-        });
-    }, { passive: true });
-
     // Click screenshot -> open explorer
     container.addEventListener('click', function () {
         window.open('explorer.html', '_blank');
