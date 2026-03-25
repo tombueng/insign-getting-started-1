@@ -16,7 +16,12 @@
     python:      { label: 'Python',          monacoLanguage: 'python',     template: 'python.py' },
     php:         { label: 'PHP',             monacoLanguage: 'php',        template: 'php.php' },
     csharp:      { label: 'C#',              monacoLanguage: 'csharp',     template: 'csharp.cs' },
-    nodejs:      { label: 'Node.js',         monacoLanguage: 'javascript', template: 'nodejs.js' }
+    nodejs:      { label: 'Node.js',         monacoLanguage: 'javascript', template: 'nodejs.js' },
+    typescript:  { label: 'TypeScript',      monacoLanguage: 'typescript', template: 'typescript.ts' },
+    ruby:        { label: 'Ruby',            monacoLanguage: 'ruby',       template: 'ruby.rb' },
+    go:          { label: 'Go',              monacoLanguage: 'go',         template: 'go.go' },
+    rust:        { label: 'Rust',            monacoLanguage: 'rust',       template: 'rust.rs' },
+    kotlin:      { label: 'Kotlin',          monacoLanguage: 'kotlin',     template: 'kotlin.kt' }
   };
 
   // Template cache
@@ -186,11 +191,16 @@
     return lines.join('\n');
   }
 
-  /** GSON JsonObject builder for Java */
+  /** GSON JsonObject builder for Java / Kotlin */
   function gsonBuildNode(obj, varName, indent, docs, langKey) {
     var pad = new Array(indent + 1).join(' ');
+    var isKt = langKey === 'kotlin';
+    var decl = isKt ? 'val ' : '';
+    var newKw = isKt ? '' : 'new ';
+    var typeDecl = isKt ? '' : 'JsonObject ';
+    var arrTypeDecl = isKt ? '' : 'JsonArray ';
     var lines = [];
-    lines.push(pad + 'JsonObject ' + varName + ' = new JsonObject();');
+    lines.push(pad + decl + typeDecl + varName + ' = ' + newKw + 'JsonObject();');
 
     Object.keys(obj).forEach(function (key) {
       var val = obj[key];
@@ -208,11 +218,11 @@
       } else if (Array.isArray(val)) {
         var arrVar = key + 'Array';
         lines.push('');
-        lines.push(pad + 'JsonArray ' + arrVar + ' = new JsonArray();');
+        lines.push(pad + decl + arrTypeDecl + arrVar + ' = ' + newKw + 'JsonArray();');
         val.forEach(function (item, i) {
           if (typeof item === 'object' && item !== null) {
             var itemVar = key + 'Item' + i;
-            lines.push(pad + 'JsonObject ' + itemVar + ' = new JsonObject();');
+            lines.push(pad + decl + typeDecl + itemVar + ' = ' + newKw + 'JsonObject();');
             Object.keys(item).forEach(function (ik) {
               var iv = item[ik];
               if (iv === null || iv === undefined) return;
@@ -223,7 +233,7 @@
                 lines.push(pad + itemVar + '.addProperty("' + escapeJava(ik) + '", ' + iv + ');');
               } else if (Array.isArray(iv)) {
                 var innerArr = ik + 'Arr';
-                lines.push(pad + 'JsonArray ' + innerArr + ' = new JsonArray();');
+                lines.push(pad + decl + arrTypeDecl + innerArr + ' = ' + newKw + 'JsonArray();');
                 iv.forEach(function (sv) {
                   if (typeof sv === 'string') lines.push(pad + innerArr + '.add("' + escapeJava(sv) + '");');
                   else lines.push(pad + innerArr + '.add(' + JSON.stringify(sv) + ');');
@@ -242,7 +252,7 @@
       } else if (typeof val === 'object') {
         var subVar = key + 'Node';
         lines.push('');
-        lines.push(pad + 'JsonObject ' + subVar + ' = new JsonObject();');
+        lines.push(pad + decl + typeDecl + subVar + ' = ' + newKw + 'JsonObject();');
         Object.keys(val).forEach(function (sk) {
           var sv = val[sk];
           if (sv === null || sv === undefined) return;
@@ -388,6 +398,114 @@
       }
       result.push(i === 0 ? line : pad + line);
     });
+    return result.join('\n');
+  }
+
+  /** Ruby hash literal */
+  function rubyHash(obj, indent, docs) {
+    var pad = new Array(indent + 1).join(' ');
+    var innerPad = pad + '  ';
+
+    if (Array.isArray(obj)) {
+      var lines = ['['];
+      obj.forEach(function (val) {
+        if (typeof val === 'string') lines.push(innerPad + '"' + escapeJava(val) + '",');
+        else if (typeof val === 'boolean') lines.push(innerPad + val + ',');
+        else if (typeof val === 'number') lines.push(innerPad + val + ',');
+        else if (typeof val === 'object' && val !== null) lines.push(innerPad + rubyHash(val, indent + 2, docs) + ',');
+      });
+      lines.push(pad + ']');
+      return lines.join('\n');
+    }
+
+    var lines = ['{'];
+    Object.keys(obj).forEach(function (key) {
+      var val = obj[key];
+      if (docs) { var dc = getDocComment(key, 'ruby'); if (dc) lines.push(innerPad + dc); }
+      if (val === null || val === undefined) lines.push(innerPad + '"' + key + '" => nil,');
+      else if (typeof val === 'string') lines.push(innerPad + '"' + key + '" => "' + escapeJava(val) + '",');
+      else if (typeof val === 'boolean') lines.push(innerPad + '"' + key + '" => ' + val + ',');
+      else if (typeof val === 'number') lines.push(innerPad + '"' + key + '" => ' + val + ',');
+      else if (Array.isArray(val) || typeof val === 'object') lines.push(innerPad + '"' + key + '" => ' + rubyHash(val, indent + 2, docs) + ',');
+    });
+    lines.push(pad + '}');
+    return lines.join('\n');
+  }
+
+  /** Go map literal (map[string]interface{}) */
+  function goMapLiteral(obj, indent, docs) {
+    var pad = new Array(indent + 1).join('\t');
+    var innerPad = pad + '\t';
+
+    if (Array.isArray(obj)) {
+      var lines = ['[]interface{}{'];
+      obj.forEach(function (val) {
+        if (typeof val === 'string') lines.push(innerPad + '"' + escapeJava(val) + '",');
+        else if (typeof val === 'boolean') lines.push(innerPad + val + ',');
+        else if (typeof val === 'number') lines.push(innerPad + val + ',');
+        else if (typeof val === 'object' && val !== null) lines.push(innerPad + goMapLiteral(val, indent + 1, docs) + ',');
+      });
+      lines.push(pad + '}');
+      return lines.join('\n');
+    }
+
+    var lines = ['map[string]interface{}{'];
+    Object.keys(obj).forEach(function (key) {
+      var val = obj[key];
+      if (docs) { var dc = getDocComment(key, 'go'); if (dc) lines.push(innerPad + dc); }
+      if (val === null || val === undefined) lines.push(innerPad + '"' + key + '": nil,');
+      else if (typeof val === 'string') lines.push(innerPad + '"' + key + '": "' + escapeJava(val) + '",');
+      else if (typeof val === 'boolean') lines.push(innerPad + '"' + key + '": ' + val + ',');
+      else if (typeof val === 'number') lines.push(innerPad + '"' + key + '": ' + val + ',');
+      else if (Array.isArray(val) || typeof val === 'object') lines.push(innerPad + '"' + key + '": ' + goMapLiteral(val, indent + 1, docs) + ',');
+    });
+    lines.push(pad + '}');
+    return lines.join('\n');
+  }
+
+  /** Rust serde_json::json! macro literal (JSON-like but with Rust booleans) */
+  function rustJsonLiteral(obj, indent, docs) {
+    // Rust json! macro accepts JSON syntax directly
+    var json = JSON.stringify(obj, null, 4);
+    var pad = new Array(indent + 1).join(' ');
+    if (!docs) {
+      return json.split('\n').map(function (line, i) {
+        return i === 0 ? line : pad + line;
+      }).join('\n');
+    }
+    var result = [];
+    json.split('\n').forEach(function (line, i) {
+      var keyMatch = line.match(/^\s+"(\w+)":/);
+      if (keyMatch) {
+        var dc = getDocComment(keyMatch[1], 'rust');
+        if (dc) result.push(pad + dc);
+      }
+      result.push(i === 0 ? line : pad + line);
+    });
+    return result.join('\n');
+  }
+
+  /** Kotlin JSON string builder (uses GSON JsonObject like java_pure but with Kotlin syntax) */
+  function kotlinGsonBuild(obj, varName, indent, docs) {
+    var pad = new Array(indent + 1).join(' ');
+    var lines = [];
+
+    // For the top-level body, we build a JSON string (simpler for Kotlin template)
+    var json = JSON.stringify(obj, null, 4);
+    if (!docs) {
+      lines.push('"""\n' + json + '\n' + pad + '""".trimIndent()');
+      return lines.join('\n');
+    }
+    var result = ['"""'];
+    json.split('\n').forEach(function (line) {
+      var keyMatch = line.match(/^\s+"(\w+)":/);
+      if (keyMatch) {
+        var dc = getDocComment(keyMatch[1], 'kotlin');
+        // Can't put comments inside a raw string, skip docs for Kotlin
+      }
+      result.push(line);
+    });
+    result.push(pad + '""".trimIndent()');
     return result.join('\n');
   }
 
@@ -683,6 +801,30 @@
       case 'java_insign':
         return '        // --- Alternative: load file from disk instead of fileURL ---\n' +
                '        // doc.setFile(java.nio.file.Files.newInputStream(java.nio.file.Path.of("' + fn + '")));\n';
+      case 'typescript':
+        return '// --- Alternative: embed file as base64 instead of fileURL ---\n' +
+               '// import * as fs from "fs";\n' +
+               '// const fileB64 = fs.readFileSync("' + fn + '").toString("base64");\n' +
+               '// Then replace "fileURL" with: "file": fileB64\n';
+      case 'ruby':
+        return '# --- Alternative: embed file as base64 instead of fileURL ---\n' +
+               '# require "base64"\n' +
+               '# file_b64 = Base64.strict_encode64(File.binread("' + fn + '"))\n' +
+               '# Then replace "fileURL" with: "file" => file_b64\n';
+      case 'go':
+        return '\t// --- Alternative: embed file as base64 instead of fileURL ---\n' +
+               '\t// fileBytes, _ := os.ReadFile("' + fn + '")\n' +
+               '\t// fileB64 := base64.StdEncoding.EncodeToString(fileBytes)\n' +
+               '\t// Then replace "fileURL" with: "file": fileB64\n';
+      case 'rust':
+        return '    // --- Alternative: embed file as base64 instead of fileURL ---\n' +
+               '    // use base64::Engine;\n' +
+               '    // let file_b64 = base64::engine::general_purpose::STANDARD.encode(std::fs::read("' + fn + '")?);\n' +
+               '    // Then replace "fileURL" with: "file": file_b64\n';
+      case 'kotlin':
+        return '    // --- Alternative: embed file as base64 instead of fileURL ---\n' +
+               '    // val fileB64 = java.util.Base64.getEncoder().encodeToString(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("' + fn + '")))\n' +
+               '    // Then replace "fileURL" with: "file": fileB64\n';
       default:
         return '';
     }
@@ -707,6 +849,7 @@
       PATH:          ctx.path,
       METHOD:        method,
       METHOD_LOWER:  method.toLowerCase(),
+      METHOD_CAPITALIZED: method.charAt(0).toUpperCase() + method.slice(1).toLowerCase(),
       USERNAME:      ctx.username || '',
       PASSWORD:      ctx.password || '',
       CONTENT_TYPE:  ctx.contentType || 'application/json',
@@ -738,6 +881,21 @@
           break;
         case 'nodejs':
           vars.BODY_BUILD = jsObjectLiteral(bodyForBuild, 2, includeDocs);
+          break;
+        case 'typescript':
+          vars.BODY_BUILD = jsObjectLiteral(bodyForBuild, 2, includeDocs);
+          break;
+        case 'ruby':
+          vars.BODY_BUILD = rubyHash(bodyForBuild, 0, includeDocs);
+          break;
+        case 'go':
+          vars.BODY_BUILD = goMapLiteral(bodyForBuild, 1, includeDocs);
+          break;
+        case 'rust':
+          vars.BODY_BUILD = rustJsonLiteral(bodyForBuild, 4, includeDocs);
+          break;
+        case 'kotlin':
+          vars.BODY_BUILD = gsonBuildNode(bodyForBuild, 'body', 0, includeDocs, 'kotlin');
           break;
         case 'curl':
           vars.BODY_JSON = escapeShell(JSON.stringify(bodyForBuild, null, 2));
@@ -843,7 +1001,7 @@
       }
     }
     if (!info && !desc) return '';
-    var cmt = (langKey === 'python' || langKey === 'curl') ? '# ' : '// ';
+    var cmt = (langKey === 'python' || langKey === 'curl' || langKey === 'ruby') ? '# ' : '// ';
     var label = info ? info.label : key;
     return desc ? (cmt + label + ': ' + desc) : '';
   }
@@ -880,7 +1038,11 @@
 
   /** Format a sample value literal for a given language */
   function sampleLiteral(langKey, type) {
-    if (type === 'bool') return langKey === 'python' ? 'True' : 'true';
+    if (type === 'bool') {
+      if (langKey === 'python') return 'True';
+      if (langKey === 'ruby') return 'true';
+      return 'true';
+    }
     if (langKey === 'php') return "'...'";
     return '"..."';
   }
@@ -912,7 +1074,7 @@
       var missing = sec.items.filter(function (p) { return !sec.existing[p.key]; });
       if (missing.length === 0) return;
 
-      var cmt = langKey === 'python' || langKey === 'curl' ? '# ' : '// ';
+      var cmt = langKey === 'python' || langKey === 'curl' || langKey === 'ruby' ? '# ' : '// ';
       var pad = '';
       if (langKey === 'java_pure' || langKey === 'java_spring' || langKey === 'java_insign') pad = '        ';
 
@@ -926,12 +1088,20 @@
             lines.push(cmt + 'payload["' + sec.path + '"] = {}'); break;
           case 'php':
             lines.push(cmt + "$payload['" + sec.path + "'] = [];"); break;
-          case 'nodejs':
+          case 'nodejs': case 'typescript':
             lines.push(cmt + 'body.' + sec.path + ' = {};'); break;
           case 'csharp':
             lines.push(cmt + 'body["' + sec.path + '"] = new JsonObject();'); break;
           case 'java_pure': case 'java_spring':
             lines.push(pad + cmt + 'ObjectNode ' + sec.path + 'Node = body.putObject("' + sec.path + '");'); break;
+          case 'ruby':
+            lines.push(cmt + 'payload["' + sec.path + '"] = {}'); break;
+          case 'go':
+            lines.push(cmt + 'body["' + sec.path + '"] = map[string]interface{}{}'); break;
+          case 'rust':
+            lines.push(cmt + 'body["' + sec.path + '"] = serde_json::json!({})'); break;
+          case 'kotlin':
+            lines.push(pad + cmt + '// Add "' + sec.path + '": {} to the JSON body string'); break;
         }
       }
 
@@ -953,7 +1123,7 @@
             line = cmt + pre + "['" + p.key + "'] = " + val + ';';
             break;
           }
-          case 'nodejs': {
+          case 'nodejs': case 'typescript': {
             var pre = sec.path === 'root' ? 'body' : 'body.' + sec.path;
             line = cmt + pre + '["' + p.key + '"] = ' + val + ';';
             break;
@@ -985,6 +1155,24 @@
           }
           case 'curl': {
             line = cmt + '"' + p.key + '": ' + val;
+            break;
+          }
+          case 'ruby': {
+            var pre = sec.path === 'root' ? 'payload' : 'payload["' + sec.path + '"]';
+            line = cmt + pre + '["' + p.key + '"] = ' + val;
+            break;
+          }
+          case 'go': {
+            var pre = sec.path === 'root' ? 'body' : 'body["' + sec.path + '"].(map[string]interface{})';
+            line = cmt + pre + '["' + p.key + '"] = ' + val;
+            break;
+          }
+          case 'rust': {
+            line = cmt + 'body["' + p.key + '"] = serde_json::json!(' + val + ');';
+            break;
+          }
+          case 'kotlin': {
+            line = pad + cmt + '// Add "' + p.key + '": ' + val + ' to the JSON body string';
             break;
           }
         }

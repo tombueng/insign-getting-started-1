@@ -16,7 +16,19 @@ const docsDir = path.join(__dirname, '..', 'docs');
 
 global.window = {};
 global.document = { readyState: 'complete' };
-global.fetch = () => Promise.resolve({ ok: false });
+global.fetch = (url) => {
+  const filePath = path.join(docsDir, url);
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    return Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve(content),
+      json: () => Promise.resolve(JSON.parse(content)),
+    });
+  } catch {
+    return Promise.resolve({ ok: false });
+  }
+};
 global.XMLHttpRequest = class {
   open(method, url) { this._file = path.join(docsDir, url); }
   send() {
@@ -77,6 +89,10 @@ const context = {
 
 // ---------- Generate and validate all languages ----------
 
+// Wait for async template preloading (fetch promises) to settle
+(async () => {
+await new Promise(r => setTimeout(r, 100));
+
 const errors = [];
 const outputDir = path.join(__dirname, 'generated');
 fs.mkdirSync(outputDir, { recursive: true });
@@ -126,7 +142,8 @@ Object.keys(CodeGenerator.LANGUAGES).forEach(langKey => {
 
   // Write output
   const ext = { curl: 'sh', java_spring: 'java', java_pure: 'java', java_insign: 'java',
-                 python: 'py', php: 'php', csharp: 'cs', nodejs: 'js' }[langKey] || 'txt';
+                 python: 'py', php: 'php', csharp: 'cs', nodejs: 'js', typescript: 'ts',
+                 ruby: 'rb', go: 'go', rust: 'rs', kotlin: 'kt' }[langKey] || 'txt';
   const outFile = path.join(outputDir, `${langKey}.${ext}`);
   fs.writeFileSync(outFile, code);
   generated[langKey] = { code, file: outFile, lines: code.split('\n').length };
@@ -213,3 +230,5 @@ if (errors.length > 0) {
 } else {
   console.log('All code generator tests passed.');
 }
+
+})();
