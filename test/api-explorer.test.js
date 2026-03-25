@@ -350,9 +350,14 @@ function assert(condition, testName, details) {
                     });
                     assert(configuratorOpen, 'Feature configurator expands on click');
 
-                    // Test search
+                    // Test search - wait for feature toggles to be populated first
                     const searchInput = page.locator('#feature-search');
                     if (await searchInput.isVisible()) {
+                        // Feature toggles load async; wait for at least one to appear
+                        await page.waitForFunction(
+                            () => document.querySelectorAll('#feature-toggles .feature-toggle').length > 0,
+                            { timeout: 10000 }
+                        );
                         await searchInput.fill('signature');
                         await page.waitForTimeout(300);
                         const visibleToggles = await page.evaluate(() => {
