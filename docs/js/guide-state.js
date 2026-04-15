@@ -8,7 +8,7 @@ const SANDBOX = {
     url: 'https://sandbox.test.getinsign.show',
     username: 'controller',
     password: 'pwd.insign.sandbox.4561',
-    docUrl: 'https://tombueng.github.io/insign-getting-started-1/data/sample.pdf'
+    docUrl: 'https://getinsign.github.io/insign-getting-started/data/sample.pdf'
 };
 
 /* ==========================================================================

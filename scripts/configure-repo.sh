@@ -76,6 +76,14 @@ declare -a REPLACEMENTS=(
 
   "maven\.pkg\.github\.com/getinsign/insign-getting-started"
   "maven.pkg.github.com/${NEW_OWNER}/${NEW_REPO}"
+
+  # 5. shields.io badge URLs  (img.shields.io/github/<anything>/owner/repo/...)
+  #    Backref \1 preserves the badge path (actions/workflow/status, stars, issues, ...)
+  "(shields\.io/github/[a-zA-Z0-9_/-]+/)tombueng/insign-getting-started-1"
+  "\\1${NEW_OWNER}/${NEW_REPO}"
+
+  "(shields\.io/github/[a-zA-Z0-9_/-]+/)getinsign/insign-getting-started"
+  "\\1${NEW_OWNER}/${NEW_REPO}"
 )
 
 # ---------------------------------------------------------------------------

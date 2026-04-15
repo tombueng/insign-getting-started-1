@@ -80,7 +80,7 @@ Runs the full Node.js server inside your browser via WebContainers. Nothing to i
 
 ### Option 4: Vercel (serverless, free tier)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/tombueng/insign-getting-started-1&env=INSIGN_URL,INSIGN_USER,INSIGN_PASS)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/getinsign/insign-getting-started&env=INSIGN_URL,INSIGN_USER,INSIGN_PASS)
 
 The project includes Vercel serverless functions (`api/*.js`) that wrap the same shared route handlers used by the Express server. Static files are served from `docs/`. Set environment variables in the Vercel dashboard:
 
@@ -299,4 +299,4 @@ Tests cover:
 
 Demo application for educational purposes. See inSign licensing for the signature pad component.
 
-[![Node.js CI - Lint and Test](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml/badge.svg)](https://github.com/tombueng/insign-getting-started-1/actions/workflows/node.yml)
+[![Node.js CI - Lint and Test](https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml/badge.svg)](https://github.com/getinsign/insign-getting-started/actions/workflows/node.yml)

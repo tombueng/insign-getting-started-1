@@ -69,7 +69,7 @@ const body = {
     {
       id: 'testdoc',
       displayname: 'TestDocument.pdf',
-      fileURL: 'https://tombueng.github.io/insign-getting-started-1/data/sample.pdf',
+      fileURL: 'https://getinsign.github.io/insign-getting-started/data/sample.pdf',
       mustbesigned: true,
       scanSigTags: true,
     }
