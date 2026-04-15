@@ -59,7 +59,7 @@ jobs:
         if: failure()
         with:
           name: sign-widget-playwright-results
-          path: src/sign-widget-demo-application/test-results/
+          path: src/sign-widget-demo-application/.target/test-results/
           retention-days: 7
 
   docker:
