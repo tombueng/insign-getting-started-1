@@ -153,24 +153,9 @@ async function createSession(andOpen) {
                 window.open(respBody.accessURL, '_blank');
             }
 
-            // Auto-navigate to step 3 after 3s countdown (synced on inline + floating)
             const $step2Btns = $('#btn-goto-step2, #btn-floating-goto-step2');
             if ($step2Btns.length && !$step2Btns.first().hasClass('d-none')) {
-                let countdown = 3;
-                const setLabel = (n) => $step2Btns.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace' + (n > 0 ? ' (' + n + ')' : ''));
-                setLabel(countdown);
-                const timer = setInterval(() => {
-                    countdown--;
-                    if (countdown <= 0) {
-                        clearInterval(timer);
-                        setLabel(0);
-                        goToStep(3);
-                    } else {
-                        setLabel(countdown);
-                    }
-                }, 1000);
-                // Cancel countdown if user clicks either button
-                $step2Btns.one('click', () => clearInterval(timer));
+                $step2Btns.html('<i class="bi bi-arrow-right"></i> Operate &amp; Trace');
             }
         }
     }
