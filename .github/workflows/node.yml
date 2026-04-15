@@ -9,6 +9,7 @@ on:
       - 'package-lock.json'
       - 'scripts/**'
       - 'test/**'
+      - 'docs/data/cf-webhook-worker.js'
       - '.github/workflows/node.yml'
   pull_request:
     branches: [ "main" ]
@@ -18,6 +19,7 @@ on:
       - 'package-lock.json'
       - 'scripts/**'
       - 'test/**'
+      - 'docs/data/cf-webhook-worker.js'
       - '.github/workflows/node.yml'
   workflow_dispatch:
 
@@ -125,3 +127,18 @@ jobs:
 
       - name: Run UI integration tests
         run: npm run test:ui
+
+  cf-worker:
+    name: Cloudflare Worker tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Run CF worker integration tests
+        run: node test/cf-worker-test.js
