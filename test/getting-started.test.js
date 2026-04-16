@@ -1,5 +1,5 @@
 /**
- * Integration test for the Getting Started demo app (docs/index.html).
+ * Integration test for the Getting Started demo app (docs/guide.html).
  *
  * Loads the application, clicks through visible interactive elements, and
  * watches the browser console for errors. The app is a multi-step wizard UI
@@ -30,7 +30,7 @@ const http = require('http');
 // Config
 // ---------------------------------------------------------------------------
 const PORT = 9877;
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = `http://localhost:${PORT}/guide.html`;
 const HEADED = process.argv.includes('--headed');
 const SLOW_MO = HEADED ? 80 : 0;
 
