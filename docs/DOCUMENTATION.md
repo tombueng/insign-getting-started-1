@@ -669,7 +669,8 @@ The app supports both themes with automatic system preference detection. Toggle 
 
 ```
 docs/
-  index.html                    # Main application (single page)
+  index.html                    # Developer hub / landing page
+  guide.html                    # Getting Started guide (interactive walkthrough)
   js/
     app.js                      # Application logic and UI orchestration
     api-client.js               # HTTP client with auth, CORS proxy, tracing

@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { buildSignaturePath } = require('./signature-path');
+const fs = require('fs');
 const path = require('path');
 
 // Signature text and font - change these to use a different name or style
@@ -7,6 +8,29 @@ const SIGNATURE_TEXT = 'Chris Signlord';
 const SIGNATURE_FONT = path.join(__dirname, 'fonts', 'DancingScript.ttf');
 
 test.describe('Getting Started - Full SEPA Mandate Flow', () => {
+
+  // Capture browser console + page errors for every test; attach on failure
+  // so the CI artifact upload includes them alongside screenshot/video.
+  test.beforeEach(async ({ page }) => {
+    const logs = [];
+    page._consoleLogs = logs;
+    page.on('console', msg => logs.push(`[${msg.type()}] ${msg.text()}`));
+    page.on('pageerror', err => logs.push(`[pageerror] ${err.message}\n${err.stack || ''}`));
+    page.on('requestfailed', req => logs.push(`[requestfailed] ${req.method()} ${req.url()} - ${req.failure()?.errorText || ''}`));
+  });
+
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status === testInfo.expectedStatus) return;
+    const logs = page._consoleLogs || [];
+    if (logs.length === 0) return;
+    // Write to the per-test output dir so the CI artifact upload picks it up.
+    const logPath = testInfo.outputPath('browser-console.log');
+    fs.writeFileSync(logPath, logs.join('\n'));
+    await testInfo.attach('browser-console.log', {
+      path: logPath,
+      contentType: 'text/plain',
+    });
+  });
 
   test('Step 1 - Welcome page renders correctly', async ({ page }) => {
     await page.goto('/');

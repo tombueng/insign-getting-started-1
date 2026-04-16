@@ -7,130 +7,93 @@
   </a>
 </p>
 
-<h1 align="center">inSign API - Getting Started</h1>
+<h1 align="center">inSign for Developers</h1>
 
 <p align="center">
-  <strong>Integrate electronic signatures into your application in minutes.</strong><br>
-  <sub>Free sandbox. No registration. No credit card. Just code.</sub>
+  <strong>Add electronic signatures to your application.</strong><br>
+  <sub>EU-hosted. eIDAS-compliant. Free sandbox - no registration, no API key, no credit card.</sub>
 </p>
 
 ---
 
-This repository contains everything you need to get started with the **inSign** electronic signature API: an interactive getting-started guide, a browser-based API explorer, a Java/Spring Boot sample application, and a Node.js demo showing the embedded signature widget.
+## What is inSign?
 
-## Links
+**inSign** is a cloud-based electronic signature platform. It lets you integrate legally binding signatures (simple, advanced, and qualified) into any application via a REST API. Documents are processed and stored on EU infrastructure. The free sandbox gives you full API access with zero setup.
 
-| | |
-|---|---|
-| :rocket: **Getting Started Guide** | [**Start here**](https://getinsign.github.io/insign-getting-started/) |
-| :telescope: **API Explorer** | [Open the interactive API Explorer](https://getinsign.github.io/insign-getting-started/explorer.html) |
-| :coffee: **Java Sample App** | [src/java/](src/java/) - Spring Boot demo with pluggable API clients |
-| :pen: **Signature Widget Demo** | [src/sign-widget-demo-application/](src/sign-widget-demo-application/) - Embedded signature pad (Node.js) |
-| :book: **Swagger API Reference** | [Browse the API docs](https://sandbox.test.getinsign.show/docs/swagger-ui/index.html) |
-| :globe_with_meridians: **inSign Homepage** | [www.getinsign.com](https://www.getinsign.com/) |
+## Where to start?
 
----
+### New here? Start with the Getting Started Guide
 
-## :rocket: Start Here - The Getting Started Guide
+> **[Open the Getting Started Guide](https://getinsign.github.io/insign-getting-started/guide.html)**
 
-> :point_right: **[https://getinsign.github.io/insign-getting-started/](https://getinsign.github.io/insign-getting-started/)** :point_left:
+Interactive 4-step walkthrough. Create a session, upload a PDF, sign it, download the result - all live in your browser against the free sandbox. Takes about 5 minutes.
 
-The Getting Started Guide is a single-page interactive walkthrough hosted via GitHub Pages (served from the [`docs/`](docs/) directory). It is the best starting point for anyone new to the inSign API.
+### Want to explore the full API? Use the API Explorer
 
-The guide walks you through the core signing workflow step by step: creating a session, uploading a document, opening the signing UI, and retrieving the signed result. Each step includes live code examples with a built-in JSON editor, pre-configured to work against the inSign sandbox - you can execute real API calls directly from the page without any setup.
+> **[Open the API Explorer](https://getinsign.github.io/insign-getting-started/explorer.html)**
 
-The guide links to the full API Explorer for deeper exploration and to the Swagger API reference for the complete endpoint documentation.
+Full interactive playground with a schema-aware JSON editor, autocomplete from the live OpenAPI spec, code snippets in 13 languages, webhook visualization, and request tracing. This is your API reference.
 
----
+### Want to see a working integration? Check the demo apps
 
-## API Explorer
+| Demo | What it shows | Stack |
+|------|--------------|-------|
+| **[Embedded Signature Pad](src/sign-widget-demo-application/)** | SEPA mandate signing with inline signature pad, JWT auth, dynamic PDF generation | Node.js, Express |
+| **[Java Sample App](src/java/)** | Full backend: session management, document upload, webhooks, SSE events, pluggable API clients | Java, Spring Boot |
 
-> **[https://getinsign.github.io/insign-getting-started/explorer.html](https://getinsign.github.io/insign-getting-started/explorer.html)**
-
-The API Explorer is a full interactive playground for the inSign API, also hosted via GitHub Pages from [`docs/explorer.html`](docs/explorer.html). It runs entirely in the browser - no backend required.
-
-It provides a four-step guided flow that covers the complete signing lifecycle:
-
-1. **Create Session** - configure and create an inSign session with live request/response editing
-2. **Upload Document** - upload a PDF to the session (via URL, Base64, or file upload)
-3. **Sign** - open the inSign signing UI in an embedded iframe or external window
-4. **Download** - retrieve the signed document and inspect session status
-
-Each step includes editable JSON request bodies, real-time response display, and credential management (with profiles that can be saved to localStorage). The explorer connects to the inSign sandbox by default and works out of the box.
+Both connect to the free sandbox out of the box. Clone, run, adapt.
 
 ---
 
-## Sig-Funnel - Embedded Signature Pad Demo
+## Overview: What's in this repository?
 
-The [`src/sign-widget-demo-application/`](src/sign-widget-demo-application/) directory contains a **self-contained Node.js demo** (based on [sig-funnel](https://github.com/getinsign/insign-getting-started)) that demonstrates the inSign **embedded signature pad** in a realistic use case: a SEPA Direct Debit Mandate signing flow.
+| Component | Description | For whom |
+|-----------|-------------|----------|
+| [**Developer Hub**](https://getinsign.github.io/insign-getting-started/) | Landing page with guided paths | Everyone |
+| [**Getting Started Guide**](https://getinsign.github.io/insign-getting-started/guide.html) | 4-step interactive API walkthrough | New to inSign |
+| [**API Explorer**](https://getinsign.github.io/insign-getting-started/explorer.html) | Interactive playground, code generation, API reference | All developers |
+| [**Signature Pad Demo**](src/sign-widget-demo-application/) | Embedded signature pad in a SEPA mandate flow | Frontend / fullstack |
+| [**Java Sample App**](src/java/) | Spring Boot backend with pluggable API clients | Backend / Java |
+| **Postman Collection** | Pre-built requests for the sandbox ([collection](docs/data/Getting%20started%20with%20inSign%20API%20Sandbox.postman_collection.json), [environment](docs/data/inSign%20environment%20sandbox.postman_environment.json)) | Quick API testing |
 
-The user fills in personal data, the server generates a mandate PDF on the fly, creates an inSign session, and the signature pad is rendered inline - all without leaving the page. Each step includes collapsible developer documentation explaining the integration.
+---
 
-### Quick Start
+## Quick Start: Embedded Signature Pad (Node.js)
 
 ```bash
 cd src/sign-widget-demo-application
-./run.sh              # installs deps if needed, starts the server
-# or: ./run.sh docker  (build & run via Docker)
-# or: npm install && npm start
+./run.sh              # installs deps, starts the server
 # Open http://localhost:3000
 ```
 
-Connects to the inSign sandbox by default. No registration needed. The form is prefilled with test data so you can click through the entire flow immediately.
+The form is prefilled with test data - click through the entire signing flow immediately. Also deployable to [Glitch](https://glitch.com/), [StackBlitz](https://stackblitz.com/), [Vercel](https://vercel.com/), or Docker. See the [demo README](src/sign-widget-demo-application/README.md).
 
-Also deployable to Glitch, StackBlitz, Vercel, or Docker - see the [Sig-Funnel README](src/sign-widget-demo-application/README.md) for all options.
-
-### What It Demonstrates
-
-- **No proxy needed** - the browser talks directly to the inSign server; the embedded API is fully cookieless
-- JWT-based authentication for embedded mode (`createJWT: true`, `INSIGN_JWT` custom header)
-- Controller credentials stay server-side - the browser only receives a session-scoped JWT
-- Using `##SIG{...}` tags in a generated PDF for automatic signature field placement
-- Single API call session creation with PDF + `preFilledFields`
-- Dynamically rendering signature pads for each signature field found in the PDF
-- Downloading the signed PDF with embedded biometric data
-
-
-See the [Sig-Funnel README](src/sign-widget-demo-application/README.md) for the full documentation, including step-by-step guides, architecture diagrams, mobile WebView integration, security considerations, and a production checklist.
-
----
-
-## Java Sample Application
-
-The [`src/java/`](src/java/) directory contains a **Spring Boot sample application** that demonstrates the full inSign signing workflow: session creation, document upload, external signing invitations, real-time status tracking, webhook handling, and document download.
-
-It uses a **pluggable API client architecture** - choose between two included implementations or write your own by implementing a single interface.
-
-### Quick Start
+## Quick Start: Java Spring Boot
 
 ```bash
 cd src/java/app
-mvn spring-boot:run -Pspring-client    # Option A (default)
-# or
-mvn spring-boot:run -Pinsign-client    # Option B
+mvn spring-boot:run -Pspring-client    # or: -Pinsign-client
 # Open http://localhost:8090
 ```
 
-You must specify a Maven profile to select the API client implementation (see table below). Connects to the inSign sandbox by default. No registration needed.
+Pluggable API client architecture - swap between the Spring REST client and the Java API client by changing one Maven profile. See the [Java README](src/java/README.md).
 
-### Key Features
+---
 
-- **Pluggable API client** - swap implementations by changing one Maven dependency
-- **Convention-based JSON mapping** - POJO field names match the inSign API exactly, so Jackson handles all serialization automatically. No mapping code, no code generation.
-- **Add new API fields instantly** - just add a field to a model POJO with the correct name (case-sensitive). It works in both directions automatically.
-- **Forward-compatible** - unknown API response fields are captured in `additionalProperties` and forwarded to the browser. Nothing breaks when the API evolves.
-- **Real-time updates** - SSE events from webhooks and polling
-- **Full test suite** - runs against whichever implementation is active
+## Project Structure
 
-### API Client Options
-
-| Option | Profile | Start Command | Module | Class | Dependencies |
-|---|---|---|---|---|---|
-| **A** (default) | `-Pspring-client` | `mvn spring-boot:run -Pspring-client` (from `app/`) | `spring-insign-api-client-impl` | `SpringRestInsignApiClient` | Spring Boot only |
-| **B** | `-Pinsign-client` | `mvn spring-boot:run -Pinsign-client` (from `app/`) | `insign-client-api-impl` | `InsignJavaApiClient` | `insign-java-api` from GitHub Packages |
-| **C** | *(custom)* | *(depends on your setup)* | *(your own)* | `implements InsignApiService` | Whatever you need |
-
-See the [Java README](src/java/README.md) for full details on architecture, configuration, all REST endpoints, the POJO model, how to write your own implementation, GitHub Packages setup, and testing.
+```
+docs/                                  Developer hub (GitHub Pages)
+  index.html                           Landing page & overview
+  guide.html                           Getting Started guide
+  explorer.html                        API Explorer
+  js/                                  Application modules
+  codegen-templates/                   Code snippets (13 variants, 11 languages)
+  data/                                Test PDFs, Postman collections
+src/
+  sign-widget-demo-application/        Embedded signature pad demo (Node.js)
+  java/                                Spring Boot sample application
+```
 
 ---
 

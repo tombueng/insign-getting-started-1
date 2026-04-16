@@ -1774,12 +1774,15 @@ docker run -p 3000:3000 sig-funnel</code></pre>
     // It creates the global INSIGNAPP object with INSIGNAPP.embedded.* methods.
     loadScript(INSIGN_ROOT + 'js/insign-standalonesignature-pad.js', function () {
 
-      // STEP 3b: Load the session-specific config from inSign.
+      // STEP 3b: Load the cryptographic signing bundle from the inSign server.
+      loadScript(INSIGN_ROOT + 'js/insign-sign-crypt-bundle.js', function () {
+
+      // STEP 3c: Load the session-specific config from inSign.
       // This sets INSIGNAPP.config with settings like realNameInputRequired, etc.
       // The sessionid tells inSign which session's config to return.
       loadScript(INSIGN_ROOT + 'configjs.js?sessionid=' + insignSessionId, function () {
 
-        // STEP 3c: Initialize embedded data — this is the KEY call.
+        // STEP 3d: Initialize embedded data — this is the KEY call.
         // It fetches all signature fields and document metadata from inSign.
         //
         // Parameters:
@@ -1857,6 +1860,7 @@ docker run -p 3000:3000 sig-funnel</code></pre>
           startStatusPolling();
           checkAllSigned();
         }, insignJwt);  // <- The JWT is the 4th parameter!
+      });
       });
     });
   }
