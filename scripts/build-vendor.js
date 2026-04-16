@@ -102,49 +102,13 @@ copy(
 );
 console.log('  jquery ............. OK');
 
-// -- Monaco Editor (core + JSON language only) -------------------------------
+// -- Monaco Editor ------------------------------------------------------
+// Since 0.50+ Monaco uses a flat bundle structure under min/vs/ instead of
+// the old base/editor/language subdirectory layout. Copy the entire tree
+// so both old and new versions work without listing individual paths.
 const monacoSrc = path.join(NM, 'monaco-editor', 'min', 'vs');
 const monacoDest = path.join(VENDOR, 'monaco-editor', 'min', 'vs');
-
-// loader.js (entry point)
-copy(path.join(monacoSrc, 'loader.js'), path.join(monacoDest, 'loader.js'));
-
-// base/ - utility modules
-copyDir(path.join(monacoSrc, 'base'), path.join(monacoDest, 'base'));
-
-// editor/ - core editor
-copyDir(path.join(monacoSrc, 'editor'), path.join(monacoDest, 'editor'));
-
-// language/json/ - JSON language support only
-copyDir(
-  path.join(monacoSrc, 'language', 'json'),
-  path.join(monacoDest, 'language', 'json')
-);
-
-// basic-languages/ - root files + language subdirectories used by the app
-const blDir = path.join(monacoSrc, 'basic-languages');
-if (fs.existsSync(blDir)) {
-  // Root files (contribution registry)
-  for (const f of fs.readdirSync(blDir)) {
-    const full = path.join(blDir, f);
-    if (!fs.statSync(full).isDirectory()) {
-      copy(full, path.join(monacoDest, 'basic-languages', f));
-    }
-  }
-  // Language subdirectories loaded on-demand by Monaco
-  for (const lang of ['javascript', 'java', 'typescript', 'html', 'css']) {
-    const langDir = path.join(blDir, lang);
-    if (fs.existsSync(langDir)) {
-      copyDir(langDir, path.join(monacoDest, 'basic-languages', lang));
-    }
-  }
-}
-
-// language/typescript/ - TypeScript language support (loaded on-demand)
-const tsLangDir = path.join(monacoSrc, 'language', 'typescript');
-if (fs.existsSync(tsLangDir)) {
-  copyDir(tsLangDir, path.join(monacoDest, 'language', 'typescript'));
-}
+copyDir(monacoSrc, monacoDest);
 console.log('  monaco-editor ...... OK');
 
 // -- PDF.js (pdf viewer for explorer) ----------------------------------------
