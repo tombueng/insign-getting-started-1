@@ -68,13 +68,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Option 2: Glitch (instant, in-browser, free)
 
-[![Remix on Glitch](https://cdn.glitch.com/2703baf2-b643-4da7-ab91-7ee2a2d00b5b%2Fremix-button-v2.svg)](https://glitch.com/edit/#!/import/github/tombueng/insign-getting-started-1)
+[![Remix on Glitch](https://cdn.glitch.com/2703baf2-b643-4da7-ab91-7ee2a2d00b5b%2Fremix-button-v2.svg)](https://glitch.com/edit/#!/import/github/getinsign/insign-getting-started)
 
 Click "Remix" to get your own copy running instantly. No install needed. Edit code in the browser, see results immediately.
 
 ### Option 3: StackBlitz (runs Node.js in the browser)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/tombueng/insign-getting-started-1)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/getinsign/insign-getting-started)
 
 Runs the full Node.js server inside your browser via WebContainers. Nothing to install, no server needed.
 
